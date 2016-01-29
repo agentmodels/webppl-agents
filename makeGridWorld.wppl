@@ -25,8 +25,9 @@ var arraysEqual = function(xs, ys){
   return JSON.stringify(xs) === JSON.stringify(ys);
 };
 
-var printERP = function(x) {
+var printERP = function(x,k) {
   var erpValues = sort(x.support(), undefined, function(v){return -x.score([], v);});
+  var erpValues = typeof(k)=='undefined' ? erpValues : erpValues.slice(0,k);
   map(
     function(v){
       var prob = Math.exp(x.score([], v));
@@ -36,19 +37,6 @@ var printERP = function(x) {
     },
     erpValues);
 };
-
-var printTopK = function(erp,k){
-  var erpValues = sort(erp.support(), undefined, function(v){return -erp.score([], v);});
-  map(
-    function(v){
-      var prob = Math.exp(erp.score([], v));
-      if (prob > 0.0){
-        console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
-      }
-    },
-    erpValues.slice(0,k));
-};
-
 
 
 
@@ -61,7 +49,12 @@ var printTopK = function(erp,k){
 // Transition function can be stochastic. 
 
 var gridActions = ['l','r','u','d'];  // left, right, up down
-var gridEqual = function(state1,state2){return arraysEqual(state1,state2);};
+
+
+// Will treat the postTerminal as distinct from the terminal
+var gridEqual = function(state1,state2){
+  return arraysEqual(state1,state2);
+};
 
 // gridworld state is in array of states
 var stateInArray = function(state,ar){
@@ -256,21 +249,14 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
   var agent = cache( 
     function(_agent, _expUtility, state, timeLeft, params){
      
-      var out = Enumerate(function(){
+      return Enumerate(function(){
         var action = uniformDraw(params.actions);
         var eu = _expUtility(_agent, _expUtility, state, action, timeLeft, params);    
         factor(params.alpha * eu);
         return action;
-      });
+      });      
+    });
 
-      if (timeLeft == 6 & gridEqual(state,[0,1])){
-        console.log('\n\n agent: erp')
-        printERP(out)
-      }
-      return out;
-      
-    }
-  );
   
   var expUtility = cache(
     function(_agent, _expUtility, state, action, timeLeft, params){
@@ -298,7 +284,7 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
         var action = sample(agent(agent, expUtility, state, perceivedTimeLeft, params));
         var transition = params.transition;
         var nextState = transition(state,action); 
-        var out = output=='states' ? [state,'NO ACTION'] : [state,action];
+        var out = output=='states' ? [state,'X'] : [state,action];
         return [ out ].concat( sampleSequence(nextState,actualTimeLeft-1, perceivedTimeLeft-1));
       }
     };
@@ -312,42 +298,21 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
     }, numberRejectionSamples, undefined, true);
   };
 
-  // var testSimulate = function(){
-//     var action1 = sample(  agent(agent, expUtility, [0,0], 7, params) )
-//     var t = params.transition;
-//     var state1 = t([0,0],action1);
-//     var action2 = sample(  agent(agent, expUtility, state1, 6, params) )
-// //    console.log('state1, action2', state1, action2)
-//     return [state1, action2];
-//   }
-//   var testSim = Enumerate(testSimulate);
-//   console.log('print test Sim \n');
-//   printERP(testSim);
-//   ash();
-  
     
-//   var erp = agent(agent, expUtility, [1,0], 6, params)
-//   console.log('INSIFDE erp:' );
-//   printERP(erp)
-  
-
-  
-  // var getExpUtility = function( actions ){
-  //   var t = params.transition;
-  //   var states = getStates(startState, actions, t).MAP().val;
-  //   var timeStatesActions = zip( downToOne(actions.length), zip(states,actions) );
-      
-  //   var out = map( function(x){
-  //     var time = x[0];
-  //     var state = x[1][0];
-  //     var action = x[1][1];
-  //     return expUtility(agent, expUtility, state, action, time, params);
-  //   }, timeStatesActions);
-  //   var stateActions = map(function(sA){return sA[0][0] + (sA[0][1] + sA[1])},zip(states,actions));
-  //   return zip(stateActions,out);
-  // }; 
-  // var directActions = ['r','r', 'u','u', 'u','u', 'u'];
-  // console.log('expU go straight', getExpUtility(directActions));
+  var getExpUtility = function( actions ){
+    var t = params.transition;
+    var states = getStates(startState, actions, t).MAP().val;
+    var timeStatesActions = zip( downToOne(actions.length), zip(states,actions) );
+    
+    var out = map( function(x){
+      var time = x[0];
+      var state = x[1][0];
+      var action = x[1][1];
+      return expUtility(agent, expUtility, state, action, time, params);
+    }, timeStatesActions);
+    var stateActions = map(function(sA){return sA[0][0] + (sA[0][1] + sA[1])},zip(states,actions));
+    return zip(stateActions,out);
+  }; 
   
   var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params);
   return getExpUtilityValues ? {erp: erp, expUtilityValues: getExpUtility(selectIndex(erp.MAP().val,1)) } : 
@@ -373,18 +338,15 @@ var donutTest = function(){
   console.log('expUValues: ', out.expUtilityValues, ' \n\n MAP  ', out.erp.MAP().val);
   gridworldLibrary.zipToDisplayGrid( out.erp.MAP().val, 6,6,true);
   
-  printTopK(out.erp,10);
+  printERP(out.erp,10);
 };
 
 //donutTest();
 
 
 var smallGridTest = function(){
-  // TODO explain why params below result in weird behavior.
-  // Agent doesn't go directly to the terminal, even if the postTerminal
-  // has a bonus over a normal state. When noise is reduce or the
-  // postTerminal bonus increased, the agent behaves as expected. 
-  
+  console.log('\n Small grid, non-stoch transition, alpha=10 \n------------');
+
   var noiseProb = 0;
   var alpha = 10;
   var params = makeSmall(noiseProb, alpha);
@@ -393,23 +355,22 @@ var smallGridTest = function(){
   var startState = [0,0];
   var actualTotalTime = 7;
   var perceivedTotalTime = actualTotalTime;
-  var getExpUtilityValues = false;
+  var getExpUtilityValues = true;
   var output = 'states';
   var numberRejectionSamples = 0;
-
   var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
                         getExpUtilityValues, output);
-  console.log('expUValues: ', out.expUtilityValues, ' \n\n MAP  ', out.erp.MAP().val);
+  console.log('DIPLAY PATH')
+  gridworldLibrary.zipToDisplayGrid( out.erp.MAP().val, 3,3,true);
+  
+  console.log('\n\n expUValues: ', out.expUtilityValues, ' \n\n MAP  ', out.erp.MAP().val);
+  var clean = function(ar){return map(function(pair){return pair[0][0] + JSON.stringify(pair[0][1]);},ar)};
+  console.log('samples', repeat( 10, function(){return clean(sample(out.erp));}) )
   
 
   
-  var clean = function(ar){return map(function(pair){return pair[0][0] + JSON.stringify(pair[0][1]);},ar)};
-  console.log('repeat', repeat( 10, function(){return clean(sample(out.erp));}) )
-  console.log('\n topk, ')
-  printTopK(out.erp,10);
   
-  
-  console.log('\n\n SMALL GRID 2');
+  console.log('\n\n SMALL GRID 2: stochastic transitions, alpha=100 \n--------------');
   var noiseProb = 0.5;
   var alpha = 100;
   var params = makeSmall(noiseProb, alpha);
@@ -420,16 +381,16 @@ var smallGridTest = function(){
   var perceivedTotalTime = 6;
   var getExpUtilityValues = true;
   var output = 'both';
-  var numberRejectionSamples = 1000;
-  // var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
-  //                       getExpUtilityValues, output);
-  // console.log(' \n\n expU  ', out.expUtilityValues, '\n MAP', out.erp.MAP().val)
-  // console.log('sample: ',sample(out.erp), sample(out.erp));
+  var numberRejectionSamples = 100;
+  var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
+                        getExpUtilityValues, output);
+  console.log(' \n\n expU  ', out.expUtilityValues, '\n MAP', out.erp.MAP().val)
+  console.log('samples', repeat( 10, function(){return clean(sample(out.erp));}) );
 };
 
 
 smallGridTest();
-ash()
+//ash()
 
 
 
@@ -449,12 +410,18 @@ var testTransition = function(){
   assert.ok(  gridEqual( t([0,0],'l'), [0,0]) & 
               gridEqual( t([0,0],'r'), [1,0]) &  
               gridEqual( t([0,0],'u'), [0,1]), 'testTransition1' );
-  console.log('got here');
-  var t = makeGridTransition(4, 4,[ [1,0], [1,1], [3,3] ],[]);
-  assert.ok(  gridEqual( t([0,0],'l'), [0,0]) &
-              gridEqual( t([0,0],'r'), [0,0]) & 
-              gridEqual( t([0,0],'u'), [0,1]) & 
-              gridEqual( t([0,1],'r'), [0,1]) &
+  
+  var t = makeGridTransition(4, 4, [ [1,0], [1,1], [3,3] ],[]);
+
+  console.log( t([1,2],'d'), [1,2],
+               t([2,3],'r'), [2,3],
+               t([3,2],'u'), [3,2]);
+  assert.ok(  // gridEqual( t([0,0],'l'), [0,0]) &
+              // gridEqual( t([0,0],'r'), [0,0]) & 
+              // gridEqual( t([0,0],'u'), [0,1]) & 
+              // gridEqual( t([0,1],'r'), [0,1]) &
+   
+                 
               gridEqual( t([1,2],'d'), [1,2]) &
               gridEqual( t([2,3],'r'), [2,3]) &
               gridEqual( t([3,2],'u'), [3,2]), 'testTransition2'); 
