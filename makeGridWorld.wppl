@@ -1,6 +1,10 @@
 /* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
 
 
+// Run script with:
+// webppl makeGridWorld.wppl --require gridworldLibrary
+
+
 // Gridworld library and MDP agent
 
 
@@ -275,7 +279,8 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
       }                      
     });
 
-  var simulate = function(startState, actualTotalTime, perceivedTotalTime, params){
+  
+  var simulate = function(startState, actualTotalTime, perceivedTotalTime, params, output){
 
     var sampleSequence = function(state, actualTimeLeft, perceivedTimeLeft){
       if (actualTimeLeft==0 | isTerminal(state)){
@@ -299,7 +304,9 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
   };
 
     
-  var getExpUtility = function( actions ){
+  var getExpUtility = function(){
+    var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, 'both');
+    var actions = selectIndex(erp.MAP().val,1);
     var t = params.transition;
     var states = getStates(startState, actions, t).MAP().val;
     var timeStatesActions = zip( downToOne(actions.length), zip(states,actions) );
@@ -312,11 +319,12 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
     }, timeStatesActions);
     var stateActions = map(function(sA){return sA[0][0] + (sA[0][1] + sA[1])},zip(states,actions));
     return zip(stateActions,out);
-  }; 
+  };
+
+  var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, output);
+  var expUtilityValues = getExpUtilityValues ? getExpUtility() : [];
+  return {erp: erp, expUtilityValues: expUtilityValues }; 
   
-  var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params);
-  return getExpUtilityValues ? {erp: erp, expUtilityValues: getExpUtility(selectIndex(erp.MAP().val,1)) } : 
-  {erp:erp, expUtilityValues: []};
 };
 
 
@@ -341,56 +349,33 @@ var donutTest = function(){
   printERP(out.erp,10);
 };
 
-//donutTest();
 
 
 var smallGridTest = function(){
+  
+
+  var runSmall = function(noiseProb, alpha, actualTotalTime, numberRejectionSamples){
+    var params = makeSmall(noiseProb, alpha);
+    displayGrid(params);
+    var startState = [0,0];
+    var perceivedTotalTime = actualTotalTime;
+    var getExpUtilityValues = true;
+    var output = 'both';
+    var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
+                          getExpUtilityValues, output);
+    console.log('\n\n DISPLAY MAP PATH')
+    gridworldLibrary.zipToDisplayGrid( out.erp.MAP().val, 3,3, true );
+    console.log('\n\n expUValues for MAP: ', out.expUtilityValues, ' \n\n MAP  ', out.erp.MAP().val);
+    
+    var clean = function(ar){return map(function(pair){return pair[0][0] + JSON.stringify(pair[0][1]);},ar)};
+    console.log('\n\n samples', repeat( 20, function(){return clean(sample(out.erp));}) )
+  };
+
   console.log('\n Small grid, non-stoch transition, alpha=10 \n------------');
-
-  var noiseProb = 0;
-  var alpha = 10;
-  var params = makeSmall(noiseProb, alpha);
-  displayGrid(params);
-  
-  var startState = [0,0];
-  var actualTotalTime = 7;
-  var perceivedTotalTime = actualTotalTime;
-  var getExpUtilityValues = true;
-  var output = 'states';
-  var numberRejectionSamples = 0;
-  var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
-                        getExpUtilityValues, output);
-  console.log('DIPLAY PATH')
-  gridworldLibrary.zipToDisplayGrid( out.erp.MAP().val, 3,3,true);
-  
-  console.log('\n\n expUValues: ', out.expUtilityValues, ' \n\n MAP  ', out.erp.MAP().val);
-  var clean = function(ar){return map(function(pair){return pair[0][0] + JSON.stringify(pair[0][1]);},ar)};
-  console.log('samples', repeat( 10, function(){return clean(sample(out.erp));}) )
-  
-
-  
-  
+  runSmall(0,10,6,0);
   console.log('\n\n SMALL GRID 2: stochastic transitions, alpha=100 \n--------------');
-  var noiseProb = 0.5;
-  var alpha = 100;
-  var params = makeSmall(noiseProb, alpha);
-  displayGrid(params);
-  
-  var startState = [0,0];
-  var actualTotalTime = 6;
-  var perceivedTotalTime = 6;
-  var getExpUtilityValues = true;
-  var output = 'both';
-  var numberRejectionSamples = 100;
-  var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
-                        getExpUtilityValues, output);
-  console.log(' \n\n expU  ', out.expUtilityValues, '\n MAP', out.erp.MAP().val)
-  console.log('samples', repeat( 10, function(){return clean(sample(out.erp));}) );
+  runSmall(0.5,100,5,1000);
 };
-
-
-smallGridTest();
-//ash()
 
 
 
@@ -413,15 +398,10 @@ var testTransition = function(){
   
   var t = makeGridTransition(4, 4, [ [1,0], [1,1], [3,3] ],[]);
 
-  console.log( t([1,2],'d'), [1,2],
-               t([2,3],'r'), [2,3],
-               t([3,2],'u'), [3,2]);
-  assert.ok(  // gridEqual( t([0,0],'l'), [0,0]) &
-              // gridEqual( t([0,0],'r'), [0,0]) & 
-              // gridEqual( t([0,0],'u'), [0,1]) & 
-              // gridEqual( t([0,1],'r'), [0,1]) &
-   
-                 
+  assert.ok(  gridEqual( t([0,0],'l'), [0,0]) &
+              gridEqual( t([0,0],'r'), [0,0]) & 
+              gridEqual( t([0,0],'u'), [0,1]) & 
+              gridEqual( t([0,1],'r'), [0,1]) &
               gridEqual( t([1,2],'d'), [1,2]) &
               gridEqual( t([2,3],'r'), [2,3]) &
               gridEqual( t([3,2],'u'), [3,2]), 'testTransition2'); 
@@ -444,6 +424,7 @@ var testTransition = function(){
   console.log('passed transition');
 };
 
-testInGrid();
-testTransition();
-ash();
+
+
+
+1;
