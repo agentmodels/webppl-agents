@@ -204,17 +204,16 @@ var makeSmallRectangle = function(noiseProb, alpha){return _makeSmall(noiseProb,
 
 
 // RN basic example (simplified)
-var makeRN = function(noiseProb, alpha){
+var make43 = function(noiseProb, alpha){
   var rnUtility = function(state,action){
-    if (gridEqual(state,[3,2]) ){ return 100;}
-    if (gridEqual(state,[3,1]) ){ return 1;}
-    if (state[0]=='dead'){ return 5;}
-
-    return 2;
+    if (gridEqual(state,[3,2]) ){ return 1;}
+    if (gridEqual(state,[3,1]) ){ return -1;}
+    if (state[0]=='dead'){ return 0;}
+    return -.1;
   };
-  var blockedStates = [[1,1], [0,3], [1,3], [2,3], [3,3] ];
+  var blockedStates = [[1,1] ];
   var terminals = [[3,2], [3,1]];
-  return makeBlockedGridParams(4,4, blockedStates, terminals, rnUtility, noiseProb, alpha);
+  return makeBlockedGridParams(4,3, blockedStates, terminals, rnUtility, noiseProb, alpha);
 };
 
 
@@ -243,6 +242,10 @@ var makeDonut = function(noiseProb, alpha){
 
 // MDP AGENT
 
+// *actualTotalTime*: how many steps we run *simulate* for
+// *perceivedTotalTime*: how many steps agent perceives in the future (*actualTotalTime* could be less)
+// *numberRejectionSamples*: if ==0, we use Enumerate for simulating trajectories, otherwise we rejection sample
+// *output*: *simulate* either outputs states alone (if =='states') or else pairs [state,action]
 
 var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
                            getExpUtilityValues, output){
@@ -328,6 +331,29 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
 };
 
 
+var grid43Example = function(){
+  var noiseProb = .1;
+  var alpha = 100;
+  var params = make43(noiseProb, alpha);
+  var startState = [0,0];
+  var actualTotalTime = 6;
+  var perceivedTotalTime = actualTotalTime;
+  var numberRejectionSamples = 500;
+  var output = 'both';
+  var getExpUtilityValues = false;
+  var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
+                        getExpUtilityValues, output);
+  console.log('\n\n DISPLAY MAP PATH')
+  gridworldLibrary.zipToDisplayGrid( out.erp.MAP().val, 3,3, true );
+  console.log('\n\n expUValues for MAP: ', out.expUtilityValues, ' \n\n MAP  ', out.erp.MAP().val);
+  
+  var clean = function(ar){return map(function(pair){return pair[0][0] + JSON.stringify(pair[0][1]);},ar)};
+  console.log('\n\n samples', repeat( 20, function(){return clean(sample(out.erp));}) )
+
+};
+grid43Example();
+ash();
+
 
 var donutTest = function(){
   var noiseProb = 0;
@@ -352,7 +378,6 @@ var donutTest = function(){
 
 
 var smallGridTest = function(){
-  
 
   var runSmall = function(noiseProb, alpha, actualTotalTime, numberRejectionSamples){
     var params = makeSmall(noiseProb, alpha);
