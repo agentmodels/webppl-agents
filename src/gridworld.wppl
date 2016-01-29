@@ -1,6 +1,18 @@
 /* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
 
-var GridWorld = webpplGridworld; // reference to the exporst of gridworld.js
+var GridWorld = webpplGridworld; // reference to the exports of gridworld.js
+
+
+// TODO:
+// 1. Implement some tests for MDP agent performance (using exampels in test.wppl).
+// 2. Switch to mode actually terminating on terminals (for speed).
+// 3. Have some functions for converting the output of *mdpSimulate* to tables for display.
+// 4. Improve getExpUtility. It should be more flexible. One mode is giving the expected
+// utility of the state sequence. A more complex thing is also giving exp utility of
+// options not taken. Easiest thing is just getting the expU for each action not taken.
+//  Another thing would be to get some expU for state you didn't visit but which were
+// accessible. 
+
 
 
 // GridWorld library and MDP agent
@@ -304,7 +316,7 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
     }, numberRejectionSamples, undefined, true);
   };
 
-    
+  // TODO fix so it takes [state,action] sequences
   var getExpUtility = function(){
     var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, 'both');
     var actions = selectIndex(erp.MAP().val,1);
