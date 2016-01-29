@@ -1,91 +1,98 @@
 // Run as: webppl test.wppl --require .
 
+// Examples and Tests:
+// Examples of running agent on different gridworlds
+// Basic tests of overall agent perfomance and gridworld library. 
 
+// BASIC EXAMPLE:
+// Sample trajectories in the (4,3) grid
+// with transition noise but no softmax noise.
 
-var grid43Example = function(){
+// Output is array of trajectories of form [ state0, state1, ... , state5 ]
+var sampleGrid43 = function(numberSamples){
   var noiseProb = .1;
   var alpha = 100;
-  var params = make43(noiseProb, alpha);
-  var startState = [0,0];
   var actualTotalTime = 6;
-  var perceivedTotalTime = actualTotalTime;
-  var numberRejectionSamples = 500;
-  var output = 'both';
-  var getExpUtilityValues = false;
-  var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
-                        getExpUtilityValues, output);
-  console.log('\n\n DISPLAY MAP PATH')
-  gridworldLibrary.zipToDisplayGrid( out.erp.MAP().val, 3,3, true );
-  console.log('\n\n expUValues for MAP: ', out.expUtilityValues, ' \n\n MAP  ', out.erp.MAP().val);
   
-  var clean = function(ar){return map(function(pair){return pair[0][0] + JSON.stringify(pair[0][1]);},ar)};
-  console.log('\n\n samples', repeat( 20, function(){return clean(sample(out.erp));}) )
-
+  var params = make43(noiseProb, alpha);
+  var numberRejectionSamples = 1000;
+  var output = 'states';
+  var getExpUtilityValues = false;
+  var out = mdpSimulate([0,0], actualTotalTime, actualTotalTime, params, numberRejectionSamples,
+                        getExpUtilityValues, output);
+  return repeat(numberSamples, function(){return map(function(pair){return pair[0];}, sample(out.erp));});
 };
-grid43Example();
 
 
-
-var donutTest = function(){
+// Donut/Veg Cafe from AAAI paper. Four terminal states, with
+// Veg Cafe best in this example. 
+var runDonutExample = function(){
   var noiseProb = 0;
   var alpha = 30;
+  var actualTotalTime = 7;
+  
   var params = makeDonut(noiseProb, alpha);
   displayGrid(params);
-  
   var startState = [2,0];
-  var actualTotalTime = 7;
-  var perceivedTotalTime = actualTotalTime;
-  var getExpUtilityValues = true;
+  var getExpUtilityValues = false;
   var output = 'both';
   var numberRejectionSamples = 1000;
-  var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
+  var out = mdpSimulate(startState, actualTotalTime, actualTotalTime, params, numberRejectionSamples,
                         getExpUtilityValues, output);
-  console.log('expUValues: ', out.expUtilityValues, ' \n\n MAP  ', out.erp.MAP().val);
-  GridWorld.zipToDisplayGrid( out.erp.MAP().val, 6,6,true);
-  
-  printERP(out.erp,10);
+  GridWorld.zipToDisplayGrid( out.erp.MAP().val, params.xLim, params.yLim, true )
+  return out.erp.MAP().val;
 };
 
 
+
+
+// EXAMPLE WITH DIFFERENT OUTPUTS AND DISPLAYS
+// Print the grid with *displayGrid*.
+// Print agent trajectory with *zipToDisplayGrid*/
+// Compute *expUtilityValues*, which are the expected utilities of
+// the state-action pairs the agent chose on MAP sequence.
+
+// Test on a 3x3 grid with no blocked cells and on Russell-Norvig (4,3) grid. 
 
 var smallGridTest = function(){
   
-
-  var runSmall = function(noiseProb, alpha, actualTotalTime, numberRejectionSamples){
-    var params = makeSmall(noiseProb, alpha);
+  var runGrid = function(makeGrid, noiseProb, alpha, startState, actualTotalTime, numberRejectionSamples){
+    var params = makeGrid(noiseProb, alpha);
     displayGrid(params);
-    var startState = [0,0];
     var perceivedTotalTime = actualTotalTime;
     var getExpUtilityValues = true;
     var output = 'both';
     var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
                           getExpUtilityValues, output);
-    console.log('\n\n DISPLAY MAP PATH')
-    GridWorld.zipToDisplayGrid( out.erp.MAP().val, 3,3, true );
-    console.log('\n\n expUValues for MAP: ', out.expUtilityValues, ' \n\n MAP  ', out.erp.MAP().val);
+    console.log('\n\n DISPLAY MAP PATH OF STATE-ACTIONS')
+    GridWorld.zipToDisplayGrid( out.erp.MAP().val, params.xLim, params.yLim, true );
+    console.log('\n\n ExpUtility of state-actions pairs in MAP sequence of state-actions: \n ', out.expUtilityValues, ' \n\n MAP sequence ', out.erp.MAP().val);
     
     var clean = function(ar){return map(function(pair){return pair[0][0] + JSON.stringify(pair[0][1]);},ar)};
-    console.log('\n\n samples', repeat( 20, function(){return clean(sample(out.erp));}) )
+    console.log('\n\n Sample trajectories from Posterior', repeat( 8, function(){return clean(sample(out.erp));}) )
   };
 
-  console.log('\n Small grid, non-stoch transition, alpha=10 \n------------');
-  runSmall(0,10,6,0);
+  console.log('\n Small grid, non-stochastic transition, alpha=10 \n------------');
+  var makeGrid = makeSmall;
+  var startState = [0,0];
+  runGrid(makeGrid, 0, 10, startState, 6,0);
   console.log('\n\n SMALL GRID 2: stochastic transitions, alpha=100 \n--------------');
-  runSmall(0.5,100,5,1000);
+  runGrid(makeGrid, 0.5, 100, startState, 5, 1000);
+
+  console.log('\n\n\n Russell-Norvig 4,3 grid, noise=.25, alpha=100 \n --------------');
+  runGrid(make43, .25, 100, [0,0], 6, 1000);  
 };
 
 
 
+// Unit tests for gridworld constructor functions
 
-
-// Unit tests for inGrid and the transition function
 var testInGrid = function(){
   assert.ok(inGrid(4,4,[0,0]) & inGrid(4,4,[3,2]) & inGrid(4,4,[3,3]) & inGrid(2,2,[1,1]), 'ingrid' );
   assert.ok( !(inGrid(4,4,[1.5,0]) | inGrid(4,4, ['u',0]) | inGrid(4,4,[-1,0]) |
                inGrid(4,4, [1.5,10]) | inGrid(2,2,[2,0]) | inGrid(4,4,['1',0]) ), 'ingrid' )
   console.log('passed testInGrid');
 };
-
 
 var testTransition = function(){
   var t = makeGridTransition(4,4,[],[]);
@@ -122,4 +129,5 @@ var testTransition = function(){
 };
 
 
-donutTest();
+
+0;

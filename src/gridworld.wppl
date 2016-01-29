@@ -7,7 +7,7 @@ var GridWorld = webpplGridworld; // reference to the exporst of gridworld.js
 
 
 // Helper Functions
-var ash = function(){assert.ok(0,'halt execution here');};
+var ash = function(){assert.ok(0,'assert halt');};
 
 var range = function(n){
   if (n===0){return [];} 
@@ -201,9 +201,9 @@ var makeSmallRectangle = function(noiseProb, alpha){return _makeSmall(noiseProb,
 
 
 
-// RN basic example (simplified)
+// Russell-Norvig basic example
 var make43 = function(noiseProb, alpha){
-  var rnUtility = function(state,action){
+  var utility = function(state,action){
     if (gridEqual(state,[3,2]) ){ return 1;}
     if (gridEqual(state,[3,1]) ){ return -1;}
     if (state[0]=='dead'){ return 0;}
@@ -211,7 +211,7 @@ var make43 = function(noiseProb, alpha){
   };
   var blockedStates = [[1,1] ];
   var terminals = [[3,2], [3,1]];
-  return makeBlockedGridParams(4,3, blockedStates, terminals, rnUtility, noiseProb, alpha);
+  return makeBlockedGridParams(4,3, blockedStates, terminals, utility, noiseProb, alpha);
 };
 
 
