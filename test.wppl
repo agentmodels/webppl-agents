@@ -97,6 +97,7 @@ var smallGridTest = function(){
   console.log('\n All tests in *smallGridTest* passed');
 };
 
+smallGridTest();
 
 
 // Unit tests for gridworld constructor functions

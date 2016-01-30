@@ -317,22 +317,20 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
     }, numberRejectionSamples, undefined, true);
   };
 
-  // TODO fix so it takes [state,action] sequences
+  // Get expU for each state visited in MAP() and for all four possible actions
+  // output has form: [ [state0,[EU(state0,'l'), EU(state0,'r'), EU(state0,'u'), EU(state0,'d') ] ], .... ]
   var getExpUtility = function(){
-    var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, 'both');
-    var actions = selectIndex(erp.MAP().val,1);
-    var t = params.transition;
-    var states = getStates(startState, actions, t).MAP().val;
-    var timeStatesActions = zip( downToOne(actions.length), zip(states,actions) );
     
-    var out = map( function(x){
-      var time = x[0];
-      var state = x[1][0];
-      var action = x[1][1];
-      return expUtility(agent, expUtility, state, action, time, params);
-    }, timeStatesActions);
-    var stateActions = map(function(sA){return sA[0][0] + (sA[0][1] + sA[1])},zip(states,actions));
-    return zip(stateActions,out);
+    var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, 'states');
+    var states = selectIndex(erp.MAP().val,0);
+    var timeStates = zip(downToOne(states.length), states);
+    
+    return map( function(timeState){
+      return [JSON.stringify(timeState[1]), map(function(action){
+        return expUtility(agent, expUtility, timeState[1], action, timeState[0], params);
+      }, params.actions)];
+    }, timeStates);
+   
   };
 
   var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, output);
