@@ -69,19 +69,27 @@ var smallGridTest = function(){
     console.log('\n\n ExpUtility of state-actions pairs in MAP sequence of state-actions: \n ', out.expUtilityValues, ' \n\n MAP sequence ', out.erp.MAP().val);
     
     var clean = function(ar){return map(function(pair){return pair[0][0] + JSON.stringify(pair[0][1]);},ar)};
-    console.log('\n\n Sample trajectories from Posterior', repeat( 8, function(){return clean(sample(out.erp));}) )
+    console.log('\n\n Sample trajectories from Posterior', repeat( 8, function(){return clean(sample(out.erp));}) );
+    return selectIndex(out.erp.MAP().val,0);; // output MAP state sequence
   };
 
   console.log('\n Small grid, non-stochastic transition, alpha=10 \n------------');
   var makeGrid = makeSmall;
   var startState = [0,0];
-  runGrid(makeGrid, 0, 10, startState, 6,0);
+  var mapStates = runGrid(makeGrid, 0, 5, startState, 6,0);
+  assert.ok(gridEqual(last(mapStates), [2,2]), 'agent only reaches terminal on last state due to softmax');
+  
   console.log('\n\n SMALL GRID 2: stochastic transitions, alpha=100 \n--------------');
-  runGrid(makeGrid, 0.5, 100, startState, 5, 1000);
-
+  var mapStates = runGrid(makeGrid, 0.1, 100, startState, 5, 500);
+  assert.ok(gridEqual(last(mapStates), [2,2]), 'agent is at terminal on final state');
+  
   console.log('\n\n\n Russell-Norvig 4,3 grid, noise=.25, alpha=100 \n --------------');
-  runGrid(make43, .25, 100, [0,0], 6, 1000);  
+  var mapStates = runGrid(make43, .25, 100, [0,0], 6, 500);
+  assert.ok(gridEqual(mapStates[1], [0,1]), 'agent goes up with first action');
+
+  console.log('\n All tests in *smallGridTest* passed');
 };
+
 
 
 
