@@ -1,12 +1,4 @@
-function loadPaper() {
-  if (typeof window === 'undefined') {
-    throw new Error('gridworld-viz is only intended for use in browser!');
-  }
-  if (window.paper === undefined) {
-    throw new Error('paper.js needs to be in global scope!');
-  }
-  return window.paper;
-}
+var paper = require('paper');
 
 function createCanvas(element, options) {
   var canvas = document.createElement('canvas');
@@ -26,7 +18,6 @@ function draw(element, world) {
   //   toX: 100,
   //   toY: 100
   // };
-  var paper = loadPaper();
   var canvas = createCanvas(element, { width: world.width, height: world.height });
   paper.setup(canvas);
   var path = new paper.Path();

@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Webppl library for generating Gridworld MDPs. JS library for displaying Gridworld.",
   "main": "src/gridworld.js",
-  "dependencies": {},
+  "dependencies": {
+    "paper": "^0.9.25"
+  },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
