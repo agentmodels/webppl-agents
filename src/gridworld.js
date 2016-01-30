@@ -1,5 +1,6 @@
 var assert = require('assert');
 var fs = require('fs');
+var gridworldViz = require('./gridworld-viz');
 
 
 // HELPER FUNCTIONS
@@ -56,9 +57,10 @@ var zipToDisplayGrid = function(zipGrid, xLim, yLim, path){
   }
 };
 
-    
 
-
-module.exports = {gridTransform: gridTransform,
-                  zipToGridTable:zipToGridTable,
-                  zipToDisplayGrid: zipToDisplayGrid};
+module.exports = {
+  gridTransform: gridTransform,
+  zipToGridTable:zipToGridTable,
+  zipToDisplayGrid: zipToDisplayGrid,
+  draw: gridworldViz.draw
+};
