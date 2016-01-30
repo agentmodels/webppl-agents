@@ -15,8 +15,8 @@ function draw(element, world) {
   //   height: 100,
   //   fromX: 0,
   //   fromY: 0,
-  //   toX: 100,
-  //   toY: 100
+  //   incX: 100,
+  //   incY: 100
   // };
   var canvas = createCanvas(element, { width: world.width, height: world.height });
   paper.setup(canvas);
@@ -24,7 +24,7 @@ function draw(element, world) {
   path.strokeColor = 'black';
   var start = new paper.Point(world.fromX, world.fromY);
   path.moveTo(start);
-  path.lineTo(start.add([world.toX, world.toY]));
+  path.lineTo(start.add([world.incX, world.incY]));
   paper.view.draw();  
 }
 
