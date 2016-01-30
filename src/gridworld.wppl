@@ -3,14 +3,8 @@
 var GridWorld = webpplGridworld; // reference to the exports of gridworld.js
 
 
-// TODO:
-
+//TODO
 // 3. Have some functions for converting the output of *mdpSimulate* to tables for display.
-// 4. Improve getExpUtility. It should be more flexible. One mode is giving the expected
-// utility of the state sequence. A more complex thing is also giving exp utility of
-// options not taken. Easiest thing is just getting the expU for each action not taken.
-//  Another thing would be to get some expU for state you didn't visit but which were
-// accessible. 
 
 
 
