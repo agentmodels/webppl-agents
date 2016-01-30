@@ -150,5 +150,6 @@ var runAllTests = function(){
 };
 
 
+runAllTests();
 
 0;

@@ -4,8 +4,7 @@ var GridWorld = webpplGridworld; // reference to the exports of gridworld.js
 
 
 // TODO:
-// 1. Implement some tests for MDP agent performance (using exampels in test.wppl).
-// 2. Switch to mode actually terminating on terminals (for speed).
+
 // 3. Have some functions for converting the output of *mdpSimulate* to tables for display.
 // 4. Improve getExpUtility. It should be more flexible. One mode is giving the expected
 // utility of the state sequence. A more complex thing is also giving exp utility of
@@ -254,7 +253,7 @@ var makeDonut = function(noiseProb, alpha){
 // *actualTotalTime*: how many steps we run *simulate* for
 // *perceivedTotalTime*: how many steps agent perceives in the future (*actualTotalTime* could be less)
 // *numberRejectionSamples*: if ==0, we use Enumerate for simulating trajectories, otherwise we rejection sample
-// *output*: *simulate* either outputs states alone (if =='states') or else pairs [state,action]
+// *output*: *simulate* either outputs states (form [state,'X']), actions (['X',action]) or both ([state,action])
 
 var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
                            getExpUtilityValues, output){
@@ -304,7 +303,7 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
         var action = sample(agent(agent, expUtility, state, perceivedTimeLeft, params));
         var transition = params.transition;
         var nextState = transition(state,action); 
-        var out = output=='states' ? [state,'X'] : [state,action];
+        var out = {states:[state,'X'], actions:['X',action], both: [state,action]}[output];
         return [ out ].concat( sampleSequence(nextState,actualTimeLeft-1, perceivedTimeLeft-1));
       }
     };
