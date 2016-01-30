@@ -149,6 +149,6 @@ var runAllTests = function(){
   testTransition();
 };
 
-runAllTests();
+
 
 0;

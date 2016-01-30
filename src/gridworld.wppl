@@ -199,7 +199,6 @@ var getStates = function(s0, actionSequence, t){
 var _makeSmall = function(noiseProb, alpha, xLim, yLim){
   var u = function(state,action){
     if (gridEqual(state,[2,2])){return 1;}
-    //if (gridEqual(state,[2,1])){return 20+-1;}
     if (isPostTerminal(state)){return 0;}
     return -0.05;
   };
@@ -218,7 +217,7 @@ var make43 = function(noiseProb, alpha){
   var utility = function(state,action){
     if (gridEqual(state,[3,2]) ){ return 1;}
     if (gridEqual(state,[3,1]) ){ return -1;}
-    if (state[0]=='dead'){ return 0;}
+    if (isPostTerminal(state)){ return 0;}
     return -.1;
   };
   var blockedStates = [[1,1] ];
@@ -239,9 +238,9 @@ var makeDonut = function(noiseProb, alpha){
 
   var u = function(state,action){
     if (gridEqual(state,[3,5])){return 4;}
-    if (isPostTerminal(state)){return .5;};
+    if (isPostTerminal(state)){return 0;};
     if (stateInArray(state,terminals)){return 1;}
-    return 0;
+    return -0.1;
   };
   return makeBlockedGridParams(6,6, blockedStates, terminals, u, noiseProb, alpha);
 };
@@ -260,8 +259,11 @@ var makeDonut = function(noiseProb, alpha){
 var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
                            getExpUtilityValues, output){
 
-  var terminalCheck = false;
-  var isTerminal = function(state){return terminalCheck & isPostTerminal(state);};
+  var terminalCheck = true; // toggle whether we stop at terminals (alternative is for agent to stay in postTerminal)
+  // At a terminal, agent takes a single action and then transitions to a "postTerminal" state
+  // which has form [ 'dead', [x,y] ] where [x,y] is terminal's coordinates.
+  var isTerminal = function(state){return terminalCheck & isPostTerminal(state);}; 
+
 
   var agent = cache( 
     function(_agent, _expUtility, state, timeLeft, params){
