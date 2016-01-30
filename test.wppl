@@ -1,8 +1,11 @@
 // Run as: webppl test.wppl --require .
 
 // Examples and Tests:
-// Examples of running agent on different gridworlds
+// Examples of running agent on different gridworlds.
 // Basic tests of overall agent perfomance and gridworld library. 
+
+// use *runAllTests* to run unit and integration tests.
+
 
 // BASIC EXAMPLE:
 // Sample trajectories in the (4,3) grid
@@ -46,15 +49,19 @@ var runDonutExample = function(){
 
 
 
-// EXAMPLE WITH DIFFERENT OUTPUTS AND DISPLAYS
+// EXAMPLE AND TESTS OF MDP SOLVING WITH DIFFERENT OUTPUTS AND DISPLAYS
 // Print the grid with *displayGrid*.
 // Print agent trajectory with *zipToDisplayGrid*/
 // Compute *expUtilityValues*, which are the expected utilities of
 // the state-action pairs the agent chose on MAP sequence.
+// Assert result for MAP sequence equals predictions. 
 
 // Test on a 3x3 grid with no blocked cells and on Russell-Norvig (4,3) grid. 
 
 var smallGridTest = function(){
+
+  // clean up output for display
+  var clean = function(ar){return map(function(pair){return pair[0][0] + JSON.stringify(pair[0][1]);},ar)};
   
   var runGrid = function(makeGrid, noiseProb, alpha, startState, actualTotalTime, numberRejectionSamples){
     var params = makeGrid(noiseProb, alpha);
@@ -64,13 +71,13 @@ var smallGridTest = function(){
     var output = 'both';
     var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
                           getExpUtilityValues, output);
+    var outMAP = out.erp.MAP().val;
     console.log('\n\n DISPLAY MAP PATH OF STATE-ACTIONS')
-    GridWorld.zipToDisplayGrid( out.erp.MAP().val, params.xLim, params.yLim, true );
-    console.log('\n\n ExpUtility of state-actions pairs in MAP sequence of state-actions: \n ', out.expUtilityValues, ' \n\n MAP sequence ', out.erp.MAP().val);
-    
-    var clean = function(ar){return map(function(pair){return pair[0][0] + JSON.stringify(pair[0][1]);},ar)};
+    GridWorld.zipToDisplayGrid( outMAP, params.xLim, params.yLim, true );
+    console.log('\n\n ExpUtility of state-actions pairs in MAP sequence of state-actions: \n ', 
+                out.expUtilityValues, ' \n\n MAP sequence ', outMAP);
     console.log('\n\n Sample trajectories from Posterior', repeat( 8, function(){return clean(sample(out.erp));}) );
-    return selectIndex(out.erp.MAP().val,0);; // output MAP state sequence
+    return selectIndex(outMAP,0); // output MAP state sequence
   };
 
   console.log('\n Small grid, non-stochastic transition, alpha=10 \n------------');
@@ -89,7 +96,6 @@ var smallGridTest = function(){
 
   console.log('\n All tests in *smallGridTest* passed');
 };
-
 
 
 
@@ -137,5 +143,12 @@ var testTransition = function(){
 };
 
 
+var runAllTests = function(){
+  smallGridTest();
+  testInGrid();
+  testTransition();
+};
+
+runAllTests();
 
 0;
