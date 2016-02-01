@@ -11,14 +11,18 @@
 // Sample trajectories in the (4,3) grid
 // with transition noise but no softmax noise.
 
+
+// TODO SAMPLE GRID
+
 // Output is array of trajectories of form [ state0, state1, ... , state5 ]
 var sampleGrid43 = function(numberSamples){
+  assert.ok(numberSamples >= 1, 'repeat in sampleGrid43 will fail without samples > 1');
   var noiseProb = .1;
   var alpha = 100;
   var actualTotalTime = 6;
   
   var params = make43(noiseProb, alpha);
-  var numberRejectionSamples = 1000;
+  var numberRejectionSamples = 100;
   var output = 'states';
   var getExpUtilityValues = false;
   var out = mdpSimulate([0,0], actualTotalTime, actualTotalTime, params, numberRejectionSamples,
@@ -151,6 +155,6 @@ var runAllTests = function(){
 };
 
 
-runAllTests();
+//runAllTests();
 
 0;
