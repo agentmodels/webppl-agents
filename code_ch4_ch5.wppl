@@ -10,12 +10,25 @@ var printERP = function(x) {
     erpValues);
 };
 
+var selectIndex = function(ar,i){
+    return  map(function(tuple){return tuple[i];}, ar);
+};
+
+var downToOne = function(n){
+  if (n==0){return [];}
+  else {return [n].concat(downToOne(n-1));}
+};
+
+
 var displaySequence = function( stateActions, params ){
   return GridWorld.zipToDisplayGrid( stateActions, params.xLim, params.yLim, true )
 };
 
 
-var mdpSimulate = function(startState, totalTime, params, numRejectionSamples){
+
+
+
+var mdpSimulate = function(startState, totalTime, params, numRejectionSamples, getExpUtilityValues){
   var alpha = params.alpha;
   var transition = params.transition;
   var utility = params.utility;
@@ -62,7 +75,26 @@ var mdpSimulate = function(startState, totalTime, params, numRejectionSamples){
     return Rejection(function(){return sampleSequence(startState, totalTime);}, numRejectionSamples);
   };
 
-  return simulate(startState, totalTime);
+
+  var getExpUtility = function(){
+    var erp = simulate(startState, totalTime);
+    var states = selectIndex(erp.MAP().val,0);
+    var timeStates = zip(downToOne(states.length), states);
+    
+    return map( function(timeState){
+      var timeLeft = timeState[0];
+      var state = timeState[1];
+      return [JSON.stringify(state), map(function(action){
+        return expUtility(state, action, timeLeft);
+      }, params.actions)];
+    }, timeStates);
+  };
+  
+  
+  return !getExpUtilityValues ? simulate(startState, totalTime) : 
+    {erp: simulate(startState, totalTime),
+     stateToExpUtilityLRUD:  getExpUtility()};
+
 };
 
 // fixed params
@@ -86,20 +118,22 @@ console.log('box 12: ', out, '\n\n----------');
 
 
 // ch5 codebox 3 - noisy agent
-var alpha = 10;
-var noiseProb = 0;
-var params = makeHike(noiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost);
+// var alpha = 10;
+// var noiseProb = 0;
+// var params = makeHike(noiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost);
 
-var totalTime = 12;
-var numRejectionSamples = 500;
-var erp = Enumerate( function(){
-  return sample(mdpSimulate(startState, totalTime, params, numRejectionSamples)).length;
-} );
-console.log('   erp box 3 \n'); printERP(erp);
+// var totalTime = 12;
+// var numRejectionSamples = 500;
+// var erp = Enumerate( function(){
+//   return sample(mdpSimulate(startState, totalTime, params, numRejectionSamples)).length;
+// } );
+// console.log('   erp box 3 \n'); printERP(erp);
 //viz.print(erp);
 
 
 // ch5 codebox 4 -- stochastic transitions
+var timeCost = -.1;
+
 var alpha = 100;
 var noiseProb = 0.1;
 var totalTime = 12;
@@ -109,18 +143,30 @@ var out = sample(mdpSimulate(startState, totalTime, params, numRejectionSamples)
 console.log('stoch \n' ); displaySequence(out,params);
 console.log('stochastic transitions', out);
 
-var startState = [1,1];
-var totalTime = 11; 
-var out2 = sample(mdpSimulate(startState, totalTime, params, numRejectionSamples));
-console.log('stoch  2 \n' ); displaySequence(out2,params);
 
-ash();
-
+// ch5 codebox on expected values
+var timeCost = -.2;
+var utilityWest = 7;
+var utilityEast = 10;
 
 
-// var out2 = timeit(function(){return simulate( [2,1], totalTime-2);});
-// console.log('out2 time \n:', out2.runtimeInMilliseconds);
-// displaySequence( out2.value, params);
+var alpha = 100;
+var noiseProb = 0.05;
+var totalTime = 12;
+var numRejectionSamples = 1;
+var params = makeHike(noiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost);
+var getExpUtilityValues = true;
+var out = mdpSimulate(startState, totalTime, params, numRejectionSamples, getExpUtilityValues);
+console.log('stoch EVS \n' ); 
+var samp = sample(out.erp);
+displaySequence(samp, params);
+console.log('stochastic transitions EVS')
+printERP(out.erp);
+console.log('\n\n stochastic transitions EVS: \n', out.stateToExpUtilityLRUD);
+GridWorld.displayExpUtility( out.stateToExpUtilityLRUD, 5,5 );
+
+
+
 
 //console.log(out);
 

@@ -58,9 +58,40 @@ var zipToDisplayGrid = function(zipGrid, xLim, yLim, path){
 };
 
 
+var displayExpUtility = function(stateLRUD, xLim, yLim){
+  var table = {};
+  for (var y = 0; y < yLim; y++){
+    for (var x = 0; x < xLim; x++){
+      table[JSON.stringify([x,y])] = '----';
+    }
+  }
+    
+  var actionTable = {u:'^', d:'v', l:'<', r:'>'};
+  stateLRUD.map( function(state_LRUD){
+    var state  = state_LRUD[0];
+    var lrud = state_LRUD[1].map(function(x){return x.toPrecision(2);});
+    var str = lrud[0] + ' ' + lrud[3] + '^' +lrud[2] + ' ' + lrud[1];
+    table[state] = str;
+  });
+
+  var reverseYValues = range(yLim).reverse();
+  var xValues = range(xLim);
+
+  for (var y = 0; y < yLim; y++) {
+    var yValue = reverseYValues[y];
+    console.log( xValues.map( function(x){return table[ JSON.stringify([x, yValue]) ];} ) );
+  }
+
+};
+
+
+
 module.exports = {
   gridTransform: gridTransform,
   zipToGridTable:zipToGridTable,
   zipToDisplayGrid: zipToDisplayGrid,
+  displayExpUtility: displayExpUtility,
   draw: gridworldViz.draw
 };
+
+
