@@ -1,0 +1,325 @@
+// this should perform inverse reinforcement learning: take multiple trajectories
+// and infer the utilities of each terminal state. the inference function will condition on a simulated
+// agent making the same choices in the same states as appears in the trajectories (rather than
+// conditioning on a simulated agent recreating the same trajectories).
+
+// note: this uses dp.cache, from the package webppl-dp
+
+// TODO: optimisation
+
+// first: some helper functions
+
+var rangeBy = function(start, end, stepSize){
+    if (start > end){return [];}
+    else {return [start].concat(rangeBy(start + stepSize, end, stepSize));}
+};
+
+var _arrayIndexOf = function(x, xs){
+    if (arraysEqual(x, xs[0])) {return 0;}
+    else {return 1 + _arrayIndexOf(x, rest(xs));}
+};
+
+var arrayIndexOf = function(x, xs){
+    if (!stateInArray(x, xs)) {return undefined;}
+    else {return _arrayIndexOf(x, xs);}
+};
+
+var numberOf = function(x, xs) {
+    return sum(map(function(y){
+	if (x===y) {return 1;}
+	else {return 0;}
+    }, xs));
+};
+
+var update = function(base, ext){
+  return _.extend({}, base, ext);
+};
+
+// these functions will take a list of trajectories and make a 'histogram array', whose elements
+// are arrays with three elements:
+// 0. a state that was visited in the trajectories
+// 1. the time remaining for the agent when the state was visited. states visited with different
+//    times remaining get different entries. we assume that each trajectory represents the whole
+//    lifetime of the agent.
+// 3. [number of times the agent selected 'l' in this situation,
+//     number of times the agent selected 'r' in this situation,
+//     number of times the agent selected 'u' in this situation,
+//     number of times the agent selected 'd' in this situation]
+
+// this function takes an action and returns a 'mini-histogram'
+var miniHist = function(action) {
+    if (action === 'l') {return [1, 0, 0, 0];}
+    if (action === 'r') {return [0, 1, 0, 0];}
+    if (action === 'u') {return [0, 0, 1, 0];}
+    if (action === 'd') {return [0, 0, 0, 1];}
+    else {return undefined;}
+};
+
+// this function takes a single trajectory and turns it into a histogram array
+var trajToHistArray = function(trajectory) {
+    var lifetime = trajectory.length;
+    if (lifetime == 0) {
+	return [];
+    } else {
+	return cons([trajectory[0][0], lifetime, miniHist(trajectory[0][1])],
+		    trajToHistArray(rest(trajectory)));
+    }
+};
+
+// this function checks if two entries of a histogram array have the same first two elements
+var entriesMatch = function(entry1, entry2) {
+    return (arraysEqual(entry1[0], entry2[0]) && entry1[1] === entry2[1]);
+};
+
+// this function checks if an entry is in a histogram array
+var entryInArray = function(entry, array) {
+    return any(function(entry2){return entriesMatch(entry, entry2);}, array);
+};
+
+// this function adds an entry to a histogram array
+var addEntryToHistArray = function(entry, array) {
+    // if the first two parts of the entry are in the array, add the minihists
+    // if not, just put the entry in at the start
+    if (array.length == 0) {return [entry];}
+    else if (entryInArray(entry, array)) {
+	return map(function(entry2){
+	    if (entriesMatch(entry, entry2)) {
+		return [entry[0], entry[1], map2(plus, entry[2], entry2[2])];
+	    } else {
+		return entry2;
+	    }
+	}, array);
+    } else {
+	return cons(entry, array);
+    }
+};
+
+// this function merges two histogram arrays (by adding all the entries of the first to the second)
+var mergeTwoHistArrays = function(array1, array2) {
+    if (array1.length == 0) {return array2;}
+    if (array2.length == 0) {return array1;}
+    else {
+	var newHistArray = addEntryToHistArray(array1[0], array2);
+	return mergeTwoHistArrays(rest(array1), newHistArray);
+    }
+};
+
+// this function takes an array of trajectories and returns a histogram array
+var trajectoriesToHistArray = function(trajectories) {
+    var histArrays = map(trajToHistArray, trajectories);
+    return reduce(mergeTwoHistArrays, [], histArrays);
+};
+
+var simulateAgent = function(obsHistArray, params) {
+
+    var isTerminal = function(state){
+	return stateInArray(state, params.terminals);
+    };
+    
+    // defining a softMax agent
+    var agent = dp.cache(
+	function(state, timeLeft){
+	    return Enumerate(function(){
+		var action = uniformDraw(params.actions);
+		var eu = expUtility(state, action, timeLeft);
+		factor(params.alpha * eu);
+		return action;
+	    });
+	}
+    );
+
+    var expUtility = dp.cache(
+	function(state, action, timeLeft){
+	    var utility = params.utility;
+	    var u = utility(state, action);
+
+	    if (timeLeft - 1 == 0 | isTerminal(state)){
+		return u;
+	    } else {
+		return u + expectation( Enumerate(function(){
+		    var transition = params.transition;
+		    var nextState = transition(state, action);
+		    var nextAction = sample(agent(nextState, timeLeft - 1));
+		    return expUtility(nextState, nextAction, timeLeft - 1);
+		}));
+	    }
+	}
+    );
+
+    // this function takes an element of observedHistArray, and returns what actions the
+    // agent would take with the new utility function in the same format.
+    // if the state is terminal, it doesn't bother, since what the agent does in terminal
+    // states doesn't actually provide any information.
+    var stateSim = function(array) {
+	var state = array[0];
+	if (isTerminal(state)) {
+	    return array;
+	} else {
+	    var timeLeft = array[1];
+	    var numActs = sum(array[2]);
+	    var sampleAgent = function() {
+		return sample(agent(state, timeLeft));
+	    };
+	    var newActs = repeat(numActs, sampleAgent);
+	    var newActsHist =  [numberOf('l', newActs), numberOf('r', newActs),
+				numberOf('u', newActs), numberOf('d', newActs)];
+	    return [state, timeLeft, newActsHist];
+	}
+    };
+
+    var sampleHistArray = function(){
+	return map(stateSim, obsHistArray);
+    };
+
+    return Rejection(sampleHistArray, 100);
+    // var myfun = function(){
+    // 	return agent([0,0], 6);
+    // };
+    
+    // return Rejection(myfun);
+};
+
+var agentTrajectories = function(startState, length, numTrajectories, params) {
+
+    var isTerminal = function(state){
+	return stateInArray(state, params.terminals);
+    };
+    
+    // defining a softMax agent
+    var agent = dp.cache(
+	function(state, timeLeft){
+	    return Enumerate(function(){
+		var action = uniformDraw(params.actions);
+		var eu = expUtility(state, action, timeLeft);
+		factor(params.alpha * eu);
+		return action;
+	    });
+	}
+    );
+
+    var expUtility = dp.cache(
+	function(state, action, timeLeft){
+	    var utility = params.utility;
+	    var u = utility(state, action);
+
+	    if (timeLeft - 1 == 0 | isTerminal(state)){
+		return u;
+	    } else {
+		return u + expectation( Enumerate(function(){
+		    var transition = params.transition;
+		    var nextState = transition(state, action);
+		    var nextAction = sample(agent(nextState, timeLeft - 1));
+		    return expUtility(nextState, nextAction, timeLeft - 1);
+		}));
+	    }
+	}
+    );
+
+    var makeTraj = function(startState, length) {
+	if (length === 0) {
+	    return [];
+	} else {
+	    var action = sample(agent(startState, length));
+	    var transition = params.transition;
+	    var nextState = transition(startState, action);
+	    return cons([startState, action], makeTraj(nextState, length - 1));
+	}
+    };
+
+    var _makeTraj = function() {
+	return makeTraj(startState, length);
+    };
+
+    return repeat(numTrajectories, _makeTraj);
+    
+};
+
+// this function takes a list of trajectories, parameters for the MDP and agent, and numberRejectionSamples,
+// and returns an ERP over the list of utilities for each terminal state. enumeration is done by Markov chain
+// monte carlo, options for which can be input as optionsAct (for computing the ERP of the agent's actions
+// given fixed utilities) and optionsUtil (for computing the ERP of the utilities given observed actions)
+var inferUtilities = function(trajectories, params, optionsUtil){
+
+    var obsHistArray = trajectoriesToHistArray(trajectories);
+  
+    // this is the thing that will be enumerated over to get the ERP of what the utilities are.
+    // it returns an array of utilities for each terminal state (in the order they are listed in in params.terminals)
+    var utilityProcess = function() {
+
+	// in this bit, we randomly generate a reward function. we assume that the only
+	// interesting rewards are on terminal states, that all rewards of terminal states
+	// are integer multiples of 0.1 between -1 and 1, that post-terminal states have
+	// reward 0, and that all other states have reward -0.1.
+	var terminals = params.terminals;
+
+	var unifDiscrete = function(){
+	    return uniformDraw(rangeBy(-1, 1, 0.1));
+	};
+
+	var uArray = repeat(terminals.length, unifDiscrete);
+
+	// for testing
+	// var flippy = function(){
+	//     return (flip() ? 1 : -1);
+	// };
+	
+	// var uArray = repeat(terminals.length, flippy);
+
+	// console.log(uArray);
+	
+	var utilityFun = function(state, action){
+	    if (stateInArray(state, terminals)) {
+		return uArray[arrayIndexOf(state, terminals)];
+	    } else if (isPostTerminal(state)) {
+		return 0;
+	    } else {
+		return -0.1;
+	    }
+	};
+
+	var newParams = update(params, {utility: utilityFun});
+
+	// now, we do the inference part.
+	
+	// var newHist = simulateAgent(obsHistArray, newParams, numRejectionInner);
+	// console.log(newHist);
+
+	// console.log(printERP(simulateAgent(obsHistArray, newParams, numRejectionInner)));
+	factor(simulateAgent(obsHistArray, newParams).score([], obsHistArray));
+	// factor(simulateAgent(obsHistArray, newParams).score([], trajectories[0][0][1]));
+	
+	// factor(arraysEqual(newHist, obsHistArray) ? 0 : -Infinity);
+
+	// factor(firstAgentActionERP.score([], trajectories[0][0][1])); // for testing
+	
+	return uArray;
+    };
+
+    // now we need to enumerate over utilityProcess to get the posterior over the utilities
+    var utilityPosterior = MCMC(utilityProcess, optionsUtil);
+    // var utilityPosterior = Rejection(utilityProcess, 100);
+
+    return utilityPosterior;
+};
+
+// this is me testing stuff
+
+var params43 = make43(0.1, 10);
+var trajs43 = agentTrajectories([0,0], 6, 1, params43);
+var hist43 = trajectoriesToHistArray(trajs43);
+
+var donutParams = makeDonut(0.2, 3);
+var donutTrajs = agentTrajectories([1,1], 6, 3, donutParams);
+
+// var f = function() {
+//     return printERP(inferUtilities(trajs43, params43));
+// };
+
+// var g = function() {return timeit(f);};
+
+// repeat(10, f)
+// repeat(3, g)
+
+printERP(inferUtilities(trajs43, params43))
+
+// printERP(simulateAgent(hist43, params43, 10))
