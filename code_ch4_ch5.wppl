@@ -9,37 +9,23 @@ var printERP = function(x) {
     },
     erpValues);
 };
-// var alpha = 100;
-// var params = makeDonut(0,100);
-// var transition = params.transition;
-// var utility = params.utility;
-// var actions = params.actions;
 
 var displaySequence = function( stateActions, params ){
   return GridWorld.zipToDisplayGrid( stateActions, params.xLim, params.yLim, true )
 };
 
-var toStr = function(state){return JSON.stringify(state);}
 
 
-var makeHike = function(noiseProb, alpha){
-  var xLim = 5;
-  var yLim = 5;
-  var blockedStates = [ [1,2], [1,3], [3,2] ];
-  var terminals = [ [0,0], [1,0], [2,0], [3,0], [4,0], [2,2], [4,2] ]; 
+var noiseProb = 0;
+var alpha = 100;
+var utilityEast = 10;
+var utilityWest = 1;
+var utilityHill = -10;
+var timeCost = -.1;
 
-  var u = function(state,action){
-    if (gridEqual(state,[2,2])){return 1;}
-    if (gridEqual(state,[4,2])){return 10;}
-    if (isPostTerminal(state)){return 0;};
-    if (stateInArray(state,terminals)) {return -10;}
-    return -0.1;
-  };
-  return makeBlockedGridParams(xLim, yLim, blockedStates, terminals, u, noiseProb, alpha);
-};
+var params = makeHike(noiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost);
+displayGrid(params);
 
-
-var params = makeHike(0, 10);
 var alpha = params.alpha;
 var transition = params.transition;
 var utility = params.utility;
@@ -80,7 +66,7 @@ var simulate = function(startState, totalTime){
     } else {
       var action = sample(agent(state, timeLeft));
       var nextState = transition(state,action); 
-      return [state].concat( sampleSequence(nextState,timeLeft-1 ))
+      return [[state,action]].concat( sampleSequence(nextState,timeLeft-1 ))
     }
   };
   return sampleSequence(startState, totalTime);
@@ -96,13 +82,18 @@ var start = [0,1];
 var totalTime = 12;
 
 
-var out = Rejection(function(){return simulate(start,totalTime).length;},500);
-printERP(out);
-ash();
+// var out = Rejection(function(){return simulate(start,totalTime).length;},500);
+// printERP(out);
+// ash();
 
 
-//var out = simulate(start,totalTime);
-
-
+var out = simulate(start,totalTime);
+console.log('display seq \n\n');
 displaySequence( out, params);
-console.log(out);
+// var out2 = timeit(function(){return simulate( [2,1], totalTime-2);});
+// console.log('out2 time \n:', out2.runtimeInMilliseconds);
+// displaySequence( out2.value, params);
+
+//console.log(out);
+
+
