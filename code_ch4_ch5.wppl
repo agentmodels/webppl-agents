@@ -10,14 +10,7 @@ var printERP = function(x) {
     erpValues);
 };
 
-var selectIndex = function(ar,i){
-    return  map(function(tuple){return tuple[i];}, ar);
-};
 
-var downToOne = function(n){
-  if (n==0){return [];}
-  else {return [n].concat(downToOne(n-1));}
-};
 
 
 var displaySequence = function( stateActions, params ){
@@ -75,12 +68,21 @@ var mdpSimulate = function(startState, totalTime, params, numRejectionSamples, g
     return Rejection(function(){return sampleSequence(startState, totalTime);}, numRejectionSamples);
   };
 
-
+  var unzip = function(ar,i){
+    return  map(function(tuple){return tuple[i];}, ar);
+  };
+  
+  var downToOne = function(n){
+    if (n==0){return [];}
+    else {return [n].concat(downToOne(n-1));}
+  };
+  
   var getExpUtility = function(){
     var erp = simulate(startState, totalTime);
-    var states = selectIndex(erp.MAP().val,0);
-    var timeStates = zip(downToOne(states.length), states);
-    
+    var states = unzip(erp.MAP().val,0); // go from form [[state,action]] to [state]
+    var timeStates = zip(downToOne(states.length), states); //  [ [timeLeft, state] ] for states in trajectory
+
+    // compute expUtility for each pair of form [timeLeft,state]
     return map( function(timeState){
       var timeLeft = timeState[0];
       var state = timeState[1];
