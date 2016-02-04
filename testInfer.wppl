@@ -30,19 +30,20 @@ var makeFour = function(noiseProb, alpha, uNorth, uSouth){
 };
 
 
+// TODO change alpha back
 
-
-var runFour = function(startState, perceivedTotalTime, uNorth, uSouth, display, conditionOnStates){
+var runFour = function(startState, perceivedTotalTime, uNorth, uSouth, display, conditionOnStates,
+                      actualTotalTime){
   assert.ok(startState.length==2 & perceivedTotalTime>0 & typeof(uNorth)=='number'  & typeof(uSouth)=='number', 
             'runFour');
   
-  var actualTotalTime = 1;
+  var actualTotalTime = 1 || actualTotalTime;
   assert.ok(perceivedTotalTime >= actualTotalTime, 'perceive');
   var numberRejectionSamples = 0;
   var output = 'actionOnly';
 
   var noiseProb = 0;
-  var alpha = 100;
+  var alpha = 5 //30 //100;
   
   var params = makeFour(noiseProb, alpha, uNorth, uSouth);
   if (display){displayGrid(params); console.log(' \n\n');}
@@ -53,7 +54,6 @@ var runFour = function(startState, perceivedTotalTime, uNorth, uSouth, display, 
 };
 
 
-
 // Condition on a sequence [ [state,action] ]
 // Get an ERP for each state.
 // do  map( function(stateERP_action){ factor(stateERP([], action)) } )
@@ -62,15 +62,21 @@ var runFour = function(startState, perceivedTotalTime, uNorth, uSouth, display, 
 
 
 
-
 var runSequenceInfer = function(startState, perceivedTotalTime, uNorthValues, uSouthValues,
                                 observedStateActions, numRejectionSamples, useMCMC){
   assert.ok( typeof(uNorthValues[0])=='number' &  typeof(uSouthValues[0])=='number' & 
-             numRejectionSamples >= 0, 'runSimpleInfer' );
+             numRejectionSamples >= 0  &  observedStateActions[0][0].length == 2 & 
+             observedStateActions[0][1].length==1, 'runSimpleInfer' );
+
+
+  // test gen model
+  var out = mdpSimulate(startState, perceivedTotalTime, perceivedTotalTime, 
+                        makeFour(0, 100, 10, -10), 100, false, 'both');
+  //console.log('\n\n sample from gen model ', sample(out.erp));
+
   
   // structural params
-  var Infer = numRejectionSamples==0 ? Enumerate: function(f){return Rejection(f,numRejectionSamples);};
-  var Infer = useMCMC ? function(f){return MCMC(f,{samples:numRejectionSamples});} : Infer;
+  var Infer = Enumerate;
 
   var inferViz = false;
   if (inferViz){console.log('Infer structural parms: startState, perceivedTotalTime, numRejectionSamples', 
@@ -79,13 +85,15 @@ var runSequenceInfer = function(startState, perceivedTotalTime, uNorthValues, uS
   var conditionOnStates = selectIndex(observedStateActions,0);
   var observedActions = selectIndex(observedStateActions,1);
 
-  
+
   return Infer( function(){
     
     var uNorth = uniformDraw(uNorthValues);
     var uSouth = uniformDraw(uSouthValues);
-    
-    var out = timeit( function(){return runFour(startState, perceivedTotalTime, uNorth, uSouth, false, conditionOnStates);} );
+
+
+    var out = timeit( function(){return runFour(startState, perceivedTotalTime, uNorth, uSouth, false, 
+                                                conditionOnStates);} );
     var time = out.runtimeInMilliseconds;
     var erp = out.value.erp;
     if (inferViz){console.log('Inf sample: (uN, uS, runtime for genModel):', uNorth, uSouth, time, '\nERP on actions' );
@@ -95,13 +103,15 @@ var runSequenceInfer = function(startState, perceivedTotalTime, uNorthValues, uS
     var stateERPs = out.value.stateActionERPs;
     var stateERPs_actions = zip(stateERPs,observedActions);
 
-    logERPs(stateERPs);
-    console.log('stateERPs_actions:', stateERPs_actions, '\n')
+    // logERPs(stateERPs);
+    // console.log('stateERPs_actions:', stateERPs_actions, '\n')
 
+    //console.log('\n N and S', uNorth, uSouth);
     map( function(stateERP_action){
       var stateERP = stateERP_action[0];
       var action = stateERP_action[1];
-      factor(stateERP([],action) );
+      //console.log('\n score: ', Math.exp(stateERP.score([],action)));
+      factor(stateERP.score([],action) );
     }, stateERPs_actions);
 
     //factor( erp.score([],observedAction) );  TODO reinstate for test
@@ -115,13 +125,18 @@ var testSequenceInfer = function(){
   var uNorthValues = [-10,10];
   var uSouthValues = [-10,10];
   var display = false;
-  var observedStateActions = [ [[0,0],'u'], [[0,1],['u']], [[0,2],'r'], [[1,2],'r'], [[2,2],'r'], [[3,2],'r'] ];
-  var perceivedTotalTime = observedStateActions.length;
+  var fullSequence = [ [[0,0],'u'], [[0,1],'u'], [[0,2],'r'], [[1,2],'r'], [[2,2],'r'], [[3,2],'r'] ];     
+  var perceivedTotalTime = fullSequence.length;
   var numRejectionSamples = 0;
   
-  var erp = runSequenceInfer(startState, perceivedTotalTime, uNorthValues, uSouthValues,
-                          observedStateActions, numRejectionSamples, undefined);
-  
+  map( function(sequenceLength){
+    var observedStateActions = fullSequence.slice(0,sequenceLength);  
+    var out = timeit( function(){return runSequenceInfer(startState, perceivedTotalTime, uNorthValues, uSouthValues,
+                                                         observedStateActions, numRejectionSamples, undefined);});
+    var erp = out.value;
+    printERP(erp);
+    console.log('(sequenceLength, time): ', sequenceLength, out.runtimeInMilliseconds);
+  }, [1,2,3,4,5,6]);
 };
 
 testSequenceInfer();
