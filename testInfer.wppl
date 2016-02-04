@@ -1,0 +1,99 @@
+
+
+
+// infer: aim is to show that inference with enumerate
+// is multiple of time for generative model.
+
+// also show almost constant extra time for multiple
+// observations due to caching
+
+
+var xLim = 4;
+var yLim = 3;
+
+var makeFour = function(noiseProb, alpha, uNorth, uSouth){
+  var utility = function(state,action){
+    if (gridEqual(state,[3,2]) ){ return uNorth;}
+    if (gridEqual(state,[3,1]) ){ return uSouth;}
+    if (isPostTerminal(state)){ return 0;}
+    return -.1;
+  };
+  var blockedStates = [[1,1] ];
+  var terminals = [[3,2], [3,1]];
+  return makeBlockedGridParams(4,3, blockedStates, terminals, utility, noiseProb, alpha);
+};
+
+
+var runFour = function(uNorth, uSouth, startState, perceivedTotalTime){
+  var actualTotalTime = 1;
+  assert.ok(perceivedTotalTime >= actualTotalTime, 'perceive');
+  var numberRejectionSamples = 0;
+  var output = 'both';
+
+  var noiseProb = 0;
+  var alpha = 100;
+  
+  var params = makeFour(noiseProb, alpha, uNorth, uSouth);
+  //displayGrid(params);
+  var getExpUtilityValues = true;
+  return mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
+                     getExpUtilityValues, output);
+  
+};
+
+
+var runInfer = function(numRejectionSamples){
+  // structural params
+  var startState = [2,2];
+  var perceivedTotalTime = 6;
+  var Infer = numRejectionSamples==0 ? Enumerate: function(f){return Rejection(f,numRejectionSamples);};
+
+  var viz = false;
+  if (viz){console.log('Infer structural parms: startState, perceivedTotalTime, numRejectionSamples', 
+                       startState, perceivedTotalTime, numRejectionSamples);}
+  
+  return Infer( function(){
+    
+    var uNorth = uniformDraw([-10, -5, -1, 5]);
+    var uSouth = uniformDraw([-10,-1]);
+    
+
+    var out = timeit( function(){return runFour(uNorth, uSouth, startState, perceivedTotalTime);} );
+    var time = out.runtimeInMilliseconds;
+    var erp = out.value.erp;
+    if (viz){
+      console.log('erp with inputs N,S', uNorth, uSouth, time );
+      printERP(erp);
+    }
+    var observedAction = [ [startState,"
+    factor( erp.score([],
+    
+    return {uNorth: uNorth, uSouth: uSouth};
+  });
+};
+
+var numRejectionSamples = 0;
+var out = timeit(function(){return runInfer(numRejectionSamples);});
+console.log('\n\n\n Infertime: ', out.runtimeInMilliseconds);
+printERP(out.value);
+ash();
+
+
+var uNorth = -10;
+var uSouth = 1;
+var startState = [2,2];
+
+var out = timeit( function(){return runFour(uNorth, uSouth, startState);} );
+var time = out.runtimeInMilliseconds;
+var erp = out.value.erp;
+var expU = out.value.expUtilityValues;
+
+console.log('time: ', time);
+
+var viz = true;
+if (viz){
+  GridWorld.zipToDisplayGrid( erp.MAP().val, xLim, yLim, true );
+  GridWorld.displayExpUtility(expU, xLim, yLim);
+  console.log('map, prob: \n ', erp.MAP().val, erp.MAP().prob);
+};
+ash();

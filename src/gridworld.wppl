@@ -318,7 +318,8 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
         var action = sample(agent(agent, expUtility, state, perceivedTimeLeft, params));
         var transition = params.transition;
         var nextState = transition(state,action); 
-        var out = {states:[state,'X'], actions:['X',action], both: [state,action]}[output];
+        var out = {states:[state,'X'], actions:['X',action], 
+                   actionOnly: action, both: [state,action]}[output];
         return [ out ].concat( sampleSequence(nextState,actualTimeLeft-1, perceivedTimeLeft-1));
       }
     };
@@ -334,6 +335,7 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
 
   // Get expU for each state visited in MAP() and for all four possible actions
   // output has form: [ [state0,[EU(state0,'l'), EU(state0,'r'), EU(state0,'u'), EU(state0,'d') ] ], .... ]
+  // TODO some warning because expUtilities are misleading for single action
   var getExpUtility = function(){
     
     var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, 'states');
@@ -368,7 +370,8 @@ var displaySequence = function( stateActions, params ){
   return GridWorld.zipToDisplayGrid( stateActions, params.xLim, params.yLim, true )
 };
 
-
+// THIS IS USED IN CHAPTER 5. TODO: USE MORE DESCRIPTIVE NAMES.
+// *mdpSimulate* function above should be used for inference/MDP experiments
 var mdpSimulateTemp = function(startState, totalTime, params, numRejectionSamples){
   var alpha = params.alpha;
   var transition = params.transition;
@@ -418,3 +421,13 @@ var mdpSimulateTemp = function(startState, totalTime, params, numRejectionSample
 
   return simulate(startState, totalTime);
 };
+
+
+
+
+
+
+
+
+
+
