@@ -7,6 +7,12 @@
 // also show almost constant extra time for multiple
 // observations due to caching
 
+var logERPs = function(erps){
+  map( function(erp){
+    console.log('\n\n new erp:');
+    printERP(erp);}, erps);
+};
+
 
 var xLim = 4;
 var yLim = 3;
@@ -55,6 +61,8 @@ var runFour = function(startState, perceivedTotalTime, uNorth, uSouth, display, 
 // this should have same runtime as conditioning on a single action -- right a test for this
 
 
+
+
 var runSequenceInfer = function(startState, perceivedTotalTime, uNorthValues, uSouthValues,
                                 observedStateActions, numRejectionSamples, useMCMC){
   assert.ok( typeof(uNorthValues[0])=='number' &  typeof(uSouthValues[0])=='number' & 
@@ -77,7 +85,7 @@ var runSequenceInfer = function(startState, perceivedTotalTime, uNorthValues, uS
     var uNorth = uniformDraw(uNorthValues);
     var uSouth = uniformDraw(uSouthValues);
     
-    var out = timeit( function(){return runFour(startState, perceivedTotalTime, uNorth, uSouth, false);} );
+    var out = timeit( function(){return runFour(startState, perceivedTotalTime, uNorth, uSouth, false, conditionOnStates);} );
     var time = out.runtimeInMilliseconds;
     var erp = out.value.erp;
     if (inferViz){console.log('Inf sample: (uN, uS, runtime for genModel):', uNorth, uSouth, time, '\nERP on actions' );
@@ -86,6 +94,9 @@ var runSequenceInfer = function(startState, perceivedTotalTime, uNorthValues, uS
     
     var stateERPs = out.value.stateActionERPs;
     var stateERPs_actions = zip(stateERPs,observedActions);
+
+    logERPs(stateERPs);
+    console.log('stateERPs_actions:', stateERPs_actions, '\n')
 
     map( function(stateERP_action){
       var stateERP = stateERP_action[0];
@@ -99,23 +110,22 @@ var runSequenceInfer = function(startState, perceivedTotalTime, uNorthValues, uS
   });
 };
 
-var startState = [0,0];
-var perceivedTotalTime = 6;
-var uNorth = 10;
-var uSouth = 10;
-var display = true;
-var conditionOnStates = [ [0,0], [0,1], [0,2], [1,2], [2,2], [3,2] ];
-//var conditionOnStates = [ [0,0], [1,0], [2,0], [2,1], [2,2], [3,2] ];
-//var conditionOnStates = undefined;
+var testSequenceInfer = function(){
+  var startState = [0,0];
+  var uNorthValues = [-10,10];
+  var uSouthValues = [-10,10];
+  var display = false;
+  var observedStateActions = [ [[0,0],'u'], [[0,1],['u']], [[0,2],'r'], [[1,2],'r'], [[2,2],'r'], [[3,2],'r'] ];
+  var perceivedTotalTime = observedStateActions.length;
+  var numRejectionSamples = 0;
+  
+  var erp = runSequenceInfer(startState, perceivedTotalTime, uNorthValues, uSouthValues,
+                          observedStateActions, numRejectionSamples, undefined);
+  
+};
 
-var out = runFour(startState, perceivedTotalTime, uNorth, uSouth, display, conditionOnStates);
-var stateERPs = out.stateActionERPs;
-console.log('condition states', conditionOnStates, '\n ERPS:');
-map( function(erp){
-  console.log('\n\n new erp:');
-  printERP(erp);}, stateERPs);
-console.log('\n output erp');
-printERP(out.erp);
+testSequenceInfer();
+
 ash();
 
 
