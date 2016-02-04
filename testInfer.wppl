@@ -24,7 +24,9 @@ var makeFour = function(noiseProb, alpha, uNorth, uSouth){
 };
 
 
-var runFour = function(startState, perceivedTotalTime, uNorth, uSouth, display){
+
+
+var runFour = function(startState, perceivedTotalTime, uNorth, uSouth, display, conditionOnStates){
   assert.ok(startState.length==2 & perceivedTotalTime>0 & typeof(uNorth)=='number'  & typeof(uSouth)=='number', 
             'runFour');
   
@@ -40,22 +42,100 @@ var runFour = function(startState, perceivedTotalTime, uNorth, uSouth, display){
   if (display){displayGrid(params); console.log(' \n\n');}
   var getExpUtilityValues = true;
   return mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
-                     getExpUtilityValues, output);
+                     getExpUtilityValues, output, conditionOnStates);
   
 };
 
-var inferViz = false;
 
-// infer from a single action
 
-var runSimpleInfer = function(startState, perceivedTotalTime, uNorthValues, uSouthValues,
-                              observedAction, numRejectionSamples){
+// Condition on a sequence [ [state,action] ]
+// Get an ERP for each state.
+// do  map( function(stateERP_action){ factor(stateERP([], action)) } )
+
+// this should have same runtime as conditioning on a single action -- right a test for this
+
+
+var runSequenceInfer = function(startState, perceivedTotalTime, uNorthValues, uSouthValues,
+                                observedStateActions, numRejectionSamples, useMCMC){
   assert.ok( typeof(uNorthValues[0])=='number' &  typeof(uSouthValues[0])=='number' & 
              numRejectionSamples >= 0, 'runSimpleInfer' );
   
   // structural params
   var Infer = numRejectionSamples==0 ? Enumerate: function(f){return Rejection(f,numRejectionSamples);};
+  var Infer = useMCMC ? function(f){return MCMC(f,{samples:numRejectionSamples});} : Infer;
 
+  var inferViz = false;
+  if (inferViz){console.log('Infer structural parms: startState, perceivedTotalTime, numRejectionSamples', 
+                       startState, perceivedTotalTime, numRejectionSamples);}
+
+  var conditionOnStates = selectIndex(observedStateActions,0);
+  var observedActions = selectIndex(observedStateActions,1);
+
+  
+  return Infer( function(){
+    
+    var uNorth = uniformDraw(uNorthValues);
+    var uSouth = uniformDraw(uSouthValues);
+    
+    var out = timeit( function(){return runFour(startState, perceivedTotalTime, uNorth, uSouth, false);} );
+    var time = out.runtimeInMilliseconds;
+    var erp = out.value.erp;
+    if (inferViz){console.log('Inf sample: (uN, uS, runtime for genModel):', uNorth, uSouth, time, '\nERP on actions' );
+      printERP(erp);
+    }
+    
+    var stateERPs = out.value.stateActionERPs;
+    var stateERPs_actions = zip(stateERPs,observedActions);
+
+    map( function(stateERP_action){
+      var stateERP = stateERP_action[0];
+      var action = stateERP_action[1];
+      factor(stateERP([],action) );
+    }, stateERPs_actions);
+
+    //factor( erp.score([],observedAction) );  TODO reinstate for test
+    
+    return {uNorth: uNorth, uSouth: uSouth};
+  });
+};
+
+var startState = [0,0];
+var perceivedTotalTime = 6;
+var uNorth = 10;
+var uSouth = 10;
+var display = true;
+var conditionOnStates = [ [0,0], [0,1], [0,2], [1,2], [2,2], [3,2] ];
+//var conditionOnStates = [ [0,0], [1,0], [2,0], [2,1], [2,2], [3,2] ];
+//var conditionOnStates = undefined;
+
+var out = runFour(startState, perceivedTotalTime, uNorth, uSouth, display, conditionOnStates);
+var stateERPs = out.stateActionERPs;
+console.log('condition states', conditionOnStates, '\n ERPS:');
+map( function(erp){
+  console.log('\n\n new erp:');
+  printERP(erp);}, stateERPs);
+console.log('\n output erp');
+printERP(out.erp);
+ash();
+
+
+
+
+
+
+
+// infer from a single action
+
+var runSimpleInfer = function(startState, perceivedTotalTime, uNorthValues, uSouthValues,
+                              observedAction, numRejectionSamples, useMCMC){
+  assert.ok( typeof(uNorthValues[0])=='number' &  typeof(uSouthValues[0])=='number' & 
+             numRejectionSamples >= 0, 'runSimpleInfer' );
+  
+  // structural params
+  var Infer = numRejectionSamples==0 ? Enumerate: function(f){return Rejection(f,numRejectionSamples);};
+  var Infer = useMCMC ? function(f){return MCMC(f,{samples:numRejectionSamples});} : Infer;
+
+  var inferViz = false;
   if (inferViz){console.log('Infer structural parms: startState, perceivedTotalTime, numRejectionSamples', 
                        startState, perceivedTotalTime, numRejectionSamples);}
 
@@ -80,7 +160,6 @@ var runSimpleInfer = function(startState, perceivedTotalTime, uNorthValues, uSou
 };
 
 
-
 var testEnumerate = function(perceivedTotalTime, numNorthValues){
   // Test Enumerate. Runtime is not much more than genModel * number_utility_functions
 
@@ -95,7 +174,7 @@ var testEnumerate = function(perceivedTotalTime, numNorthValues){
   var genModelOut = timeit(function(){return runFour(startState, perceivedTotalTime, 
                                                      last(uNorthValues), uSouthValues[0], display);} );
   var inferOut = timeit(function(){
-    return runSimpleInfer(startState, perceivedTotalTime, uNorthValues, uSouthValues, observedAction, numRejectionSamples); 
+    return runSimpleInfer(startState, perceivedTotalTime, uNorthValues, uSouthValues, observedAction, numRejectionSamples, false); 
   });
 
   var erp = inferOut.value;
@@ -108,6 +187,7 @@ var testEnumerate = function(perceivedTotalTime, numNorthValues){
   console.log('\n\nTIME: genModel: genModel*values == infer ? ',genModelOut.runtimeInMilliseconds,':  ', genTimesValues, inferTime);             
   printERP(erp);
 };
+
 
 var runTestEnumerate = function(){
   map( function(totalTime_k){testEnumerate(totalTime_k[0],totalTime_k[1]);},

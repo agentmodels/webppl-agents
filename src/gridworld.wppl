@@ -271,7 +271,7 @@ var makeHike = function(noiseProb, alpha, utilityEast, utilityWest, utilityHill,
 // *output*: *simulate* either outputs states (form [state,'X']), actions (['X',action]) or both ([state,action])
 
 var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
-                           getExpUtilityValues, output){
+                           getExpUtilityValues, output, conditionOnStates){
 
   var terminalCheck = true; // toggle whether we stop at terminals (alternative is for agent to stay in postTerminal)
   // At a terminal, agent takes a single action and then transitions to a "postTerminal" state
@@ -350,9 +350,22 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
    
   };
 
+  var getStateActionERPs = function( states ){
+    var timeStates = zip(downToOne(states.length), states);
+    console.log('timestates: ', timeStates);
+    return map( function(timeState){
+      var time = timeState[0];
+      var state = timeState[1];
+      return agent(agent, expUtility, state, time, params);
+    }, timeStates);
+  };
+  
+
   var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, output);
   var expUtilityValues = getExpUtilityValues ? getExpUtility() : [];
-  return {erp: erp, expUtilityValues: expUtilityValues }; 
+  var stateActionERPs = conditionOnStates != undefined ? getStateActionERPs(conditionOnStates) : [];
+  
+  return {erp: erp, expUtilityValues: expUtilityValues, stateActionERPs: stateActionERPs }; 
   
 };
 
