@@ -1,4 +1,6 @@
 var paper = require('paper');
+var _ = require('lodash');
+
 function createCanvas(element, options) {
   var canvas = document.createElement('canvas');
   canvas.width = options.width || 100;
