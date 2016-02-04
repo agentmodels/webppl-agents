@@ -71,7 +71,7 @@ function draw(element, world, additional) {
   var addAgentPath = function(trajectory, group) {
     var path = new paper.Path();
 
-    var coords = _.pluck(trajectory, 0);
+    var coords = _.map(trajectory, 0);
     path.addSegments(_.map(coords, position));
     path.strokeColor = 'black';
     path.dashArray = [1,4];
