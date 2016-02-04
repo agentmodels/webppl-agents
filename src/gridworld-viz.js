@@ -30,6 +30,20 @@ function draw(element, world, additional) {
 		return path;
 	};
 
+	var label = new paper.PointText({
+			fillColor : new paper.Color(.1, .8),
+			fontSize : 8, 
+			justification : 'center'
+	});
+	label.scale(.08);
+
+	var makeLabel = function (a) { 
+			var copy = _.extend(label.clone(), a);
+			copy.point = position(a.point);
+			copy.point.y = copy.point.y +.20 
+			return copy;
+	};
+
 	var makeGrid = function(world) {
 		var group = new paper.Group();
 
@@ -76,6 +90,9 @@ function draw(element, world, additional) {
 	if (additional) { //additional items to be drawn
 		if (additional.trajectory) { 
 			addAgentPath(additional.trajectory, group);
+		}
+		if (additional.labels) { 
+			group.addChildren(_.map(additional.labels, makeLabel));
 		}
 	}
 
