@@ -14,86 +14,127 @@ var yLim = 3;
 var makeFour = function(noiseProb, alpha, uNorth, uSouth){
   var utility = function(state,action){
     if (gridEqual(state,[3,2]) ){ return uNorth;}
-    if (gridEqual(state,[3,1]) ){ return uSouth;}
+    if (gridEqual(state,[3,0]) ){ return uSouth;}
     if (isPostTerminal(state)){ return 0;}
     return -.1;
   };
   var blockedStates = [[1,1] ];
-  var terminals = [[3,2], [3,1]];
+  var terminals = [[3,2], [3,0]];
   return makeBlockedGridParams(4,3, blockedStates, terminals, utility, noiseProb, alpha);
 };
 
 
-var runFour = function(uNorth, uSouth, startState, perceivedTotalTime){
+var runFour = function(startState, perceivedTotalTime, uNorth, uSouth, display){
+  assert.ok(startState.length==2 & perceivedTotalTime>0 & typeof(uNorth)=='number'  & typeof(uSouth)=='number', 
+            'runFour');
+  
   var actualTotalTime = 1;
   assert.ok(perceivedTotalTime >= actualTotalTime, 'perceive');
   var numberRejectionSamples = 0;
-  var output = 'both';
+  var output = 'actionOnly';
 
   var noiseProb = 0;
   var alpha = 100;
   
   var params = makeFour(noiseProb, alpha, uNorth, uSouth);
-  //displayGrid(params);
+  if (display){displayGrid(params); console.log(' \n\n');}
   var getExpUtilityValues = true;
   return mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
                      getExpUtilityValues, output);
   
 };
 
+var inferViz = false;
 
-var runInfer = function(numRejectionSamples){
+// infer from a single action
+
+var runSimpleInfer = function(startState, perceivedTotalTime, uNorthValues, uSouthValues,
+                              observedAction, numRejectionSamples){
+  assert.ok( typeof(uNorthValues[0])=='number' &  typeof(uSouthValues[0])=='number' & 
+             numRejectionSamples >= 0, 'runSimpleInfer' );
+  
   // structural params
-  var startState = [2,2];
-  var perceivedTotalTime = 6;
   var Infer = numRejectionSamples==0 ? Enumerate: function(f){return Rejection(f,numRejectionSamples);};
 
-  var viz = false;
-  if (viz){console.log('Infer structural parms: startState, perceivedTotalTime, numRejectionSamples', 
+  if (inferViz){console.log('Infer structural parms: startState, perceivedTotalTime, numRejectionSamples', 
                        startState, perceivedTotalTime, numRejectionSamples);}
+
   
   return Infer( function(){
     
-    var uNorth = uniformDraw([-10, -5, -1, 5]);
-    var uSouth = uniformDraw([-10,-1]);
+    var uNorth = uniformDraw(uNorthValues);
+    var uSouth = uniformDraw(uSouthValues);
     
-
-    var out = timeit( function(){return runFour(uNorth, uSouth, startState, perceivedTotalTime);} );
+    var out = timeit( function(){return runFour(startState, perceivedTotalTime, uNorth, uSouth, false);} );
     var time = out.runtimeInMilliseconds;
     var erp = out.value.erp;
-    if (viz){
-      console.log('erp with inputs N,S', uNorth, uSouth, time );
+    if (inferViz){
+      console.log('Inference sample: (uN, uS, runtime for genModel):', uNorth, uSouth, time, '\nERP on actions' );
       printERP(erp);
     }
-    var observedAction = [ [startState,"
-    factor( erp.score([],
+    
+    factor( erp.score([],observedAction) );
     
     return {uNorth: uNorth, uSouth: uSouth};
   });
 };
 
-var numRejectionSamples = 0;
-var out = timeit(function(){return runInfer(numRejectionSamples);});
-console.log('\n\n\n Infertime: ', out.runtimeInMilliseconds);
-printERP(out.value);
-ash();
 
 
-var uNorth = -10;
-var uSouth = 1;
-var startState = [2,2];
+var testEnumerate = function(perceivedTotalTime, numNorthValues){
+  // Test Enumerate. Runtime is not much more than genModel * number_utility_functions
 
-var out = timeit( function(){return runFour(uNorth, uSouth, startState);} );
-var time = out.runtimeInMilliseconds;
-var erp = out.value.erp;
-var expU = out.value.expUtilityValues;
+  var startState = [0,0];
+  var uNorthValues = [1, -10,-9,-8,-7,-6,5,-4,-3,-2,-1].slice(0,numNorthValues);
+  var uSouthValues = [-10,0.5];
+  var observedAction = ["u"];
+  var numRejectionSamples = 0;
 
-console.log('time: ', time);
+  // time the generative model
+  var display = false;
+  var genModelOut = timeit(function(){return runFour(startState, perceivedTotalTime, 
+                                                     last(uNorthValues), uSouthValues[0], display);} );
+  var inferOut = timeit(function(){
+    return runSimpleInfer(startState, perceivedTotalTime, uNorthValues, uSouthValues, observedAction, numRejectionSamples); 
+  });
 
-var viz = true;
-if (viz){
-  GridWorld.zipToDisplayGrid( erp.MAP().val, xLim, yLim, true );
-  GridWorld.displayExpUtility(expU, xLim, yLim);
-  console.log('map, prob: \n ', erp.MAP().val, erp.MAP().prob);
+  var erp = inferOut.value;
+  var inferTime = inferOut.runtimeInMilliseconds;
+
+  assert.ok( erp.MAP().val.uNorth == 1, 'uNorth in testInfer');
+  var genTimesValues =  genModelOut.runtimeInMilliseconds * uNorthValues.length * uSouthValues.length;
+  assert.ok( 2*genTimesValues > inferTime, 'genTimesValues, with extra factor of 2');
+
+  console.log('\n\nTIME: genModel: genModel*values == infer ? ',genModelOut.runtimeInMilliseconds,':  ', genTimesValues, inferTime);             
+  printERP(erp);
 };
+
+var runTestEnumerate = function(){
+  map( function(totalTime_k){testEnumerate(totalTime_k[0],totalTime_k[1]);},
+       [ [6,2], [7,2], [8,2], [6,3], [7,4], [8,5] ] );
+  console.log('all test enumerate passed');
+};
+
+runTestEnumerate();
 ash();
+
+
+
+// var uNorth = -10;
+// var uSouth = 1;
+// var startState = [2,2];
+
+// var out = timeit( function(){return runFour(uNorth, uSouth, startState);} );
+// var time = out.runtimeInMilliseconds;
+// var erp = out.value.erp;
+// var expU = out.value.expUtilityValues;
+
+// console.log('time: ', time);
+
+// var viz = true;
+// if (viz){
+//   GridWorld.zipToDisplayGrid( erp.MAP().val, xLim, yLim, true );
+//   GridWorld.displayExpUtility(expU, xLim, yLim);
+//   console.log('map, prob: \n ', erp.MAP().val, erp.MAP().prob);
+// };
+// ash();
