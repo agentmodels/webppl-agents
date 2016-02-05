@@ -130,7 +130,7 @@ var makeStochasticGridTransition = function(xLim, yLim, blockedStates, noiseProb
 };
 
 // All params for gridworld
-var makeBlockedGridParams = function(xLim, yLim, blockedStates, terminals, utilityFunction, noiseProb, alpha){
+var makeBlockedGridParams = function(xLim, yLim, blockedStates, terminals, utilityFunction, noiseProb, alpha, labels){
   var t = noiseProb==0 ? makeGridTransition(xLim, yLim, blockedStates, terminals) : 
       makeStochasticGridTransition(xLim, yLim, blockedStates, noiseProb, terminals)
   return {utility: utilityFunction,
@@ -140,7 +140,8 @@ var makeBlockedGridParams = function(xLim, yLim, blockedStates, terminals, utili
           alpha: alpha,
           blockedStates: blockedStates,
           xLim: xLim,
-          yLim: yLim};
+          yLim: yLim, 
+          labels : labels};
 };
 
 
@@ -229,6 +230,13 @@ var makeDonut = function(noiseProb, alpha){
                                                          [5,1],
                         [0,0], [1,0],       [3,0], [4,0], [5,0] ];
   var terminals = [[0,1], [1,3], [5,3], [3,5] ];
+  var labels = [ 
+      { point : [0, 1], content : "Donut"},
+      { point : [1, 3], content : "Donut"},
+      { point : [3, 5], content : "Veg"},
+      { point : [5, 3], content : "Noodle"},
+      { point : [2, 0], content : "Start"}
+  ];
 
   var u = function(state,action){
     if (gridEqual(state,[3,5])){return 4;}
@@ -236,7 +244,7 @@ var makeDonut = function(noiseProb, alpha){
     if (stateInArray(state,terminals)){return 1;}
     return -0.1;
   };
-  return makeBlockedGridParams(6,6, blockedStates, terminals, u, noiseProb, alpha);
+  return makeBlockedGridParams(6,6, blockedStates, terminals, u, noiseProb, alpha, labels);
 };
 
 var makeHike = function(noiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost){
