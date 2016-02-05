@@ -10,7 +10,9 @@ function createCanvas(element, options) {
   return canvas;
 }
 
-function draw(element, world, additional) {
+function draw(world, additional) {
+  var element = wpEditor.makeResultContainer();
+
   var canvas = createCanvas(element, { width : world.xLim * 50, height : world.yLim * 50});
   paper.setup(canvas);
 
