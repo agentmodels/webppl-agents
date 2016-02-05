@@ -132,6 +132,9 @@ function draw(world, additional) {
 
   group.addChild(makeGrid(world));
 
+  if (world.labels) { 
+    group.addChildren(_.map(world.labels, makeLabel));
+  }
   if (additional) { //additional items to be drawn
     if (additional.expUtilities) {
       group.addChild(addUtilities(additional.expUtilities));
