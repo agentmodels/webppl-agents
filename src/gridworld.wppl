@@ -81,6 +81,11 @@ var isBlockedState = function(state,blockedStates){
   return stateInArray(state,blockedStates);
 };
 
+var openToBlocked = function(open, xLim, yLim){
+  var fullGrid = Gridworld.getGridStates(xLim, yLim);
+  return filter( function(state){return !stateInArray(state,open);}, fullGrid);
+};
+
 
 
 //  Construct gridworld transition function
