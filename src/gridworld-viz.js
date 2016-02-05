@@ -34,15 +34,56 @@ function draw(element, world, additional) {
 
   var label = new paper.PointText({
       fillColor : new paper.Color(.1, .8),
-      fontSize : 8, 
+      fontSize : 16, 
       justification : 'center'
   });
-  label.scale(.08);
+
+  label.scale(.02);
+  var toHeat = function (v) {
+    var mag = Math.min(Math.abs(v)/20,1);
+
+    if (v > 0) { 
+      return new paper.Color(0, 1, 0, mag);
+    } else {
+      return new paper.Color(1, 0, 0, mag);
+    }
+  }
+
+  var addUtilities = function (v) {
+    var group = new paper.Group();
+    for (var i = 0; i < v.length; i++) { 
+      var coord = v[i][0];
+      var LRUD = v[i][1];
+      var LURD = [LRUD[0], LRUD[2], LRUD[1], LRUD[3]];
+
+      for (var j = 0; j < 4; j ++) {
+        var a = new paper.Path([[-.5, -.5], [0, 0], [-.5, +.5]]);
+        a.closed = true;
+        a.rotate(j * 90);
+        a.fillColor = toHeat(LURD[j]);
+        a.strokeColor = new paper.Color(.5, .4);
+
+        var offsetx = Math.cos(-j * Math.PI/2 + Math.PI); 
+        var offsety = Math.sin(-j * Math.PI/2 + Math.PI); 
+
+        a.position = position([coord[0] + offsetx *.25, coord[1] + offsety *.25]);
+        group.addChild(a);
+
+        var l = makeLabel({ 
+          point : [coord[0] + offsetx *.35, coord[1] + offsety *.35], 
+          content : LURD[j].toFixed(2), fontSize : 6 
+        });
+
+        group.addChild(l);
+      }
+    }
+    return group;
+  };
 
   var makeLabel = function (a) { 
       var copy = _.extend(label.clone(), a);
       copy.point = position(a.point);
-      copy.point.y = copy.point.y +.20 
+      copy.point.y += copy.bounds.height/2;
       return copy;
   };
 
@@ -90,6 +131,9 @@ function draw(element, world, additional) {
   group.addChild(makeGrid(world));
 
   if (additional) { //additional items to be drawn
+    if (additional.expUtilities) {
+      group.addChild(addUtilities(additional.expUtilities));
+    }
     if (additional.trajectory) { 
       addAgentPath(additional.trajectory, group);
     }
