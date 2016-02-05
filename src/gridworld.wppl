@@ -65,6 +65,7 @@ var gridEqual = function(state1,state2){
 
 // gridworld state is in array of states
 var stateInArray = function(state,ar){
+  assert.ok(state.length==2 & ar.length >= 0, 'stateInArray args');
   return any( function(x){return x===true;},
               map( function(x){return gridEqual(x,state)}, ar));
 };
@@ -273,7 +274,9 @@ var makeHike = function(noiseProb, alpha, utilityEast, utilityWest, utilityHill,
 var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
                            getExpUtilityValues, output, conditionOnStates){
 
-  var terminalCheck = true; // toggle whether we stop at terminals (alternative is for agent to stay in postTerminal)
+  var terminalCheck = true; // toggle whether end at terminals (if false, agent stays in postTerminal state --
+  // this is equivalent in terms of the agent's plans but means sequences of states are longer)
+
   // At a terminal, agent takes a single action and then transitions to a "postTerminal" state
   // which has form [ 'dead', [x,y] ] where [x,y] is terminal's coordinates.
   var isTerminal = function(state){return terminalCheck & isPostTerminal(state);}; 
@@ -335,7 +338,7 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
 
   // Get expU for each state visited in MAP() and for all four possible actions
   // output has form: [ [state0,[EU(state0,'l'), EU(state0,'r'), EU(state0,'u'), EU(state0,'d') ] ], .... ]
-  // TODO some warning because expUtilities are misleading for single action
+  // TODO give some warning because expUtilities are misleading for single action
   var getExpUtility = function(){
     
     var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, 'states');

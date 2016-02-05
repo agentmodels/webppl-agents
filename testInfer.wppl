@@ -1,11 +1,85 @@
 
 
+var openToBlocked = function(open, xLim, yLim){
+  var fullGrid = getFullGrid(xLim, yLim);
+  return filter( function(state){return !stateInArray(state,open);}, fullGrid);
+};
 
-// infer: aim is to show that inference with enumerate
-// is multiple of time for generative model.
 
-// also show almost constant extra time for multiple
-// observations due to caching
+var makeDonutInfer = function(smallVersion, utilityTable, alpha, noiseProb){
+  // TODO add assert to check arguments are correct
+
+  var smallParams = {openStates : [ [0,0], [0,1],
+                                    [1,1], [1,4],
+                                    [2,0], [2,1], [2,2], [2,3], [2,4], [2,5],
+                                    [3,3], [3,5], [3,6],
+                                    [4,2], [4,3], [4,4], [4,5] ],
+                     xLim: 5,
+                     yLim: 7,
+                     terminals:  [[0,0], [1,4], [4,2], [3,6] ],
+                     stateToRestaurantTable: { '[0,0]': 'donutSouth',
+                                               '[1,4]': 'donutNorth', 
+                                               '[3,6]':'veg',
+                                               '[4,2]': 'noodle' }
+                    };
+                     
+  var bigParams ={openStates: [[0,0], [0,1],
+                               [1,1],
+                               [2,1], [2,5],
+                               [3,0], [3,1], [3,2], [3,3], [3,4], [3,5], [3,6],
+                               [4,3], [4,6], [4,7],
+                               [5,2], [5,3], [5,4], [5,5], [5,6] ],
+                  xLim: 6,
+                  yLim: 8,
+                  terminals:  [[0,0], [2,5], [5,2], [4,7] ],
+                  stateToRestaurantTable: { '[0,0]': 'donutSouth',
+                                            '[2,5]': 'donutNorth', 
+                                            '[4,7]':'veg',
+                                            '[5,2]': 'noodle' }
+                 };
+  
+     
+  var params = smallVersion ? smallParams : bigParams;
+  var blockedStates = openToBlocked(params.openStates, params.xLim, params.yLim);
+
+  var stateToRestaurant = function(state){
+    var table = params.table;
+    return table[JSON.stringify(state)] ? table[JSON.stringify(state)] : false;
+  };
+  
+  var u = function(state,action){
+    if (isPostTerminal(state)){return 0;};
+    if (stateToRestaurant(state)){return utilityTable[ stateToRestaurant(state) ];}
+    return utilityTable['timeCost'];
+  };
+  return makeBlockedGridParams(params.xLim, params.yLim, blockedStates, params.terminals, u, noiseProb, alpha);
+};
+
+
+
+
+var utilityTable = {'donutSouth': 1, 'donutNorth':1, 'veg':2.1, 'noodle':2, 'timeCost':-.6};
+var alpha = 4;
+var params = donutInfer(utilityTable,alpha,0);
+displayGrid(params);
+var startState = [2,0];
+var actualTotalTime = 8;
+var perceivedTotalTime = 10;
+var numberRejectionSamples = 500;
+
+var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
+                      true, 'both', undefined);
+var erp = out.erp;
+var lenERP = Enumerate(function(){return sample(erp).length;});
+printERP(lenERP);
+
+GridWorld.zipToDisplayGrid( erp.MAP().val, params.xLim, params.yLim, true );
+console.log('expU', out.expUtilityValues);
+
+//console.log( erp.MAP().val, sample(erp), sample(erp), sample(erp), sample(erp));
+
+ash();
+
 
 var logERPs = function(erps){
   map( function(erp){

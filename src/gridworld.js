@@ -13,6 +13,17 @@ var gridTransform = function(line, n){
   };
 };
 
+var getGridStates = function(xLim,yLim){
+  assert.ok( xLim>0 & yLim>0, 'getGrid args');
+  var states = [];
+  for (var i = 0; i < xLim; i++){
+    for (var j = 0; j < yLim; j++){
+      states.push( [i,j] );
+    }}
+  return states;
+};
+
+
 
 var zipToGridTable = function(zip_state_cell){
   var table = {}
@@ -87,6 +98,7 @@ var displayExpUtility = function(stateLRUD, xLim, yLim){
 
 
 module.exports = {
+  getGridStates: getGridStates,
   gridTransform: gridTransform,
   zipToGridTable:zipToGridTable,
   zipToDisplayGrid: zipToDisplayGrid,
