@@ -86,7 +86,7 @@ var mdpSimulate = function(startState, totalTime, params, numRejectionSamples, g
     return map( function(timeState){
       var timeLeft = timeState[0];
       var state = timeState[1];
-      return [JSON.stringify(state), map(function(action){
+      return [state, map(function(action){
         return expUtility(state, action, timeLeft);
       }, params.actions)];
     }, timeStates);
