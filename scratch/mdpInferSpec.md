@@ -1,6 +1,7 @@
-#Inference in MDPs
 
-##Goals for inference chapters
+# Plan for Chapters "Reasoning about agents"
+
+## Goals for Part 1 of Chapter: Reasoning about MDP agents
 
 Explain inference for different kinds of parameters:
 
@@ -20,9 +21,9 @@ Explain various issues in inference:
 3.	Maybe discuss different inference methods --- but probably we defer this till later chapter. 
 
 
-##Plan for chapter
+## Concrete plan
 
-### General stuff
+### General pointers
 
 Most examples will be in the Donut gridworld, which is the examples described in the AAAI paper (Learning from Ignorant, Inconsistent Agents). The constructor function for this world is in gridworld.wppl. The function is:
 `makeDonutInfer(smallVersion = true, … )` 
