@@ -120,6 +120,12 @@ var makeGridTransition = function(xLim, yLim, blockedStates, terminals){
   };
 };
 
+
+var getStateToActions = function(transition){
+  return function(state){
+    
+  
+
 // Standard stochastic transitions, where agent sometimes goes in orthogonal direction
 // to the one intended. We implement this by using a deterministic transition function
 // and stochastically changing the action the agent performs.
