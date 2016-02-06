@@ -3,13 +3,20 @@
 ##Goals for inference chapters
 
 Explain inference for different kinds of parameters:
-1.	Inference of utility functions, with cost of a single action inferred by discounting like behavior. 
-2.	Inference of noise parameter alpha from agent being inefficient
-3.	Inference of transition noise (from agent taking long route in hiking). Discuss inference from actions vs. states. If you only have states, you need to learn transition noise from implicit things like taking the long route.  
+
+1.	Inference of utility functions, with cost of a single action inferred by discounting like behavior.
+
+2.	Inference of noise parameter alpha from agent being inefficient.
+
+3.	Inference of transition noise (from agent taking long route in hiking). Discuss inference from actions vs. states. If you only have states, you need to learn transition noise from implicit things like taking the long route.
+
 
 Explain various issues in inference:
+
 1.	Inference from single action vs. single trajectory vs. multiple trajectories
-2.	Unidentifiability: graphs showing the posterior on utilities in a case where things aren’t identified. 
+
+2.	Unidentifiability: graphs showing the posterior on utilities in a case where things aren’t identified.
+
 3.	Maybe discuss different inference methods --- but probably we defer this till later chapter. 
 
 
