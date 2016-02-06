@@ -87,7 +87,7 @@ var isBlockedState = function(state,blockedStates){
 };
 
 var openToBlocked = function(open, xLim, yLim){
-  var fullGrid = Gridworld.getGridStates(xLim, yLim);
+  var fullGrid = GridWorld.getGridStates(xLim, yLim);
   return filter( function(state){return !stateInArray(state,open);}, fullGrid);
 };
 
@@ -155,17 +155,10 @@ var makeBlockedGridParams = function(xLim, yLim, blockedStates, terminals, utili
 };
 
 
-
-// get all grid states [[0,0],[0,1], ... ] 
-var getFullGrid = function(xLim, yLim){
-  var erp = Enumerate(function(){return [uniformDraw(range(xLim)), uniformDraw(range(yLim))];});
-  return erp.support();
-};
-
 // Map states to their features and then display via JS library function
 var displayGrid = function(params){
   var u = params.utility;
-  var states = getFullGrid(params.xLim, params.yLim);
+  var states = GridWorld.getGridStates(params.xLim, params.yLim);
 
   var out = map( function(state){
     if ( stateInArray(state, params.blockedStates) ){return '#';}
@@ -256,6 +249,61 @@ var makeDonut = function(noiseProb, alpha){
   };
   return makeBlockedGridParams(6,6, blockedStates, terminals, u, noiseProb, alpha, labels);
 };
+
+
+// Better Donut example
+// *smallVersion*==false means a bigger grid that looks more like AAAI paper grid
+var makeDonutInfer = function(smallVersion, utilityTable, alpha, noiseProb){
+  assert.ok( typeof(smallVersion)=='boolean' & typeof(utilityTable.veg) == 'number' &
+             typeof(utilityTable.timeCost) == 'number' & alpha >= 0 & noiseProb >= 0, 'makeDonutInfer args');
+
+  var smallParams = {openStates : [ [0,0], [0,1],
+                                    [1,1], [1,4],
+                                    [2,0], [2,1], [2,2], [2,3], [2,4], [2,5],
+                                    [3,3], [3,5], [3,6],
+                                    [4,2], [4,3], [4,4], [4,5] ],
+                     xLim: 5, yLim: 7,
+                     terminals:  [[0,0], [1,4], [4,2], [3,6] ],
+                     stateToRestaurantTable: { '[0,0]': 'donutSouth',
+                                               '[1,4]': 'donutNorth', 
+                                               '[3,6]': 'veg',
+                                               '[4,2]': 'noodle' },
+                     defaultStartState : [2,0]
+                    };
+  
+  var bigParams = {openStates: [[0,0], [0,1],
+                                [1,1],
+                                [2,1], [2,5],
+                                [3,0], [3,1], [3,2], [3,3], [3,4], [3,5], [3,6],
+                                [4,3], [4,6], [4,7],
+                                [5,2], [5,3], [5,4], [5,5], [5,6] ],
+                   xLim: 6, yLim: 8,
+                   terminals:  [[0,0], [2,5], [5,2], [4,7] ],
+                   stateToRestaurantTable: { '[0,0]': 'donutSouth',
+                                             '[2,5]': 'donutNorth', 
+                                             '[4,7]': 'veg',
+                                             '[5,2]': 'noodle' },
+                   defaultStartState : [3,0]
+
+                  };
+  
+  var params = smallVersion ? smallParams : bigParams;
+  var blockedStates = openToBlocked(params.openStates, params.xLim, params.yLim);
+
+  var stateToRestaurant = function(state){
+    var table = params.stateToRestaurantTable;
+    return table[JSON.stringify(state)] ? table[JSON.stringify(state)] : false;
+  };
+  
+  var u = function(state,action){
+    if (isPostTerminal(state)){return 0;};
+    if (stateToRestaurant(state)){return utilityTable[ stateToRestaurant(state) ];}
+    return utilityTable['timeCost'];
+  };
+  var outParams = makeBlockedGridParams(params.xLim, params.yLim, blockedStates, params.terminals, u, noiseProb, alpha);
+  return update(outParams, {defaultStartState : params.defaultStartState});
+};
+
 
 var makeHike = function(noiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost){
   map( function(input){assert.ok( typeof(input)=='number', 'makeHike inputs' );}, [noiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost] );

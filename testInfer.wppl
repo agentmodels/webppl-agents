@@ -1,69 +1,11 @@
 
 
-var openToBlocked = function(open, xLim, yLim){
-  var fullGrid = getFullGrid(xLim, yLim);
-  return filter( function(state){return !stateInArray(state,open);}, fullGrid);
-};
 
-
-// *smallVersion*==false means a bigger grid that looks more like AAAI paper grid
-var makeDonutInfer = function(smallVersion, utilityTable, alpha, noiseProb){
-  // TODO add checks that arguments are correct, esp. for utilityTable
-
-  var smallParams = {openStates : [ [0,0], [0,1],
-                                    [1,1], [1,4],
-                                    [2,0], [2,1], [2,2], [2,3], [2,4], [2,5],
-                                    [3,3], [3,5], [3,6],
-                                    [4,2], [4,3], [4,4], [4,5] ],
-                     xLim: 5, yLim: 7,
-                     terminals:  [[0,0], [1,4], [4,2], [3,6] ],
-                     stateToRestaurantTable: { '[0,0]': 'donutSouth',
-                                               '[1,4]': 'donutNorth', 
-                                               '[3,6]': 'veg',
-                                               '[4,2]': 'noodle' },
-                     defaultStartState : [2,0]
-                    };
-  
-  var bigParams = {openStates: [[0,0], [0,1],
-                                [1,1],
-                                [2,1], [2,5],
-                                [3,0], [3,1], [3,2], [3,3], [3,4], [3,5], [3,6],
-                                [4,3], [4,6], [4,7],
-                                [5,2], [5,3], [5,4], [5,5], [5,6] ],
-                   xLim: 6, yLim: 8,
-                   terminals:  [[0,0], [2,5], [5,2], [4,7] ],
-                   stateToRestaurantTable: { '[0,0]': 'donutSouth',
-                                             '[2,5]': 'donutNorth', 
-                                             '[4,7]': 'veg',
-                                             '[5,2]': 'noodle' },
-                   defaultStartState : [3,0]
-
-                  };
-  
-  var params = smallVersion ? smallParams : bigParams;
-  var blockedStates = openToBlocked(params.openStates, params.xLim, params.yLim);
-
-  var stateToRestaurant = function(state){
-    var table = params.stateToRestaurantTable;
-    return table[JSON.stringify(state)] ? table[JSON.stringify(state)] : false;
-  };
-  
-  var u = function(state,action){
-    if (isPostTerminal(state)){return 0;};
-    if (stateToRestaurant(state)){return utilityTable[ stateToRestaurant(state) ];}
-    return utilityTable['timeCost'];
-  };
-  var outParams = makeBlockedGridParams(params.xLim, params.yLim, blockedStates, params.terminals, u, noiseProb, alpha);
-  return update(outParams, {defaultStartState : params.defaultStartState});
-};
-
-
-var donutExamples = function(){
-  // LOW NOISE
-  var alpha = 100;
+var testMakeDonutInfer = function(){
+  var alpha = 100;   // LOW NOISE
   var noiseProb = 0;
-  var actualTotalTime = 8;
-  var perceivedTotalTime = 8;
+  var actualTotalTime = 9;
+  var perceivedTotalTime = 9;
   var numberRejectionSamples = 100;  
   
   var runDonut = function(smallVersion, utilityTable){
@@ -75,11 +17,11 @@ var donutExamples = function(){
     console.log('size: ', smallVersion, 'u table', utilityTable, '\n');
     GridWorld.zipToDisplayGrid( erp.MAP().val, params.xLim, params.yLim, true );
   };    
-  // veg despite distance
-  runDonut(true, {'donutSouth': 1, 'donutNorth':1, 'veg':4, 'noodle':2, 'timeCost':-.1});
-  runDonut(false, {'donutSouth': 1, 'donutNorth':1, 'veg':4, 'noodle':2, 'timeCost':-.1});
+  // goes to veg despite distance
+  runDonut(true, {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-.1});
+  runDonut(false, {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-.1});
 
-  // donutSouth because of distance
+  // donutSouth because of timeCost
   runDonut(true, {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-1});
   runDonut(false, {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-1});
 
@@ -88,7 +30,7 @@ var donutExamples = function(){
   var noiseProb = 0;
   var actualTotalTime = 10;
   var perceivedTotalTime = 10;
-  var numberRejectionSamples = 400;  
+  var numberRejectionSamples = 100;  
   
   var runSoftmax = function(smallVersion, utilityTable){
     var params = makeDonutInfer(smallVersion, utilityTable, alpha, noiseProb);
@@ -103,11 +45,29 @@ var donutExamples = function(){
   };    
   runSoftmax(true, {'donutSouth': 1, 'donutNorth':1, 'veg':2, 'noodle':2, 'timeCost':-.3});
   runSoftmax(false, {'donutSouth': 1, 'donutNorth':1, 'veg':2, 'noodle':2, 'timeCost':-.3});
+
+  
+  // speed test for small grid - vary only perceivedTotalTime
+  var alpha = 100;
+  var noiseProb = 0;
+  var actualTotalTime = 1;
+  var numberRejectionSamples = 0;  
+  
+  var runSpeed = function(smallVersion, utilityTable, perceivedTotalTime){
+    var params = makeDonutInfer(smallVersion, utilityTable, alpha, noiseProb);
+    var startState = params.defaultStartState;
+    return mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
+                      true, 'both', undefined).erp;
+  };
+  var utilityTable = {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-.1};
+  
+  map( function(perceivedTotalTime){
+    var out = timeit( function(){return runSpeed(true, utilityTable, perceivedTotalTime)});
+    console.log('perceivedTime, runtime in ms: ', perceivedTotalTime, out.runtimeInMilliseconds);
+  }, [6,7,8,9] );
+  
 };
 
-donutExamples();
-
-ash();
 
 
 var logERPs = function(erps){
@@ -116,11 +76,19 @@ var logERPs = function(erps){
     printERP(erp);}, erps);
 };
 
-
 var xLim = 4;
 var yLim = 3;
 
-var makeFour = function(noiseProb, alpha, uNorth, uSouth){
+// Corners grid is a variant of 4-3 world, with terminals in the corners
+
+// Display grid ('#' means wall)
+
+// [ 2:  '-0.1', '-0.1', '-0.1', '1t'  ]
+// [ 1:  '-0.1',   '#',  '-0.1', '-0.1']
+// [ 0:  '-0.1', '-0.1', '-0.1', '-1t' ]
+// [        0,     1,        2  ,  3   ]
+
+var makeCorners = function(noiseProb, alpha, uNorth, uSouth){
   var utility = function(state,action){
     if (gridEqual(state,[3,2]) ){ return uNorth;}
     if (gridEqual(state,[3,0]) ){ return uSouth;}
@@ -148,7 +116,7 @@ var runFour = function(startState, perceivedTotalTime, uNorth, uSouth, display, 
   var noiseProb = 0;
   var alpha = 5 //30 //100;
   
-  var params = makeFour(noiseProb, alpha, uNorth, uSouth);
+  var params = makeCorners(noiseProb, alpha, uNorth, uSouth);
   if (display){displayGrid(params); console.log(' \n\n');}
   var getExpUtilityValues = true;
   return mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
@@ -174,7 +142,7 @@ var runSequenceInfer = function(startState, perceivedTotalTime, uNorthValues, uS
 
   // test gen model
   var out = mdpSimulate(startState, perceivedTotalTime, perceivedTotalTime, 
-                        makeFour(0, 100, 10, -10), 100, false, 'both');
+                        makeCorners(0, 100, 10, -10), 100, false, 'both');
   //console.log('\n\n sample from gen model ', sample(out.erp));
 
   
