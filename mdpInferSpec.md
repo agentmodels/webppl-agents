@@ -34,7 +34,7 @@ https://github.com/agentmodels/webppl-gridworld/blob/master/mdpInferExamples.wpp
 
 The inference will be over the utilities of all restaurants (with the Donut Stores fixed to have identical utility), over the `utilityTable.timeCost` and over `alpha`. 
 
-Each example show illustrate the observed trajectory using `GridWorld.draw`. It should also use `viz.print` or `print` to display the posterior (or at least the posterior on some of the variables). 
+Each example will illustrate the observed trajectory using `GridWorld.draw`. You should also use `viz.print` or `print` to display the posterior (or at least the posterior on some of the variables). 
 
 ### Example 1: Restaurant utilities from single action
 Agent starts at [2,1]. If they go left, they like donut, otherwise they like noodle or veg. (Assume low noise and relatively low timeCost).
@@ -42,10 +42,10 @@ Agent starts at [2,1]. If they go left, they like donut, otherwise they like noo
 Use Enumerate on small space of U functions. Expanding this space won't help because we can't identify much from this one action. 
 
 ### Example 2: Restaurant utilities from trajectory
-Agent takes move right/east towards noodle (but doesn't go all the way in the observed sequence). Now we know he prefers noodle. Runtime should be almost same as example 1 (since agent's *perceivedTotalTime* is the same and *actualTotalTime* is 1).
+Agent moves right/east towards noodle (but doesn't go all the way in the observed sequence); so now we know he prefers Noodle. Runtime should be almost same as example 1 (since agent's *perceivedTotalTime* is the same and *actualTotalTime* is 1).
 
 ### Example 3: Discounting style behavior
-If we allow timeCost to vary (while always < 0), then initially move towards donut can be explained by high timeCost (even if noodle and veg are better). Show two-dimensional posterior over utility of donut and timeCost. 
+If we allow timeCost to vary (while always < 0), then the agent moving towards donutSouth can be explained by high timeCost (even if noodle and veg are better). Show two-dimensional posterior over utility of donut and timeCost. 
 
 ### Example 4: Explaining anomalous behavior with noise
 Agent goes to donutNorth. Show inference of high softmax noise.
