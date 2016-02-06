@@ -1,21 +1,29 @@
+// To run script:
+// webppl mdpInferExamples.wppl --require webppl-timeit --require webppl-dp --require .
+
+
+//------------------
+// Inference examples for *mdpSimulate*
+
+// Condition on a sequence of state-action pairs. Show that
+// inference runtime is constant in length of sequence, holding
+// fixed the agent's *perceiveTotalTime* and keeping the *actualTotalTime* set to 1.
+
+// *runSimpleInfer* shows that conditioning on single action has runtime close to
+// generative model * number of U functions. 
+
+// Examples all use simple variant of Russell-Norvig 4-3 world, where
+// the two terminals are in the top right and left corners. 
+// -------------------
 
 
 
 
-var logERPs = function(erps){
-  map( function(erp){
-    console.log('\n\n new erp:');
-    printERP(erp);}, erps);
-};
+// GRIDWORLD MDP FOR ALL INFERENCE EXAMPLES
 
-var xLim = 4;
-var yLim = 3;
+// *Corners Grid* is a variant of 4-3 world, with terminals in the corners
 
-
-
-// CORNERS GRID is a variant of 4-3 world, with terminals in the corners
-
-// Display grid ('#' means wall)
+// Grid: ('#' means 'wall')
 
 // [ 2:  '-0.1', '-0.1', '-0.1', '1t'  ]
 // [ 1:  '-0.1',   '#',  '-0.1', '-0.1']
@@ -34,153 +42,118 @@ var makeCorners = function(noiseProb, alpha, uNorth, uSouth){
   return makeBlockedGridParams(4,3, blockedStates, terminals, utility, noiseProb, alpha);
 };
 
-
-// TODO change alpha back
-
-var runCorners = function(startState, perceivedTotalTime, uNorth, uSouth, display, conditionOnStates,
-                          actualTotalTime){
-  assert.ok(startSate.length==2 & perceivedTotalTime>0 & typeof(uNorth)=='number'  & typeof(uSouth)=='number', 
+// Run agent on Corners grid for a SINGLE timestep, i.e. *actualTotalTime=1* with *alpha=5*
+var runCorners = function(startState, perceivedTotalTime, uNorth, uSouth, conditionOnStates){
+  assert.ok(startState.length==2 & perceivedTotalTime>0 & typeof(uNorth)=='number'  & typeof(uSouth)=='number', 
             'runCorners args');
   
-  var actualTotalTime = 1 || actualTotalTime;
-  assert.ok(perceivedTotalTime >= actualTotalTime, 'perceive');
-  var numberRejectionSamples = 0;
-  var output = 'actionOnly';
-
+  var actualTotalTime = 1;
   var noiseProb = 0;
-  var alpha = 5 //30 //100;
-  
+  var alpha = 5;
   var params = makeCorners(noiseProb, alpha, uNorth, uSouth);
-  if (display){displayGrid(params); console.log(' \n\n');}
-  var getExpUtilityValues = true;
+
+  // mdpSimulate arguments
+  var numberRejectionSamples = 0;  // use Enumerate for distribution on agent actions
+  var getExpUtilityValues = false;
+  var output = 'actionOnly';  // output for mdpSimulate is array of form [ action0, action1, ... ] 
+
   return mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
                      getExpUtilityValues, output, conditionOnStates);
-  
 };
 
 
-// Condition on a sequence [ [state,action] ]
-// Get an ERP for each state.
-// do  map( function(stateERP_action){ factor(stateERP([], action)) } )
 
-// Compare runtime as length of sequence increases (should be roughly constant)
+// INFERENCE FUNCTIONS
 
-var runSequenceInfer = function(startState, perceivedTotalTime, uNorthValues, uSouthValues,
-                                observedStateActions, numRejectionSamples, useMCMC){
-  assert.ok( typeof(uNorthValues[0])=='number' &  typeof(uSouthValues[0])=='number' & 
-             numRejectionSamples >= 0  &  observedStateActions[0][0].length == 2 & 
+// GOAL: Condition on a sequence [ [state,action] ] by running agent for single action
+// and pulling an ERP for each state in the sequence from mdpSimulate
+
+// If we hold fixed the *perceivedTotalTime* for the agent when taking the single action
+// then the runtime for inference should be constant as function of the length
+// of the sequence (where sequence.length <= perceivedTotalTime).
+
+// *runSequenceInfer* implements this inference (using *mdpSimulate*'s argument *conditionOnStates*)
+// *testRunSequenceInfer* checks that the runtime has constant scaling
+
+
+var runSequenceInfer = function(startState, perceivedTotalTime, uNorthValues, uSouthValues, observedStateActions){
+  assert.ok( typeof(uNorthValues[0])=='number' &  typeof(uSouthValues[0])=='number' & observedStateActions[0][0].length == 2 & 
              observedStateActions[0][1].length==1, 'runSequenceInfer args' );
-
-
-  // test gen model
-  var out = mdpSimulate(startState, perceivedTotalTime, perceivedTotalTime, 
-                        makeCorners(0, 100, 10, -10), 100, false, 'both');
-  //console.log('\n\n sample from gen model ', sample(out.erp));
-
-  
-  // structural params
-  var Infer = Enumerate;
-
-  var inferViz = false;
-  if (inferViz){console.log('Infer structural parms: startState, perceivedTotalTime, numRejectionSamples', 
-                       startState, perceivedTotalTime, numRejectionSamples);}
 
   var conditionOnStates = selectIndex(observedStateActions,0);
   var observedActions = selectIndex(observedStateActions,1);
 
-
-  return Infer( function(){
-    
+  return Enumerate( function(){    
     var uNorth = uniformDraw(uNorthValues);
     var uSouth = uniformDraw(uSouthValues);
 
-
-    var out = timeit( function(){return runCorners(startState, perceivedTotalTime, uNorth, uSouth, false, 
-                                                conditionOnStates);} );
-    var time = out.runtimeInMilliseconds;
-    var erp = out.value.erp;
-    if (inferViz){console.log('Inf sample: (uN, uS, runtime for genModel):', uNorth, uSouth, time, '\nERP on actions' );
-      printERP(erp);
-    }
+    // run mdp agent with utilities given by (uNorth,uSouth).
+    // out.stateActionERP is array of ERPs over actions for each state in *conditionOnStates*
+    var out = runCorners(startState, perceivedTotalTime, uNorth, uSouth, conditionOnStates);
     
-    var stateERPs = out.value.stateActionERPs;
+    var stateERPs = out.stateActionERPs;
     var stateERPs_actions = zip(stateERPs,observedActions);
 
-    // logERPs(stateERPs);
-    // console.log('stateERPs_actions:', stateERPs_actions, '\n')
-
-    //console.log('\n N and S', uNorth, uSouth);
+    // score for each action, given the hypothetical ERP for actions given each state in *conditionOnStates*
     map( function(stateERP_action){
       var stateERP = stateERP_action[0];
       var action = stateERP_action[1];
-      //console.log('\n score: ', Math.exp(stateERP.score([],action)));
       factor(stateERP.score([],action) );
     }, stateERPs_actions);
-
-    //factor( erp.score([],observedAction) );  TODO reinstate for test
     
     return {uNorth: uNorth, uSouth: uSouth};
   });
 };
 
-var testSequenceInfer = function(){
+var testRunSequenceInfer = function(){
   console.log('testSequencInfer start ... ');
   var startState = [0,0];
-  var uNorthValues = [-10,10];
+  var uNorthValues = [-10,10,30];
   var uSouthValues = [-10,10];
-  var display = false;
-  var fullSequence = [ [[0,0],'u'], [[0,1],'u'], [[0,2],'r'], [[1,2],'r'], [[2,2],'r'], [[3,2],'r'] ];     
+  var fullSequence = [ [[0,0],'u'], [[0,1],'u'], [[0,2],'r'], [[1,2],'r'],
+                       [[2,2],'d'], [[2,1],'d'], [[2,0],'r'], [[3,0],'r'] ];     
+    
   var perceivedTotalTime = fullSequence.length;
-  var numRejectionSamples = 0;
-  
+
+  // Computing runtime information for generative model (no inference)
+  var genModel = timeit(function(){runCorners(startState, perceivedTotalTime, uNorthValues[0], uSouthValues[0], undefined);});
+  console.log('Time in ms for (timeit generative model * # utilityFunctions): ', 
+              genModel.runtimeInMilliseconds * uNorthValues.length * uSouthValues.length, '\n');
+                   
+  // Runtime for inference conditioning on subsequence of every length up to maximum
   map( function(sequenceLength){
     var observedStateActions = fullSequence.slice(0,sequenceLength);  
-    var out = timeit( function(){return runSequenceInfer(startState, perceivedTotalTime, uNorthValues, uSouthValues,
-                                                         observedStateActions, numRejectionSamples, undefined);});
+    var out = timeit( function(){return runSequenceInfer(startState, perceivedTotalTime, uNorthValues,
+                                                         uSouthValues, observedStateActions);});
     var erp = out.value;
+    console.log('\nLength of *conditionStates* trajectory: timeit: ', 
+                sequenceLength, '\: ', out.runtimeInMilliseconds, '\n ERP: \n');
     printERP(erp);
-    console.log('(sequenceLength, time): ', sequenceLength, out.runtimeInMilliseconds);
-  }, [1,2,3,4,5,6]);
+  },  _.range(1,fullSequence.length));
 };
 
-testSequenceInfer();
 
-ash();
-
+testRunSequenceInfer();
 
 
 
 
+// GOAL: Condition utilities on a single action. (Using *mdpSimulate* to generate an ERP on the first action, and not
+// using the *conditionOnStates* machinery). Show that inference with Enumerate has runtime
+// close to the generative model * # utilityFunctions.
 
 
-// infer from a single action
-
-var runSimpleInfer = function(startState, perceivedTotalTime, uNorthValues, uSouthValues,
-                              observedAction, numRejectionSamples, useMCMC){
-  assert.ok( typeof(uNorthValues[0])=='number' &  typeof(uSouthValues[0])=='number' & 
-             numRejectionSamples >= 0, 'runSimpleInfer' );
+// Do inference in Corners generative model
+var runSimpleInfer = function(startState, perceivedTotalTime, uNorthValues, uSouthValues, observedAction, InferFunction){
+  assert.ok( typeof(uNorthValues[0])=='number' &  typeof(uSouthValues[0])=='number', 'runSimpleInfer' );
   
-  // structural params
-  var Infer = numRejectionSamples==0 ? Enumerate: function(f){return Rejection(f,numRejectionSamples);};
-  var Infer = useMCMC ? function(f){return MCMC(f,{samples:numRejectionSamples});} : Infer;
-
-  var inferViz = false;
-  if (inferViz){console.log('Infer structural parms: startState, perceivedTotalTime, numRejectionSamples', 
-                       startState, perceivedTotalTime, numRejectionSamples);}
-
-  
-  return Infer( function(){
+  return InferFunction( function(){
     
     var uNorth = uniformDraw(uNorthValues);
     var uSouth = uniformDraw(uSouthValues);
     
-    var out = timeit( function(){return runCorners(startState, perceivedTotalTime, uNorth, uSouth, false);} );
-    var time = out.runtimeInMilliseconds;
-    var erp = out.value.erp;
-    if (inferViz){
-      console.log('Inference sample: (uN, uS, runtime for genModel):', uNorth, uSouth, time, '\nERP on actions' );
-      printERP(erp);
-    }
+    var out = runCorners(startState, perceivedTotalTime, uNorth, uSouth, undefined);
+    var erp = out.erp;
     
     factor( erp.score([],observedAction) );
     
@@ -188,43 +161,46 @@ var runSimpleInfer = function(startState, perceivedTotalTime, uNorthValues, uSou
   });
 };
 
-
-var testEnumerate = function(perceivedTotalTime, numNorthValues){
-  // Test Enumerate. Runtime is not much more than genModel * number_utility_functions
-
+// Agent is observed taking one step UP, which makes sense only if uNorth is better.
+// The only uNorth value where this holds is uNorth=1, so our MAP should have this. 
+var testRunSimpleInfer = function(perceivedTotalTime, numNorthValues){
   var startState = [0,0];
   var uNorthValues = [1, -10,-9,-8,-7,-6,5,-4,-3,-2,-1].slice(0,numNorthValues);
   var uSouthValues = [-10,0.5];
   var observedAction = ["u"];
-  var numRejectionSamples = 0;
+  var InferFunction = Enumerate;
 
   // time the generative model
-  var display = false;
-  var genModelOut = timeit(function(){return runCorners(startState, perceivedTotalTime, 
-                                                     last(uNorthValues), uSouthValues[0], display);} );
+  var genModelOut = timeit(function(){return runCorners(startState, perceivedTotalTime, last(uNorthValues), uSouthValues[0], undefined);} );
+
+  // time inference
   var inferOut = timeit(function(){
-    return runSimpleInfer(startState, perceivedTotalTime, uNorthValues, uSouthValues, observedAction, numRejectionSamples, false); 
+    return runSimpleInfer(startState, perceivedTotalTime, uNorthValues, uSouthValues, observedAction, InferFunction);
   });
 
   var erp = inferOut.value;
   var inferTime = inferOut.runtimeInMilliseconds;
 
+  // test inference correctness
   assert.ok( erp.MAP().val.uNorth == 1, 'uNorth in testInfer');
+
+  // compare runtime for generative model vs. inference
   var genTimesValues =  genModelOut.runtimeInMilliseconds * uNorthValues.length * uSouthValues.length;
   assert.ok( 2*genTimesValues > inferTime, 'genTimesValues, with extra factor of 2');
 
-  console.log('\n\nTIME: genModel: genModel*values == infer ? ',genModelOut.runtimeInMilliseconds,':  ', genTimesValues, inferTime);             
+  console.log('\n\nTIME: genModel: genModel*values == infer ? ',
+              genModelOut.runtimeInMilliseconds,':  ', genTimesValues, inferTime);             
   printERP(erp);
 };
 
-
-var runTestEnumerate = function(){
-  map( function(totalTime_k){testEnumerate(totalTime_k[0],totalTime_k[1]);},
+// Test for various values of perceivedTotalTime and number of utility functions
+var loopTestRunSimpleInfer = function(){
+  map( function(totalTime_k){testRunSimpleInfer(totalTime_k[0],totalTime_k[1]);},
        [ [6,2], [7,2], [8,2], [6,3], [7,4], [8,5] ] );
   console.log('all test enumerate passed');
 };
 
-runTestEnumerate();
+loopTestRunSimpleInfer();
 ash();
 
 
