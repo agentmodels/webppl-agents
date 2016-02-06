@@ -133,9 +133,6 @@ var testRunSequenceInfer = function(){
 };
 
 
-testRunSequenceInfer();
-
-
 
 
 // GOAL: Condition utilities on a single action. (Using *mdpSimulate* to generate an ERP on the first action, and not
@@ -200,7 +197,5 @@ var loopTestRunSimpleInfer = function(){
   console.log('all test enumerate passed');
 };
 
+testRunSequenceInfer();
 loopTestRunSimpleInfer();
-ash();
-
-
