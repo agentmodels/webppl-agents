@@ -20,7 +20,8 @@ var makeDonutInfer = function(smallVersion, utilityTable, alpha, noiseProb){
                      stateToRestaurantTable: { '[0,0]': 'donutSouth',
                                                '[1,4]': 'donutNorth', 
                                                '[3,6]': 'veg',
-                                               '[4,2]': 'noodle' }
+                                               '[4,2]': 'noodle' },
+                     defaultStartState : [2,0]
                     };
   
   var bigParams = {openStates: [[0,0], [0,1],
@@ -34,7 +35,9 @@ var makeDonutInfer = function(smallVersion, utilityTable, alpha, noiseProb){
                    stateToRestaurantTable: { '[0,0]': 'donutSouth',
                                              '[2,5]': 'donutNorth', 
                                              '[4,7]': 'veg',
-                                             '[5,2]': 'noodle' }
+                                             '[5,2]': 'noodle' },
+                   defaultStartState : [3,0]
+
                   };
   
   var params = smallVersion ? smallParams : bigParams;
@@ -50,29 +53,59 @@ var makeDonutInfer = function(smallVersion, utilityTable, alpha, noiseProb){
     if (stateToRestaurant(state)){return utilityTable[ stateToRestaurant(state) ];}
     return utilityTable['timeCost'];
   };
-  return makeBlockedGridParams(params.xLim, params.yLim, blockedStates, params.terminals, u, noiseProb, alpha);
+  var outParams = makeBlockedGridParams(params.xLim, params.yLim, blockedStates, params.terminals, u, noiseProb, alpha);
+  return update(outParams, {defaultStartState : params.defaultStartState});
 };
 
 
-var utilityTable = {'donutSouth': 1, 'donutNorth':1, 'veg':2.1, 'noodle':2, 'timeCost':-.6};
-var alpha = 4;
-var params = donutInfer(utilityTable,alpha,0);
-displayGrid(params);
-var startState = [2,0];
-var actualTotalTime = 8;
-var perceivedTotalTime = 8;
-var numberRejectionSamples = 500;
-
-var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
+var donutExamples = function(){
+  // LOW NOISE
+  var alpha = 100;
+  var noiseProb = 0;
+  var actualTotalTime = 8;
+  var perceivedTotalTime = 8;
+  var numberRejectionSamples = 100;  
+  
+  var runDonut = function(smallVersion, utilityTable){
+    var params = makeDonutInfer(smallVersion, utilityTable, alpha, noiseProb);
+    var startState = params.defaultStartState;
+    var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
                       true, 'both', undefined);
-var erp = out.erp;
-var lenERP = Enumerate(function(){return sample(erp).length;});
-printERP(lenERP);
+    var erp = out.erp;
+    console.log('size: ', smallVersion, 'u table', utilityTable, '\n');
+    GridWorld.zipToDisplayGrid( erp.MAP().val, params.xLim, params.yLim, true );
+  };    
+  // veg despite distance
+  runDonut(true, {'donutSouth': 1, 'donutNorth':1, 'veg':4, 'noodle':2, 'timeCost':-.1});
+  runDonut(false, {'donutSouth': 1, 'donutNorth':1, 'veg':4, 'noodle':2, 'timeCost':-.1});
 
-GridWorld.zipToDisplayGrid( erp.MAP().val, params.xLim, params.yLim, true );
-console.log('expU', out.expUtilityValues);
+  // donutSouth because of distance
+  runDonut(true, {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-1});
+  runDonut(false, {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-1});
 
-//console.log( erp.MAP().val, sample(erp), sample(erp), sample(erp), sample(erp));
+  // softmax noise leads to variable trajectory length
+  var alpha = 5;
+  var noiseProb = 0;
+  var actualTotalTime = 10;
+  var perceivedTotalTime = 10;
+  var numberRejectionSamples = 400;  
+  
+  var runSoftmax = function(smallVersion, utilityTable){
+    var params = makeDonutInfer(smallVersion, utilityTable, alpha, noiseProb);
+    var startState = params.defaultStartState;
+    var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
+                          true, 'both', undefined);
+    var erp = out.erp;
+    var lengthERP = Enumerate( function(){return sample(erp).length;} );
+    console.log('size: ', smallVersion, 'u table', utilityTable, '\n');
+    printERP(lengthERP);
+    GridWorld.zipToDisplayGrid( erp.MAP().val, params.xLim, params.yLim, true );
+  };    
+  runSoftmax(true, {'donutSouth': 1, 'donutNorth':1, 'veg':2, 'noodle':2, 'timeCost':-.3});
+  runSoftmax(false, {'donutSouth': 1, 'donutNorth':1, 'veg':2, 'noodle':2, 'timeCost':-.3});
+};
+
+donutExamples();
 
 ash();
 

@@ -45,6 +45,11 @@ var printERP = function(x,k) {
     erpValues);
 };
 
+var update = function(base, ext){
+  return _.extend({}, base, ext);
+};
+
+
 
 
 // GRIDWORLD LIBRARY
