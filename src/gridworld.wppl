@@ -336,6 +336,8 @@ var makeHike = function(noiseProb, alpha, utilityEast, utilityWest, utilityHill,
 // *perceivedTotalTime*: how many steps agent perceives in the future (*actualTotalTime* could be less)
 // *numberRejectionSamples*: if ==0, we use Enumerate for simulating trajectories, otherwise we rejection sample
 // *output*: *simulate* either outputs states (form [state,'X']), actions (['X',action]) or both ([state,action])
+// *conditionOnStates* should be a state sequence (if defined), typically with length == perceivedTotalTime.
+
 
 var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
                            getExpUtilityValues, output, conditionOnStates){
@@ -419,6 +421,9 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
    
   };
 
+  // Input is a sequence of states, typically an observed agent trajectory. 
+  // States are assumed to be ordered and to start at startState.
+  // *timeStates* = [ [t, states[0]], [t-1, states[1] ], ... ], where t is *perceivedTotalTime*
   var getStateActionERPs = function( states ){
     var timeStates = zip(downToOne(perceivedTotalTime).slice(0,states.length), states); // assumes states begin at start
     //var timeStates2 = zip(downToOne(states.length), states);
@@ -429,8 +434,8 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
       return agent(agent, expUtility, state, time, params);
     }, timeStates);
   };
-  
 
+  
   var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, output);
   var expUtilityValues = getExpUtilityValues ? getExpUtility() : [];
   var stateActionERPs = conditionOnStates != undefined ? getStateActionERPs(conditionOnStates) : [];

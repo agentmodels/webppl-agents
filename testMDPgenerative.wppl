@@ -1,4 +1,4 @@
-// Run as: webppl test.wppl --require .
+// Run as: webppl test.wppl --require webppl-dp --require webbpl-timeit --require . 
 
 // Examples and Tests:
 // Examples of running agent on different gridworlds.
@@ -11,8 +11,6 @@
 // Sample trajectories in the (4,3) grid
 // with transition noise but no softmax noise.
 
-
-// TODO SAMPLE GRID
 
 // Output is array of trajectories of form [ state0, state1, ... , state5 ]
 var sampleGrid43 = function(numberSamples){
@@ -31,25 +29,74 @@ var sampleGrid43 = function(numberSamples){
 };
 
 
-// Donut/Veg Cafe from AAAI paper. Four terminal states, with
-// Veg Cafe best in this example. 
-var runDonutExample = function(){
-  var noiseProb = 0;
-  var alpha = 30;
-  var actualTotalTime = 7;
-  
-  var params = makeDonut(noiseProb, alpha);
-  displayGrid(params);
-  var startState = [2,0];
-  var getExpUtilityValues = false;
-  var output = 'both';
-  var numberRejectionSamples = 1000;
-  var out = mdpSimulate(startState, actualTotalTime, actualTotalTime, params, numberRejectionSamples,
-                        getExpUtilityValues, output);
-  GridWorld.zipToDisplayGrid( out.erp.MAP().val, params.xLim, params.yLim, true )
-  return out.erp.MAP().val;
-};
+// Donut/Veg Cafe from AAAI paper
 
+var testMakeDonutInfer = function(){
+  var alpha = 100;   // LOW NOISE
+  var noiseProb = 0;
+  var actualTotalTime = 9;
+  var perceivedTotalTime = 9;
+  var numberRejectionSamples = 100;  
+  
+  var runDonut = function(smallVersion, utilityTable){
+    var params = makeDonutInfer(smallVersion, utilityTable, alpha, noiseProb);
+    var startState = params.defaultStartState;
+    var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
+                      true, 'both', undefined);
+    var erp = out.erp;
+    console.log('size: ', smallVersion, 'u table', utilityTable, '\n');
+    GridWorld.zipToDisplayGrid( erp.MAP().val, params.xLim, params.yLim, true );
+  };    
+  // goes to veg despite distance
+  runDonut(true, {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-.1});
+  runDonut(false, {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-.1});
+
+  // donutSouth because of timeCost
+  runDonut(true, {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-1});
+  runDonut(false, {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-1});
+
+  // softmax noise leads to variable trajectory length
+  var alpha = 5;
+  var noiseProb = 0;
+  var actualTotalTime = 10;
+  var perceivedTotalTime = 10;
+  var numberRejectionSamples = 100;  
+  
+  var runSoftmax = function(smallVersion, utilityTable){
+    var params = makeDonutInfer(smallVersion, utilityTable, alpha, noiseProb);
+    var startState = params.defaultStartState;
+    var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
+                          true, 'both', undefined);
+    var erp = out.erp;
+    var lengthERP = Enumerate( function(){return sample(erp).length;} );
+    console.log('size: ', smallVersion, 'u table', utilityTable, '\n');
+    printERP(lengthERP);
+    GridWorld.zipToDisplayGrid( erp.MAP().val, params.xLim, params.yLim, true );
+  };    
+  runSoftmax(true, {'donutSouth': 1, 'donutNorth':1, 'veg':2, 'noodle':2, 'timeCost':-.3});
+  runSoftmax(false, {'donutSouth': 1, 'donutNorth':1, 'veg':2, 'noodle':2, 'timeCost':-.3});
+
+  
+  // speed test for small grid - vary only perceivedTotalTime
+  var alpha = 100;
+  var noiseProb = 0;
+  var actualTotalTime = 1;
+  var numberRejectionSamples = 0;  
+  
+  var runSpeed = function(smallVersion, utilityTable, perceivedTotalTime){
+    var params = makeDonutInfer(smallVersion, utilityTable, alpha, noiseProb);
+    var startState = params.defaultStartState;
+    return mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
+                      true, 'both', undefined).erp;
+  };
+  var utilityTable = {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-.1};
+  
+  map( function(perceivedTotalTime){
+    var out = timeit( function(){return runSpeed(true, utilityTable, perceivedTotalTime)});
+    console.log('perceivedTime, runtime in ms: ', perceivedTotalTime, out.runtimeInMilliseconds);
+  }, [6,7,8,9] );
+  
+};
 
 
 
@@ -101,7 +148,6 @@ var smallGridTest = function(){
   console.log('\n All tests in *smallGridTest* passed');
 };
 
-smallGridTest();
 
 
 // Unit tests for gridworld constructor functions
