@@ -426,8 +426,6 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
   // *timeStates* = [ [t, states[0]], [t-1, states[1] ], ... ], where t is *perceivedTotalTime*
   var getStateActionERPs = function( states ){
     var timeStates = zip(downToOne(perceivedTotalTime).slice(0,states.length), states); // assumes states begin at start
-    //var timeStates2 = zip(downToOne(states.length), states);
-    //console.log('timestates: ', timeStates, timeStates2);
     return map( function(timeState){
       var time = timeState[0];
       var state = timeState[1];
@@ -435,7 +433,7 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
     }, timeStates);
   };
 
-  
+  // prepare output
   var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, output);
   var expUtilityValues = getExpUtilityValues ? getExpUtility() : [];
   var stateActionERPs = conditionOnStates != undefined ? getStateActionERPs(conditionOnStates) : [];
