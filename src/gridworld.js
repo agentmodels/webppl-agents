@@ -23,21 +23,18 @@ var getGridStates = function(xLim,yLim){
   return states;
 };
 
-var getStateToActions = function(transition, xLim, yLim){
-  var states = getGridStates(xLim,yLim);
-  var actions = ['l','r','u','d'];
-  var stateToActions = {};
-  var gridEqual = function(xs,ys){return JSON.stringify(xs) === JSON.stringify(ys);};
 
-  for (var i = 0; i < states.length; i++){
-    stateToActions[states[i]] = actions.filter(
-      function(a){ 
-        return !gridEqual(transition(state,a) state);
-      });
+var zipToObject = function(zipAr) {
+  var obj = {};
+  for (var i = 0; i < zipAr.length; ++i){
+    var pair = zipAr[i];
+    obj[pair[0]] = pair[1];
   }
-  
-  return function(state){return stateToActions[state];};
+  return obj;
 };
+
+
+
 
 
 var zipToGridTable = function(zip_state_cell){
@@ -114,6 +111,7 @@ var displayExpUtility = function(stateLRUD, xLim, yLim){
 
 module.exports = {
   getGridStates: getGridStates,
+  zipToObject: zipToObject,
   gridTransform: gridTransform,
   zipToGridTable:zipToGridTable,
   zipToDisplayGrid: zipToDisplayGrid,

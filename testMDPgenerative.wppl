@@ -194,10 +194,36 @@ var testTransition = function(){
 };
 
 
+var testGetStateToActions = function(){
+  var t = makeGridTransition(3,2,[ [1,0] ], [ [2,0] ]);
+  var f = getStateToActions(t,[[1,0]],3,2);
+
+  // note order matters for actions when using arraysEqual
+  assert.ok( arraysEqual( f([0,0]), ['u'] ) &
+             arraysEqual( f([0,1]), ['r','d'] ) &
+             arraysEqual( f([1,1]), ['l','r'] ) &
+             arraysEqual( f([2,1]), ['l','d'] ) &
+             // for terminals, you can go anywhere  
+             arraysEqual( f([2,0]), ['l','r','u','d'] ), 'testGetState');
+  
+  var t = makeGridTransition(5,5,[],[]);
+  var f = getStateToActions(t,[],5,5);
+  var id = function(x){return x;};
+  assert.ok( all(id, 
+                 map( function(s){return arraysEqual( f(s), ['l','r','u','d']);}, 
+                      [ [1,1], [2,1], [3,1], [1,2], [2,2], [3,2], [1,3], [2,3], [3,3] ])),
+             all(id,
+                 map( function(s){return !arraysEqual(f(s), ['l','r','u','d']);}, 
+                      [ [0,0], [1,0], [2,0], [3,0], [4,0], [0,1], [0,2], [0,3], [0,4], [4,4] ])),
+                         'testGetState');
+};
+
+
 var runAllTests = function(){
   smallGridTest();
   testInGrid();
   testTransition();
+  testGetStateToActions();
 };
 
 

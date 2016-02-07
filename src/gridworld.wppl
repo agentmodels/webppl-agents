@@ -121,8 +121,26 @@ var makeGridTransition = function(xLim, yLim, blockedStates, terminals){
 };
 
 
-var getStateToActions = function(transition){
-  return function(state){
+var getStateToActions = function(detTransition,blockedStates, xLim, yLim){
+  var allStates = GridWorld.getGridStates(xLim,yLim);
+  var states = filter( function(s){return !stateInArray(s,blockedStates);}, allStates);
+  var actions = ['l','r','u','d'];
+  
+  var actionsAr = map(function(state){
+    return filter(function(a){ 
+      return !gridEqual(detTransition(state,a), state);
+    }, actions);
+  }, states);
+
+  // [state, actions] -> {state:actions}
+  var stateToActions = GridWorld.zipToObject( zip(states,actionsAr) );
+                          
+  return function(state){return stateToActions[state];};
+};
+
+
+
+
     
   
 
