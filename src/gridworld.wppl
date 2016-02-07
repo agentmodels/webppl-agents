@@ -3,10 +3,6 @@
 var GridWorld = webpplGridworld; // reference to the exports of gridworld.js
 
 
-//TODO
-// 3. Have some functions for converting the output of *mdpSimulate* to tables for display.
-
-
 
 // GridWorld library and MDP agent
 
@@ -60,15 +56,15 @@ var update = function(base, ext){
 // Agent gets rewards on exiting a state. 
 // Transition function can be stochastic. 
 
-var gridActions = ['l','r','u','d'];  // left, right, up down
+var gridActions = ['l','r','u','d'];  // left, right, up, down
 
 
-// Will treat the postTerminal as distinct from the terminal
+// NB: treats the postTerminal as distinct from the terminal
 var gridEqual = function(state1,state2){
   return arraysEqual(state1,state2);
 };
 
-// gridworld state is in array of states
+// a gridworld state is in an array of states
 var stateInArray = function(state,ar){
   assert.ok(state.length==2 & ar.length >= 0, 'stateInArray args');
   return any( function(x){return x===true;},
@@ -120,8 +116,11 @@ var makeGridTransition = function(xLim, yLim, blockedStates, terminals){
   };
 };
 
+// Build a closure for {state: actions_in_state}, where actions are those
+// that transition to a different states. Won't work if we add a 'stay' action
+// to gridworld actions
 
-var getStateToActions = function(detTransition,blockedStates, xLim, yLim){
+var getStateToActions = function(detTransition, blockedStates, xLim, yLim){
   var allStates = GridWorld.getGridStates(xLim,yLim);
   var states = filter( function(s){return !stateInArray(s,blockedStates);}, allStates);
   var actions = ['l','r','u','d'];
@@ -139,10 +138,6 @@ var getStateToActions = function(detTransition,blockedStates, xLim, yLim){
 };
 
 
-
-
-    
-  
 
 // Standard stochastic transitions, where agent sometimes goes in orthogonal direction
 // to the one intended. We implement this by using a deterministic transition function
@@ -162,6 +157,7 @@ var makeStochasticGridTransition = function(xLim, yLim, blockedStates, noiseProb
     }))
   };
 };
+
 
 // All params for gridworld
 var makeBlockedGridParams = function(xLim, yLim, blockedStates, terminals, utilityFunction, noiseProb, alpha, labels){
@@ -197,26 +193,6 @@ var displayGrid = function(params){
 };
 
 
-
-var _getStates = function( s0, actionSequence, t){
-  var l = actionSequence.length;
-  if (l==0){
-    return []; // leave off the last state transition
-  } else {
-    var s1 = t(s0,actionSequence[0]);
-    return [s0].concat( _getStates( s1, actionSequence.slice(1,l), t));
-  };
-};
-
-// iterate the transition function to get [s0, t(s0,a0), ....]
-var getStates = function(s0, actionSequence, t){
-  return Rejection(function(){
-    return _getStates(s0, actionSequence, t);
-    }, 1000, undefined, true);
-};
-
-
-
 // 3x3 grid where you go from anywhere to top-right
 var _makeSmall = function(noiseProb, alpha, xLim, yLim){
   var u = function(state,action){
@@ -230,8 +206,6 @@ var _makeSmall = function(noiseProb, alpha, xLim, yLim){
 };
 
 var makeSmall = function(noiseProb, alpha){return _makeSmall(noiseProb, alpha, 3, 3);};
-var makeSmallRectangle = function(noiseProb, alpha){return _makeSmall(noiseProb, alpha, 3, 4);};
-
 
 
 // Russell-Norvig basic example
@@ -473,12 +447,6 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
 
 
 
-
-
-
-var displaySequence = function( stateActions, params ){
-  return GridWorld.zipToDisplayGrid( stateActions, params.xLim, params.yLim, true )
-};
 
 // THIS IS USED IN CHAPTER 5. TODO: USE MORE DESCRIPTIVE NAMES.
 // *mdpSimulate* function above should be used for inference/MDP experiments
