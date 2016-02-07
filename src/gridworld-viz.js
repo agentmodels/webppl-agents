@@ -124,6 +124,13 @@ function draw(world, additional) {
     agent.fillColor = color.agent;
     group.addChild(agent);
   };
+  var axisx = _.map(_.range(world.xLim), function (i) { 
+    return { point : [i, -.75], content : i };
+  });
+
+  var axisy = _.map(_.range(world.yLim), function (i) { 
+    return { point : [-.75, i], content : i };
+  });
 
   var group = new paper.Group();
   //draw the world 
@@ -131,6 +138,11 @@ function draw(world, additional) {
   addShapes(world.terminals, makeSquare(color.terminal), group);
 
   group.addChild(makeGrid(world));
+
+  group.addChildren(_.map(axisx, makeLabel));
+  group.addChildren(_.map(axisy, makeLabel));
+
+  group.addChildren(_.map(world.labels, makeLabel));
 
   if (world.labels) { 
     group.addChildren(_.map(world.labels, makeLabel));
