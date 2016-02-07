@@ -3,9 +3,10 @@
 // agent making the same choices in the same states as appears in the trajectories (rather than
 // conditioning on a simulated agent recreating the same trajectories).
 
-// note: this uses dp.cache, from the package webppl-dp
+// note: this uses dp.cache, from the package webppl-dp. some testing options use timeit
+// from webppl-timeit.
 
-// TODO: optimisation
+// TODO: optimisation, extension
 
 // first: some helper functions
 
@@ -33,6 +34,18 @@ var numberOf = function(x, xs) {
 
 var update = function(base, ext){
   return _.extend({}, base, ext);
+};
+
+var unifDiscrete = function(){
+    return uniformDraw(rangeBy(-1, 1, 0.1));
+};
+
+var flippy01 = function(){
+    return (flip() ? 1 : 0);
+};
+
+var flippypm = function(){
+    return (flip() ? 1 : -1);
 };
 
 // these functions will take a list of trajectories and make a 'histogram array', whose elements
@@ -110,7 +123,15 @@ var trajectoriesToHistArray = function(trajectories) {
     return reduce(mergeTwoHistArrays, [], histArrays);
 };
 
+// this function takes an observed histogram array (obsHistArray), and parameters for the
+// agent and MDP, and returns an ERP over the agent's actions in the (state, timeleft) pairs
+// represented in obsHistArray. the function simulates as many actions of the agent in each
+// (state, timeleft) pair as are present in obsHistArray.
+// if the state is terminal, simulateAgent assumes that the agent will perform the actions
+// seen in obsHistArray, since the agent's actions in these states don't provide any information
+// anyway.
 var simulateAgent = function(obsHistArray, params) {
+// var simulateAgent = function(obsHistArray, params, startState, n) {
 
     var isTerminal = function(state){
 	return stateInArray(state, params.terminals);
@@ -133,7 +154,7 @@ var simulateAgent = function(obsHistArray, params) {
 	    var utility = params.utility;
 	    var u = utility(state, action);
 
-	    if (timeLeft - 1 == 0 | isTerminal(state)){
+	    if (timeLeft - 1 == 0 || isTerminal(state)){
 		return u;
 	    } else {
 		return u + expectation( Enumerate(function(){
@@ -148,8 +169,6 @@ var simulateAgent = function(obsHistArray, params) {
 
     // this function takes an element of observedHistArray, and returns what actions the
     // agent would take with the new utility function in the same format.
-    // if the state is terminal, it doesn't bother, since what the agent does in terminal
-    // states doesn't actually provide any information.
     var stateSim = function(array) {
 	var state = array[0];
 	if (isTerminal(state)) {
@@ -172,13 +191,11 @@ var simulateAgent = function(obsHistArray, params) {
     };
 
     return Rejection(sampleHistArray, 100);
-    // var myfun = function(){
-    // 	return agent([0,0], 6);
-    // };
-    
-    // return Rejection(myfun);
+    // return sample(agent(startState, n));
 };
 
+// this function generates some number of trajectories, all of the same length and starting
+// state, of an agent in an MDP.
 var agentTrajectories = function(startState, length, numTrajectories, params) {
 
     var isTerminal = function(state){
@@ -202,7 +219,7 @@ var agentTrajectories = function(startState, length, numTrajectories, params) {
 	    var utility = params.utility;
 	    var u = utility(state, action);
 
-	    if (timeLeft - 1 == 0 | isTerminal(state)){
+	    if (timeLeft - 1 == 0 || isTerminal(state)){
 		return u;
 	    } else {
 		return u + expectation( Enumerate(function(){
@@ -234,39 +251,30 @@ var agentTrajectories = function(startState, length, numTrajectories, params) {
     
 };
 
-// this function takes a list of trajectories, parameters for the MDP and agent, and numberRejectionSamples,
-// and returns an ERP over the list of utilities for each terminal state. enumeration is done by Markov chain
-// monte carlo, options for which can be input as optionsAct (for computing the ERP of the agent's actions
-// given fixed utilities) and optionsUtil (for computing the ERP of the utilities given observed actions)
-var inferUtilities = function(trajectories, params, optionsUtil){
+// this function takes a list of trajectories, parameters for the MDP and agent, a prior thunk for utilities of
+// terminal states, and options for inference, and returns an ERP over the list of utilities for each terminal state.
+// the prior thunk should be a function whose outputs are distributed according to the prior over utilities of each
+// terminal state. it is assumed that utilities of terminal states are independent.
+// inference on single agent actions is done by enumeration, inference on the collection of actions that the agent
+// takes is done by rejection sampling with 100 samples, and inference on the utilities of terminal states is done
+// by MCMC
+var inferUtilities = function(trajectories, params, utilPrior, options){
 
     var obsHistArray = trajectoriesToHistArray(trajectories);
-  
+
+    var terminals = params.terminals;
+    
     // this is the thing that will be enumerated over to get the ERP of what the utilities are.
     // it returns an array of utilities for each terminal state (in the order they are listed in in params.terminals)
     var utilityProcess = function() {
 
-	// in this bit, we randomly generate a reward function. we assume that the only
-	// interesting rewards are on terminal states, that all rewards of terminal states
-	// are integer multiples of 0.1 between -1 and 1, that post-terminal states have
-	// reward 0, and that all other states have reward -0.1.
-	var terminals = params.terminals;
+	// generating utility function
 
-	var unifDiscrete = function(){
-	    return uniformDraw(rangeBy(-1, 1, 0.1));
-	};
-
-	var uArray = repeat(terminals.length, unifDiscrete);
-
-	// for testing
-	// var flippy = function(){
-	//     return (flip() ? 1 : -1);
-	// };
+	var uArray = repeat(terminals.length, utilPrior);
 	
-	// var uArray = repeat(terminals.length, flippy);
-
 	// console.log(uArray);
-	
+
+	// we assume that the penalty for not being in a terminal state is -0.1
 	var utilityFun = function(state, action){
 	    if (stateInArray(state, terminals)) {
 		return uArray[arrayIndexOf(state, terminals)];
@@ -279,47 +287,141 @@ var inferUtilities = function(trajectories, params, optionsUtil){
 
 	var newParams = update(params, {utility: utilityFun});
 
+	// ERP over the agent's behaviour in the generated environment
+
+	var agentERP = simulateAgent(obsHistArray, newParams);
+
+	// testing options:
+	// var agentERP = simulateAgent(obsHistArray, newParams, trajectories[0][0][0], trajectories[0].length);
+	// var agentAct = simulateAgent(obsHistArray, newParams, trajectories[0][0][0], trajectories[0].length);
+	
+	// console.log(printERP(agentERP));
+	
 	// now, we do the inference part.
 	
-	// var newHist = simulateAgent(obsHistArray, newParams, numRejectionInner);
-	// console.log(newHist);
+	factor(agentERP.score([], obsHistArray));
 
-	// console.log(printERP(simulateAgent(obsHistArray, newParams, numRejectionInner)));
-	factor(simulateAgent(obsHistArray, newParams).score([], obsHistArray));
-	// factor(simulateAgent(obsHistArray, newParams).score([], trajectories[0][0][1]));
+	// testing options
 	
+	// factor(agentAct === trajectories[0][0][1] ? 0 : -Infinity);
+	// factor(agentERP.score([], 'u'));
 	// factor(arraysEqual(newHist, obsHistArray) ? 0 : -Infinity);
-
-	// factor(firstAgentActionERP.score([], trajectories[0][0][1])); // for testing
 	
 	return uArray;
     };
 
     // now we need to enumerate over utilityProcess to get the posterior over the utilities
-    var utilityPosterior = MCMC(utilityProcess, optionsUtil);
-    // var utilityPosterior = Rejection(utilityProcess, 100);
+    // var utilityPosterior = MCMC(utilityProcess, options);
+    var utilityPosterior = Enumerate(utilityProcess);
 
     return utilityPosterior;
 };
 
 // this is me testing stuff
 
-var params43 = make43(0.1, 10);
-var trajs43 = agentTrajectories([0,0], 6, 1, params43);
-var hist43 = trajectoriesToHistArray(trajs43);
+// var params43 = make43(0, 10);
+// var trajs43 = agentTrajectories([1,0], 5, 1, params43);
+// var hist43 = trajectoriesToHistArray(trajs43);
 
-var donutParams = makeDonut(0.2, 3);
-var donutTrajs = agentTrajectories([1,1], 6, 3, donutParams);
+// timeit(function(){return agentTrajectories([1,0], 5, 1, params43)})
+// timeit(function(){return inferUtilities(trajs43, params43, flippypm)})
 
-// var f = function() {
-//     return printERP(inferUtilities(trajs43, params43));
+// var makeSquare = function(noiseProb, alpha, lim, n){
+//     var u = function(state, action){
+// 	if (gridEqual(state, [0, n])) {
+// 	    return 1;
+// 	} else if (gridEqual(state, [n, 0])) {
+// 	    return -1;
+// 	} else if (isPostTerminal(state)) {
+// 	    return 0;
+// 	} else {
+// 	    return -0.1;
+// 	}
+//     };
+//     var blockedStates = [];
+//     var terminals = [[0,n], [n,0]];
+//     return makeBlockedGridParams(lim, lim, blockedStates, terminals, u, noiseProb, alpha);
 // };
 
-// var g = function() {return timeit(f);};
+// var doubleFlippy = function(){
+//     if (flip()) {
+// 	return flip() ? -1 : -0.5;
+//     } else {
+// 	return flip() ? 0.5 : 1;
+//     }
+// };
 
-// repeat(10, f)
-// repeat(3, g)
+// var myTimer = function(n) {
+//     console.log(n);
+//     var squareParams = makeSquare(0.1, 4, 6, n - 1);
+//     var squareTrajs = agentTrajectories([0,0], n, 1, squareParams);
+//     var squareHist = trajectoriesToHistArray(squareTrajs);
+    
+//     var f = function() {
+// 	console.log("..");
+// 	return printERP(inferUtilities(squareTrajs, squareParams, flippypm));
+// 	// return simulateAgent(squareHist, squareParams);
+//     };
 
-printERP(inferUtilities(trajs43, params43))
+//     var g = function() {return timeit(f).runtimeInMilliseconds;};
 
-// printERP(simulateAgent(hist43, params43, 10))
+//     return listMean(repeat(3, g));
+// };
+
+// map(myTimer, [2,3,4,5,6])
+
+// var squareParams = makeSquare(0.1, 4, 5, 4);
+// var squareTrajs = agentTrajectories([0,0], 7, 1, squareParams);
+// var squareHist = trajectoriesToHistArray(squareTrajs);
+
+// printERP(inferUtilities(squareTrajs, squareParams, flippypm))
+
+// var myERP = simulateAgent(squareHist, squareParams);
+
+// var f = function() {
+//     return sample(myERP);
+// };
+
+// var g = function() {
+//     return timeit(f).runtimeInMilliseconds;
+// };
+
+// listMean(repeat(5,g))
+
+// printERP(simulateAgent(squareHist, squareParams, [0,0], 2))
+
+// var donutParams = makeDonut(0.1, 1);
+// var donutTrajs = agentTrajectories([2,0], 8, 5, donutParams);
+
+// var donutPrior = function(){
+//     if (flip(0.3)) {
+// 	return 4;
+//     } else if (flip()) {
+// 	return 1;
+//     } else {
+// 	return -1;
+//     }
+// };
+
+// var squareParams = makeSquare(0.1, 10, 20, 5);
+// var squareTrajs = agentTrajectories([0,0], 6, 5, squareParams);
+
+// var f = function() {
+//     // console.log("..");
+//     // return printERP(inferUtilities(squareTrajs, squareParams, flippypm));
+//     return agentTrajectories([0,0], 6, 5, squareParams);
+// };
+
+// var g = function() {return timeit(f).runtimeInMilliseconds;};
+
+// repeat(5, g)
+
+// JSON.stringify(squareTrajs)
+
+// printERP(inferUtilities(donutTrajs, donutParams, donutPrior, {verbose: true}))
+
+// JSON.stringify(donutTrajs)
+
+// donutTrajs[0].length
+
+// printERP(simulateAgent(hist43, params43))
