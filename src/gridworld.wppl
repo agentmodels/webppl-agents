@@ -333,17 +333,41 @@ var makeHike = function(transitionNoiseProb, alpha, utilityEast, utilityWest, ut
 // *actualTotalTime*: how many steps we run *simulate* for
 // *perceivedTotalTime*: how many steps agent perceives in the future (*actualTotalTime* could be less)
 
-// *numberRejectionSamples*: if ==0, we use Enumerate for simulating trajectories, otherwise we use Rejection
+// *mdpParams*: has *transition*, *utility*, *alpha* as attributes. For gridworld, constructor is *makeBlockedGridParams*.
 
-// *output*: *simulate* either outputs states (form [state,'X']), actions (['X',action]) or both ([state,action])
+// *outputParams* specify options for (a) the form of the ERP over trajectories (the main output of *mdpSimulate*)
+// and (b) extra outputs such as *expUtility(state,action)* for state-action pairs and ERPs for each state
+// given in *conditionOnStates*.
 
-// *conditionOnStates* should be a state sequence (if != undefined), typically with length == perceivedTotalTime.
+// Attributes for *outputParams* are:
+
+// *trajectoryNumRejectionSamples*: if set to zero, use Enumerate for simulating trajectories, otherwise use Rejection
+// with given number of samples.
+
+// *erpOverStatesOrActions*: *simulate* either outputs states, actions, or both ([state,action]). Values are following strings:
+// 'states', 'actions', 'both'. 
+
+// *conditionOnStates* should be a state sequence, typically with length == perceivedTotalTime. If not conditioning on
+// states, set to false.
 
 
-var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
-                           getExpUtilityValues, output, conditionOnStates){
+var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, mdpParams, outputParams){
 
-  var terminalCheck = true; // toggle whether end at terminals (if false, agent stays in postTerminal state --
+  // CHECK AND ABBREVIATE INPUT ARGS
+  // shorten variable names for convenience
+  var params = mdpParams;
+  var erpOverStatesOrActions = outputParams.erpOverStatesOrActions;
+
+  assert.ok(perceivedTotalTime >= actualTotalTime  &  mdpParams.alpha >= 0  & 
+            (['actions','states','both'].indexOf(outputParams.erpOverStatesOrActions) > -1)  &
+            outputParams.trajectoryNumRejectionSamples >= 0, 'mdpSimulate args');
+  
+  if (outputParams.conditionOnStates){
+    assert.ok( outputParams.conditionOnStates.length >= 0, 'conditionOnStates argument');}
+
+  
+  // FIX CHECKING FOR TERMINAL STATES
+  var terminalCheck = true; // toggle whether trajectory end sat terminals (if false, agent stays in postTerminal state --
   // this is equivalent in terms of the agent's plans but means sequences of states are longer)
 
   // At a terminal, agent takes a single action and then transitions to a "postTerminal" state
@@ -381,7 +405,8 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
     });
 
   
-  var simulate = function(startState, actualTotalTime, perceivedTotalTime, params, output){
+  // GENERATE TRAJECTORY
+  var simulate = function(startState, actualTotalTime, perceivedTotalTime, params, erpOverStatesOrActions){
 
     var sampleSequence = function(state, actualTimeLeft, perceivedTimeLeft){
       if (actualTimeLeft==0 | isTerminal(state)){
@@ -390,28 +415,30 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
         var action = sample(agent(agent, expUtility, state, perceivedTimeLeft, params));
         var transition = params.transition;
         var nextState = transition(state,action); 
-        var out = {states:[state,'X'], actions:['X',action], 
-                   actionOnly: action, both: [state,action]}[output];
+        var out = {states:state, actions:action, both:[state,action]}[erpOverStatesOrActions];
         return [ out ].concat( sampleSequence(nextState,actualTimeLeft-1, perceivedTimeLeft-1));
       }
     };
-    
-    return numberRejectionSamples==0 ? 
+    // Either enumerate over trajectories or use rejection
+    return outputParams.trajectoryNumRejectionSamples==0 ? 
       Enumerate(function(){
         return sampleSequence(startState, actualTotalTime, perceivedTotalTime); 
       }) : 
     Rejection(function(){
       return sampleSequence(startState, actualTotalTime, perceivedTotalTime); 
-    }, numberRejectionSamples, undefined, true);
+    }, outputParams.trajectoryNumRejectionSamples, undefined, true);
   };
 
+
+  // GET ADDITIONAL CACHED OUTPUTS
+  
   // Get expU for each state visited in MAP() and for all four possible actions
   // output has form: [ [state0,[EU(state0,'l'), EU(state0,'r'), EU(state0,'u'), EU(state0,'d') ] ], .... ]
   // TODO give some warning because expUtilities are misleading for single action
   var getExpUtility = function(){
     
     var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, 'states');
-    var states = selectIndex(erp.MAP().val,0);
+    var states = erp.MAP().val;
     var timeStates = zip(downToOne(states.length), states);
     
     return map( function(timeState){
@@ -434,10 +461,16 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, para
     }, timeStates);
   };
 
-  // prepare output
-  var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, output);
-  var expUtilityValues = getExpUtilityValues ? getExpUtility() : [];
-  var stateActionERPs = conditionOnStates != undefined ? getStateActionERPs(conditionOnStates) : [];
+  
+  // ASSEMBLE OUTPUTS
+
+  // standard output is ERP over state, action or state-action sequences
+  var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, erpOverStatesOrActions);
+
+  // extra outputs: normally using values already cached by simulate
+  var expUtilityValues = outputParams.getExpUtilityValues ? getExpUtility() : [];
+  var stateActionERPs = outputParams.conditionOnStates != false ? 
+      getStateActionERPs(outputParams.conditionOnStates) : [];
   
   return {erp: erp, expUtilityValues: expUtilityValues, stateActionERPs: stateActionERPs }; 
   

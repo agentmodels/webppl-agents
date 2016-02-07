@@ -13,20 +13,20 @@
 
 
 // Output is array of trajectories of form [ state0, state1, ... , state5 ]
-var sampleGrid43 = function(numberSamples){
-  assert.ok(numberSamples >= 1, 'repeat in sampleGrid43 will fail without samples > 1');
-  var noiseProb = .1;
-  var alpha = 100;
-  var actualTotalTime = 6;
+// var sampleGrid43 = function(numberSamples){
+//   assert.ok(numberSamples >= 1, 'repeat in sampleGrid43 will fail without samples > 1');
+//   var noiseProb = .1;
+//   var alpha = 100;
+//   var actualTotalTime = 6;
   
-  var params = make43(noiseProb, alpha);
-  var numberRejectionSamples = 100;
-  var output = 'states';
-  var getExpUtilityValues = false;
-  var out = mdpSimulate([0,0], actualTotalTime, actualTotalTime, params, numberRejectionSamples,
-                        getExpUtilityValues, output);
-  return repeat(numberSamples, function(){return map(function(pair){return pair[0];}, sample(out.erp));});
-};
+//   var params = make43(noiseProb, alpha);
+//   var numberRejectionSamples = 100;
+//   var output = 'states';
+//   var getExpUtilityValues = false;
+//   var out = mdpSimulate([0,0], actualTotalTime, actualTotalTime, params, numberRejectionSamples,
+//                         getExpUtilityValues, output);
+//   return repeat(numberSamples, function(){return map(function(pair){return pair[0];}, sample(out.erp));});
+// };
 
 
 // Donut/Veg Cafe from AAAI paper
@@ -41,8 +41,9 @@ var testMakeDonutInfer = function(){
   var runDonut = function(smallVersion, utilityTable){
     var params = makeDonutInfer(smallVersion, utilityTable, alpha, noiseProb);
     var startState = params.defaultStartState;
-    var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
-                      true, 'both', undefined);
+    var outputParams = {erpOverStatesOrActions: 'both', getExpUtilityValues: true, 
+                        trajectoryNumRejectionSamples: numberRejectionSamples, conditionOnStates:false};
+    var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, outputParams);
     var erp = out.erp;
     console.log('size: ', smallVersion, 'u table', utilityTable, '\n');
     GridWorld.zipToDisplayGrid( erp.MAP().val, params.xLim, params.yLim, true );
@@ -65,8 +66,9 @@ var testMakeDonutInfer = function(){
   var runSoftmax = function(smallVersion, utilityTable){
     var params = makeDonutInfer(smallVersion, utilityTable, alpha, noiseProb);
     var startState = params.defaultStartState;
-    var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
-                          true, 'both', undefined);
+    var outputParams = {erpOverStatesOrActions: 'both', getExpUtilityValues: true, 
+                        trajectoryNumRejectionSamples: numberRejectionSamples, conditionOnStates:false};
+    var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, outputParams);
     var erp = out.erp;
     var lengthERP = Enumerate( function(){return sample(erp).length;} );
     console.log('size: ', smallVersion, 'u table', utilityTable, '\n');
@@ -86,8 +88,9 @@ var testMakeDonutInfer = function(){
   var runSpeed = function(smallVersion, utilityTable, perceivedTotalTime){
     var params = makeDonutInfer(smallVersion, utilityTable, alpha, noiseProb);
     var startState = params.defaultStartState;
-    return mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
-                      true, 'both', undefined).erp;
+    var outputParams = {erpOverStatesOrActions: 'both', getExpUtilityValues: true, 
+                        trajectoryNumRejectionSamples: numberRejectionSamples, conditionOnStates:false};
+    return mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, outputParams).erp;
   };
   var utilityTable = {'donutSouth': 1, 'donutNorth':1, 'veg':3, 'noodle':2, 'timeCost':-.1};
   
@@ -97,6 +100,7 @@ var testMakeDonutInfer = function(){
   }, [6,7,8,9] );
   
 };
+
 
 
 
@@ -120,8 +124,9 @@ var smallGridTest = function(){
     var perceivedTotalTime = actualTotalTime;
     var getExpUtilityValues = true;
     var output = 'both';
-    var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
-                          getExpUtilityValues, output);
+    var outputParams = {erpOverStatesOrActions: output, getExpUtilityValues: getExpUtilityValues, 
+                        trajectoryNumRejectionSamples: numberRejectionSamples, conditionOnStates:false};
+    var out = mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, outputParams);
     var outMAP = out.erp.MAP().val;
     console.log('\n\n DISPLAY MAP PATH OF STATE-ACTIONS')
     GridWorld.zipToDisplayGrid( outMAP, params.xLim, params.yLim, true );
@@ -227,7 +232,7 @@ var runAllTests = function(){
   testGetStateToActions();
 };
 
-
-//runAllTests();
+testMakeDonutInfer()
+runAllTests();
 
 0;

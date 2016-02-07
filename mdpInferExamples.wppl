@@ -54,11 +54,11 @@ var runCorners = function(startState, perceivedTotalTime, uNorth, uSouth, condit
 
   // mdpSimulate arguments
   var numberRejectionSamples = 0;  // use Enumerate for distribution on agent actions
-  var getExpUtilityValues = false;
-  var output = 'actionOnly';  // output for mdpSimulate is array of form [ action0, action1, ... ] 
-
-  return mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples,
-                     getExpUtilityValues, output, conditionOnStates);
+  var conditionOnStates = conditionOnStates || false;
+  var outputParams = {erpOverStatesOrActions: 'actions', getExpUtilityValues: false, 
+                      trajectoryNumRejectionSamples: numberRejectionSamples, conditionOnStates:conditionOnStates};
+  
+  return mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, outputParams);
 };
 
 
