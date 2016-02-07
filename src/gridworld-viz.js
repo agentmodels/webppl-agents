@@ -13,7 +13,7 @@ function createCanvas(element, options) {
 function draw(world, additional) {
   var element = wpEditor.makeResultContainer();
 
-  var canvas = createCanvas(element, { width : world.xLim * 50, height : world.yLim * 50});
+  var canvas = createCanvas(element, { width : world.xLim * 100, height : world.yLim * 100});
   paper.setup(canvas);
 
   var color = { 
