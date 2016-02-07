@@ -215,7 +215,8 @@ var testGetStateToActions = function(){
              all(id,
                  map( function(s){return !arraysEqual(f(s), ['l','r','u','d']);}, 
                       [ [0,0], [1,0], [2,0], [3,0], [4,0], [0,1], [0,2], [0,3], [0,4], [4,4] ])),
-                         'testGetState');
+             'testGetState');
+  console.log('passed getStateToActions');
 };
 
 

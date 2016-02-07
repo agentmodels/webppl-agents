@@ -143,16 +143,16 @@ var getStateToActions = function(detTransition, blockedStates, xLim, yLim){
 // to the one intended. We implement this by using a deterministic transition function
 // and stochastically changing the action the agent performs.
 
-var makeStochasticGridTransition = function(xLim, yLim, blockedStates, noiseProb, terminals){
+var makeStochasticGridTransition = function(xLim, yLim, blockedStates, transitionNoiseProb, terminals){
 
   var detTransition = makeGridTransition(xLim, yLim, blockedStates, terminals);
 
-  // If agent selects *key*, with *noiseProb* they do one of the two orthogonal actions
+  // If agent selects *key*, with *transitionNoiseProb* they do one of the two orthogonal actions
   var noiseActionTable = {u: ['l','r'], d: ['l','r'], l: ['u','d'], r: ['u','d'] };
   
   return function(state,action){
     sample(Enumerate( function(){
-      return flip(1-noiseProb) ? detTransition(state,action) : 
+      return flip(1-transitionNoiseProb) ? detTransition(state,action) : 
         detTransition(state, uniformDraw(noiseActionTable[action]))
     }))
   };
@@ -160,9 +160,9 @@ var makeStochasticGridTransition = function(xLim, yLim, blockedStates, noiseProb
 
 
 // All params for gridworld
-var makeBlockedGridParams = function(xLim, yLim, blockedStates, terminals, utilityFunction, noiseProb, alpha, labels){
-  var t = noiseProb==0 ? makeGridTransition(xLim, yLim, blockedStates, terminals) : 
-      makeStochasticGridTransition(xLim, yLim, blockedStates, noiseProb, terminals)
+var makeBlockedGridParams = function(xLim, yLim, blockedStates, terminals, utilityFunction, transitionNoiseProb, alpha, labels){
+  var t = transitionNoiseProb==0 ? makeGridTransition(xLim, yLim, blockedStates, terminals) : 
+      makeStochasticGridTransition(xLim, yLim, blockedStates, transitionNoiseProb, terminals)
   return {utility: utilityFunction,
           transition: t,
           actions: gridActions,
@@ -194,7 +194,7 @@ var displayGrid = function(params){
 
 
 // 3x3 grid where you go from anywhere to top-right
-var _makeSmall = function(noiseProb, alpha, xLim, yLim){
+var _makeSmall = function(transitionNoiseProb, alpha, xLim, yLim){
   var u = function(state,action){
     if (gridEqual(state,[2,2])){return 1;}
     if (isPostTerminal(state)){return 0;}
@@ -202,14 +202,14 @@ var _makeSmall = function(noiseProb, alpha, xLim, yLim){
   };
   var blockedStates = [];
   var terminals = [ [2,2]];
-  return makeBlockedGridParams(xLim, yLim, blockedStates, terminals, u, noiseProb, alpha);
+  return makeBlockedGridParams(xLim, yLim, blockedStates, terminals, u, transitionNoiseProb, alpha);
 };
 
-var makeSmall = function(noiseProb, alpha){return _makeSmall(noiseProb, alpha, 3, 3);};
+var makeSmall = function(transitionNoiseProb, alpha){return _makeSmall(transitionNoiseProb, alpha, 3, 3);};
 
 
 // Russell-Norvig basic example
-var make43 = function(noiseProb, alpha){
+var make43 = function(transitionNoiseProb, alpha){
   var utility = function(state,action){
     if (gridEqual(state,[3,2]) ){ return 1;}
     if (gridEqual(state,[3,1]) ){ return -1;}
@@ -218,12 +218,12 @@ var make43 = function(noiseProb, alpha){
   };
   var blockedStates = [[1,1] ];
   var terminals = [[3,2], [3,1]];
-  return makeBlockedGridParams(4,3, blockedStates, terminals, utility, noiseProb, alpha);
+  return makeBlockedGridParams(4,3, blockedStates, terminals, utility, transitionNoiseProb, alpha);
 };
 
 
 // Donut example from AAAI paper
-var makeDonut = function(noiseProb, alpha){
+var makeDonut = function(transitionNoiseProb, alpha){
   var blockedStates = [ [0,5], [1,5], [2,5],      [4,5], [5,5],
                         [0,4], [1,4],                    [5,4],  
                         [0,3],              [3,3],       
@@ -245,15 +245,15 @@ var makeDonut = function(noiseProb, alpha){
     if (stateInArray(state,terminals)){return 1;}
     return -0.1;
   };
-  return makeBlockedGridParams(6,6, blockedStates, terminals, u, noiseProb, alpha, labels);
+  return makeBlockedGridParams(6,6, blockedStates, terminals, u, transitionNoiseProb, alpha, labels);
 };
 
 
 // Better Donut example
 // *smallVersion*==false means a bigger grid that looks more like AAAI paper grid
-var makeDonutInfer = function(smallVersion, utilityTable, alpha, noiseProb){
+var makeDonutInfer = function(smallVersion, utilityTable, alpha, transitionNoiseProb){
   assert.ok( typeof(smallVersion)=='boolean' & typeof(utilityTable.veg) == 'number' &
-             typeof(utilityTable.timeCost) == 'number' & alpha >= 0 & noiseProb >= 0, 'makeDonutInfer args');
+             typeof(utilityTable.timeCost) == 'number' & alpha >= 0 & transitionNoiseProb >= 0, 'makeDonutInfer args');
 
   var smallParams = {openStates : [ [0,0], [0,1],
                                     [1,1], [1,4],
@@ -298,15 +298,15 @@ var makeDonutInfer = function(smallVersion, utilityTable, alpha, noiseProb){
     if (stateToRestaurant(state)){return utilityTable[ stateToRestaurant(state) ];}
     return utilityTable['timeCost'];
   };
-  var outParams = makeBlockedGridParams(params.xLim, params.yLim, blockedStates, params.terminals, u, noiseProb, alpha);
+  var outParams = makeBlockedGridParams(params.xLim, params.yLim, blockedStates, params.terminals, u, transitionNoiseProb, alpha);
   return update(outParams, {defaultStartState : params.defaultStartState});
 };
 
 
-var makeHike = function(noiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost){
-  map( function(input){assert.ok( typeof(input)=='number', 'makeHike inputs' );}, [noiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost] );
+var makeHike = function(transitionNoiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost){
+  map( function(input){assert.ok( typeof(input)=='number', 'makeHike inputs' );}, [transitionNoiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost] );
   assert.ok(timeCost <=0, 'makeHike inputs' );
-  assert.ok(noiseProb >= 0 & alpha >= 0, 'makeHike inputs' );
+  assert.ok(transitionNoiseProb >= 0 & alpha >= 0, 'makeHike inputs' );
 
   
   var xLim = 5;
@@ -321,7 +321,7 @@ var makeHike = function(noiseProb, alpha, utilityEast, utilityWest, utilityHill,
     if (stateInArray(state,terminals)) {return utilityHill;}
     return timeCost;
   };
-  return makeBlockedGridParams(xLim, yLim, blockedStates, terminals, u, noiseProb, alpha);
+  return makeBlockedGridParams(xLim, yLim, blockedStates, terminals, u, transitionNoiseProb, alpha);
 };
 
 
@@ -332,9 +332,12 @@ var makeHike = function(noiseProb, alpha, utilityEast, utilityWest, utilityHill,
 
 // *actualTotalTime*: how many steps we run *simulate* for
 // *perceivedTotalTime*: how many steps agent perceives in the future (*actualTotalTime* could be less)
-// *numberRejectionSamples*: if ==0, we use Enumerate for simulating trajectories, otherwise we rejection sample
+
+// *numberRejectionSamples*: if ==0, we use Enumerate for simulating trajectories, otherwise we use Rejection
+
 // *output*: *simulate* either outputs states (form [state,'X']), actions (['X',action]) or both ([state,action])
-// *conditionOnStates* should be a state sequence (if defined), typically with length == perceivedTotalTime.
+
+// *conditionOnStates* should be a state sequence (if != undefined), typically with length == perceivedTotalTime.
 
 
 var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples, 
