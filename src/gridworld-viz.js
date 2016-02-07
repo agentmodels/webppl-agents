@@ -72,8 +72,8 @@ function draw(world, additional) {
         group.addChild(a);
 
         var l = makeLabel({ 
-          point : [coord[0] + offsetx *.35, coord[1] + offsety *.35], 
-          content : LURD[j].toFixed(2), fontSize : 6 
+          point : [coord[0] + offsetx *.30, coord[1] + offsety *.30], 
+          content : LURD[j].toFixed(1), fontSize : 10 
         });
 
         group.addChild(l);
@@ -85,7 +85,7 @@ function draw(world, additional) {
   var makeLabel = function (a) { 
       var copy = _.extend(label.clone(), a);
       copy.point = position(a.point);
-      copy.point.y += copy.bounds.height/2;
+      copy.point.y += copy.bounds.height/3.5;
       return copy;
   };
 
