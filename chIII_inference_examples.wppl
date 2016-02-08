@@ -1,5 +1,5 @@
-// examples of inference to be used in chapter III. some testing options use webppl-timeit.
-// todo: visualisation
+// examples of inference to be used in chapter III.
+// todo: check if visualisation works.
 
 //
 // example 1
@@ -20,7 +20,9 @@ var inferSingleAction = function(startState, observedAction, perceivedTotalTime,
 
 	factor(actionERP.score([], observedAction));
 
-	return newUtilityTable;
+	return {donutUtil: newUtilityTable['donutSouth'],
+		vegUtil: newUtilityTable['veg'],
+		noodleUtil: newUtilityTable['noodle']};
     });
 };
 
@@ -40,14 +42,10 @@ var simpleUtilPrior = function(){
     }
 };
 
-var oneTwoThreePrior = function(){
-    return uniformDraw([1,2,3]);
-};
-
 var complexUtilPrior = function(){
-    var donutUtil = oneTwoThreePrior();
-    var vegUtil = oneTwoThreePrior();
-    var noodleUtil = oneTwoThreePrior();
+    var donutUtil = uniformDraw([1,2,3]);
+    var vegUtil = uniformDraw([1,2,3]);
+    var noodleUtil = uniformDraw([1,2,3]);
     return {'donutSouth': donutUtil,
 	    'donutNorth': donutUtil,
 	    'veg': vegUtil,
@@ -57,24 +55,18 @@ var complexUtilPrior = function(){
 
 // we learn using simpleUtilPrior whether donuts are favoured over veg/noodle.
 // however, even using complexUtilPrior, we don't learn whether veg is favoured
-// over noodle, since the single action doesn't tell us that.
+// over noodle, since the first action is the same whichever of those is favoured.
 
-// printERP(inferSingleAction([2,1], ["l"], 7, simpleUtilPrior))
-// printERP(inferSingleAction([2,1], ["u"], 7, simpleUtilPrior))
-// printERP(inferSingleAction([2,1], ["l"], 7, complexUtilPrior))
-// printERP(inferSingleAction([2,1], ["u"], 7, complexUtilPrior))
-
-// var f = function(){
-//     return sample(inferSingleAction([2,1], ["l"], 7, complexUtilPrior));
-// };
-
-// timeit(f)
+// viz.print(inferSingleAction([2,1], ["l"], 7, simpleUtilPrior))
+// viz.print(inferSingleAction([2,1], ["u"], 7, simpleUtilPrior))
+// viz.print(inferSingleAction([2,1], ["l"], 7, complexUtilPrior))
+// viz.print(inferSingleAction([2,1], ["u"], 7, complexUtilPrior))
 
 //
 // example 2
 //
 
-// second inference function: inferring restaurant and timecost utilities from a
+// second inference function: inferring restaurant utilities from a
 // set of trajectories. trajectories is an array of arrays of the form
 // [n, [state1, action1], [state2, action2], ...], where n is the perceived total
 // lifespan of the agent. utilityPrior is the same as in inferSingleAction.
@@ -91,7 +83,9 @@ var inferTrajsUtil = function(trajectories, utilityPrior) {
 
 	factor(newTrajsERP.score([], trajectories));
 
-	return newUtilityTable;
+	return {donutUtil: newUtilityTable['donutSouth'],
+		vegUtil: newUtilityTable['veg'],
+		noodleUtil: newUtilityTable['noodle']};
     });
 };
 
@@ -104,7 +98,9 @@ var rerunTrajectory = function(trajectory, params) {
     var perceivedTotalTime = trajectory[0];
     var actualTotalTime = trajectory.length - 1;
     assert.ok(typeof(perceivedTotalTime)=='number','a trajectory did not include perceived total time');
+    
     var outputParams = {trajectoryNumRejectionSamples: 0, erpOverStatesOrActions: 'both', conditionOnStates: false};
+    
     return cons(perceivedTotalTime,
 		sample(mdpSimulate(startState, actualTotalTime, perceivedTotalTime, params, outputParams).erp));
 };
@@ -114,28 +110,44 @@ var rerunTrajectories = function(trajectories, params) {
     return map(function(traj){return rerunTrajectory(traj, params);}, trajectories);
 };
 
+var params = makeDonutInfer(true, {'donutSouth': 1, 'donutNorth': 1, 'veg': 1, 'noodle': 1, 'timeCost': 1}, 100, 0);
 var noodleTraj = [7, [[2,1], 'u'], [[2,2], 'u'], [[2,3], 'r']];
 var noodleTrajs = [noodleTraj];
-
-// var f = function(){
-//     return sample(inferTrajsUtil(noodleTrajs, complexUtilPrior));
-// };
-
-// timeit(f)
+// GridWorld.draw(params, {trajectory: rest(noodleTraj)});
+// viz.print(inferTrajsUtil(noodleTrajs, complexUtilPrior));
 
 //
 // example 3
 //
 
-var timeCostPrior = function() {
-    return uniformDraw([-0.1, -1]);
+// third inference function: this time, we also want to infer the time cost. Our prior
+// over utilities includes our prior over the time cost as well as the prior over
+// restaurant utilities.
+var inferTrajsUtilTimeCost = function(trajectories, utilityPrior) {
+    return Enumerate(function(){
+	var newUtilityTable = utilityPrior();
+	var newParams = makeDonutInfer(true, newUtilityTable, 100, 0);
+
+	// rerunTrajectories will be defined next: it reruns the trajectories from the beginning
+	// using the new parameters.
+	var newTrajsERP = Enumerate(function(){
+	    return rerunTrajectories(trajectories, newParams);
+	});
+
+	factor(newTrajsERP.score([], trajectories));
+
+	return {donutUtil: newUtilityTable['donutSouth'],
+		vegUtil: newUtilityTable['veg'],
+		noodleUtil: newUtilityTable['noodle'],
+		timeCost: newUtilityTable['timeCost']};
+    });
 };
 
 var superComplexUtilPrior = function() {
-    var donutUtil = oneTwoThreePrior();
-    var vegUtil = oneTwoThreePrior();
-    var noodleUtil = oneTwoThreePrior();
-    var timeCost = timeCostPrior();
+    var donutUtil = uniformDraw([1,2,3]);
+    var vegUtil = uniformDraw([1,2,3]);
+    var noodleUtil = uniformDraw([1,2,3]);
+    var timeCost = uniformDraw([-0.1, -1]);
     return {'donutSouth': donutUtil,
 	    'donutNorth': donutUtil,
 	    'veg': vegUtil,
@@ -145,18 +157,14 @@ var superComplexUtilPrior = function() {
 
 var dsTraj = [7, [[2,1], 'l'], [[1,1], 'l']];
 var dsTrajs = [dsTraj];
-
-// var f = function(){
-//     return sample(inferTrajsUtil(dsTrajs, superComplexUtilPrior));
-// };
-
-// timeit(f)
+// GridWorld.draw(params, {trajectory: rest(dsTraj)});
+// viz.print(inferTrajsUtilTimeCost(dsTrajs, superComplexUtilPrior));
 
 //
 // example 4
 //
 
-// third inference function: same as inferTrajsUtil, but also performs
+// fourth inference function: same as inferTrajsUtil, but also performs
 // inference over alpha, and therefore needs a prior for alpha.
 // note: this is pretty slow.
 var inferTrajsUtilAlpha = function(trajectories, utilityPrior, alphaPrior) {
@@ -171,12 +179,16 @@ var inferTrajsUtilAlpha = function(trajectories, utilityPrior, alphaPrior) {
 
 	factor(newTrajsERP.score([], trajectories));
 
-	return [newUtilityTable, newAlpha];
+	return	{donutUtil: newUtilityTable['donutSouth'],
+		 vegUtil: newUtilityTable['veg'],
+		 noodleUtil: newUtilityTable['noodle'],
+		 alpha: newAlpha};
     });
 };
 
 var dnTraj = [7, [[2,1], 'u'], [[2,2], 'u'], [[2,3], 'u'], [[2,4], 'l']];
 var dnTrajs = [dnTraj];
+// GridWorld.draw(params, {trajectory: dnTraj})
 
 var crazyTrajs = [dsTraj, noodleTraj];
 
@@ -184,27 +196,14 @@ var maybeTipsyPrior = function() {
     return categorical([0.1, 0.9], [10, 100]);
 };
 
-var maybeRecklessPrior = function() {
-    return categorical([0.1, 0.9], [1, 100]);
-};
-
-var oneTwoPrior = function(){
-    return uniformDraw([1,2]);
-};
-
 var simplerUtilPrior = function(){
-    var donutNoodleUtil = oneTwoPrior();
-    var vegUtil = oneTwoPrior();
+    var donutNoodleUtil = uniformDraw([1,2]);
+    var vegUtil = uniformDraw([1,2]);
     return {'donutSouth': donutNoodleUtil,
 	    'donutNorth': donutNoodleUtil,
 	    'veg': vegUtil,
 	    'noodle': donutNoodleUtil,
 	    'timeCost': -0.1};
 };
-
-// var f = function(){
-//     // return sample(inferTrajsUtilAlpha(dnTrajs, complexUtilPrior, maybeRecklessPrior));
-//     return sample(inferTrajsUtilAlpha(crazyTrajs, simplerUtilPrior, maybeTipsyPrior));
-// };
-
-// timeit(f)
+// viz.print(inferTrajsUtilAlpha(dnTrajs, simplerUtilPrior, maybeTipsyPrior))
+// viz.print(inferTrajsUtilAlpha(dnTrajs, complexUtilPrior, maybeTipsyPrior))
