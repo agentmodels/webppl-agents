@@ -119,17 +119,57 @@ function draw(world, additional) {
   };      
 
   var addAgentPath = function(trajectory, group) {
-    var path = new paper.Path();
+    var agentPath = new paper.Path();
 
     var coords = _.map(trajectory, 0);
-    path.addSegments(_.map(coords, position));
-    path.strokeColor = 'black';
-    path.dashArray = [1,4];
-    group.addChild(path);
+    agentPath.strokeColor = 'black';
+    agentPath.strokeWidth = 2;
+    agentPath.dashArray = [8,8];
+    group.addChild(agentPath);
 
-    var agent = new paper.Path.Circle(position(coords[coords.length-1]), .3);
+    var agent = new paper.Path.Circle(position(coords[0]), .3);
     agent.fillColor = color.agent;
     group.addChild(agent);
+
+    var scale, offsetx, offsety;
+    paper.view.onFrame = function (event) { 
+      //the first time we execute we need to find out how things have been rescaled
+      if (scale === undefined) {
+        scale = agent.bounds.width/2/.3;
+        offsetx = agent.position.x - position(coords[0])[0] * scale; 
+        offsety = agent.position.y - position(coords[0])[1] * scale; 
+      }
+      var scalePosition = function(v) { 
+        var x = position(v);
+        return [x[0] * scale + offsetx, x[1] * scale + offsety];
+      } 
+
+      var segPerSec = 3;
+      var extraAtEnd = 1;
+
+      var segments = event.time*segPerSec;
+      var frac = segments % 1;
+      var idx = _.toInteger(Math.min(Math.floor(segments) % (trajectory.length + extraAtEnd), trajectory.length-1));
+
+      agentPath.removeSegments();
+
+      var currentLocation;
+      if (idx < trajectory.length-1) {
+        currentLocation = [
+          (1-frac) * coords[idx][0] + frac * coords[idx+1][0],
+          (1-frac) * coords[idx][1] + frac * coords[idx+1][1]
+        ];
+      } else { 
+        currentLocation = coords[idx];
+      }
+
+      var currentPath = _.take(coords, idx+1);
+      currentPath.push(currentLocation)
+
+      agentPath.addSegments(_.map(currentPath, scalePosition));
+      agent.position = scalePosition(currentLocation);
+    };
+
   };
   var axisx = _.map(_.range(world.xLim), function (i) { 
     return { point : [i, -.75], content : i };
@@ -191,6 +231,7 @@ function draw(world, additional) {
 
   group.fitBounds(paper.view.bounds);
   paper.view.draw();  
+
 }
 
 module.exports = {
