@@ -18,7 +18,7 @@ function draw(world, additional) {
 
   var color = { 
     blocked : 'grey',
-    terminal: new paper.Color(1,0,.2, .5), //transparent magenta
+    terminal: new paper.Color(.7),
     agent : 'blue'
    };
 
@@ -59,20 +59,12 @@ function draw(world, additional) {
       var LURD = [LRUD[0], LRUD[2], LRUD[1], LRUD[3]];
 
       for (var j = 0; j < 4; j ++) {
-        var a = new paper.Path([[-.5, -.5], [0, 0], [-.5, +.5]]);
-        a.closed = true;
-        a.rotate(j * 90);
-        a.fillColor = toHeat(LURD[j]);
-        a.strokeColor = new paper.Color(.5, .4);
-
-        var offsetx = Math.cos(-j * Math.PI/2 + Math.PI); 
-        var offsety = Math.sin(-j * Math.PI/2 + Math.PI); 
-
-        a.position = position([coord[0] + offsetx *.25, coord[1] + offsety *.25]);
-        group.addChild(a);
+        var tri = triangleSquare(coord, j*90, toHeat(LURD[j]), new paper.Color(.5, .4))
+        group.addChild(tri);
 
         var l = makeLabel({ 
-          point : [coord[0] + offsetx *.30, coord[1] + offsety *.30], 
+          point : [ coord[0] + .3 * Math.cos(-j * Math.PI/2 + Math.PI) , 
+                    coord[1] + .3 * Math.sin(-j * Math.PI/2 + Math.PI)], 
           content : LURD[j].toFixed(1), fontSize : 10 
         });
 
@@ -81,6 +73,21 @@ function draw(world, additional) {
     }
     return group;
   };
+
+  var triangleSquare = function(coord, orientation, color, borderColor) { 
+    var a = new paper.Path([[-.5, -.5], [0, 0], [-.5, +.5]]);
+    var j = orientation;
+    a.closed = true;
+    a.fillColor = color;
+    a.strokeColor = borderColor;
+    a.rotate(orientation);
+
+    var offsetx = Math.cos(-orientation/90 * Math.PI/2 + Math.PI); 
+    var offsety = Math.sin(-orientation/90 * Math.PI/2 + Math.PI); 
+
+    a.position = position([coord[0] + offsetx *.25, coord[1] + offsety *.25]);
+    return a;
+  }
 
   var makeLabel = function (a) { 
       var copy = _.extend(label.clone(), a);
@@ -132,10 +139,33 @@ function draw(world, additional) {
     return { point : [-.75, i], content : i };
   });
 
+  var makeTerminal = function (coords) {
+    var group = new paper.Group();
+    var tri = undefined;
+    for (var i = 0; i < 4; i++) {
+      var gradient = {
+        gradient: {
+          stops: [['white', 0.75], [color.terminal, 1]],
+          radial: false
+        },
+        origin: [0,0],
+        destination: [ -.5, 0]
+      };
+
+      tri = triangleSquare(coords, i*90, gradient, new paper.Color(0, 0));
+      group.addChild(tri);;
+    }
+    return group;
+  };
+
+
   var group = new paper.Group();
   //draw the world 
   addShapes(world.blockedStates, makeSquare(color.blocked), group);
-  addShapes(world.terminals, makeSquare(color.terminal), group);
+
+  var f =_.map(world.terminals, makeTerminal);
+  group.addChildren(f);
+  console.log(f);
 
   group.addChild(makeGrid(world));
 
