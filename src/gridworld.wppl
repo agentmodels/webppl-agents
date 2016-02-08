@@ -405,7 +405,7 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, mdpP
     });
 
   
-  // GENERATE TRAJECTORY
+  // GET DISTRIBUTION ON TRAJECTORIES
   var simulate = function(startState, actualTotalTime, perceivedTotalTime, params, erpOverStatesOrActions){
 
     var sampleSequence = function(state, actualTimeLeft, perceivedTimeLeft){
