@@ -5,9 +5,13 @@ SCRIPT=$1
 WEBPPL_PATH=node_modules/webppl
 CURRENT_PATH=$(pwd)
 
-npm install webppl@latest 
-cd $WEBPPL_PATH
-npm install
+if [ ! -d "$WEBPPL_PATH" ]; then 
+  npm install webppl@latest 
+  cd $WEBPPL_PATH
+  npm install
+else 
+  cd $WEBPPL_PATH
+fi
 
 grunt compile:$CURRENT_PATH 
 cp compiled/webppl.js $CURRENT_PATH/runHtml/assets/js/
