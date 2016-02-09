@@ -1,0 +1,30 @@
+<html>
+  <meta charset="utf-8" /> 
+  <head>
+    <script src="assets/js/webppl.js"></script>
+    <script src="assets/js/webppl-editor.js"></script>
+    <link rel="stylesheet" href="assets/css/editor.css">
+  </head>
+  <body>
+    <pre id="code">
+      <code>
+        @codehere@
+      </code>
+    </pre>
+  </body>
+  <script>
+
+    var el = document.getElementById('code');
+    wpEditor.setup(el, {language: 'webppl'});
+
+    function run() { 
+      var runButton = document.getElementsByClassName('run')[0];
+      if (runButton) {
+        runButton.click(); 
+      } else { 
+        setTimeout(run, 50);
+      }
+    }
+    run();
+  </script>
+</html>
