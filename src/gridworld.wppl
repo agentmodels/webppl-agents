@@ -286,6 +286,19 @@ var makeDonutInfer = function(smallVersion, utilityTable, alpha, transitionNoise
                   };
   
   var params = smallVersion ? smallParams : bigParams;
+  var smallLabels = [
+      { point: [0,0], content: 'DonutSouth' },
+      { point: [1,4], content: 'DonutNorth' },
+      { point: [3,6], content: 'Veg' },
+      { point: [4,2], content: 'Noodle' }
+  ];
+  var bigLabels = [
+      { point: [0,0], content: 'DonutSouth' },
+      { point: [2,5], content: 'DonutNorth' },
+      { point: [4,7], content: 'Veg' },
+      { point: [5,2], content: 'Noodle' }
+  ];
+  var labels = smallVersion ? smallLabels : bigLabels;
   var blockedStates = openToBlocked(params.openStates, params.xLim, params.yLim);
 
   var stateToRestaurant = function(state){
@@ -299,7 +312,7 @@ var makeDonutInfer = function(smallVersion, utilityTable, alpha, transitionNoise
     return utilityTable['timeCost'];
   };
   var outParams = makeBlockedGridParams(params.xLim, params.yLim, blockedStates, params.terminals, u, transitionNoiseProb, alpha);
-  return update(outParams, {defaultStartState : params.defaultStartState});
+  return update(outParams, {defaultStartState : params.defaultStartState, labels : labels});
 };
 
 
