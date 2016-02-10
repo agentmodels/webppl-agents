@@ -1,0 +1,637 @@
+// Simplified POMDP model for webbook
+
+
+
+// Helper functions
+
+var ash = function(){assert.ok(0,'halt execution here');};
+
+var update = function(base, ext){
+  return _.extend({}, base, ext);
+};
+
+var range = function(n){
+  if (n===0){return [];} 
+  else {return range(n-1).concat([n-1]);}
+};
+
+var zeroes = function(n){return repeat(n, function(){return 0;})};
+var ones = function(n){return repeat(n, function(){return 1;})};
+
+var arraysEqual = function(xs, ys){
+  return JSON.stringify(xs) === JSON.stringify(ys);
+};
+
+
+// Helper functions because functions can't be called using "dot" notation
+var startStatePrior = function(params){
+  var f = params.startStatePrior;
+  return f();
+};
+
+var stateToActions = function(state,params){
+  var f = params.stateToActions;
+  return f(state);
+};
+
+var getManifestState = function(state, params){
+  var f = params.getManifestState;
+  return f(state);
+};
+
+var utility = function(state, action, params){
+  var f = params.utility;
+  return f(state, action);
+};
+
+var transition = function(state,action,params){
+  var f = params.transition;
+  return f(state, action);
+};
+
+var observe = function(state,params){
+  var f = params.observe;
+  return f(state);
+};
+
+var selectIndex = function(ar,i){
+  return map(function(tuple){return tuple[i];}, ar);
+};
+
+var inArray = function(x, xs){return indexOf(x, xs) != undefined;};
+
+
+// ---------------------------------------
+
+
+// POMDP GENERATIVE MODELS
+
+
+
+var buildState = function(manifestState,latentState){
+  return {manifestState:manifestState, latentState:latentState};
+};
+
+
+
+// ----Update-less POMDP Simulate------
+// Stores all observations in memory. When it needs a posterior, it does the
+// belief update in batch on all the observations in its memory. For
+// efficiency, it filters out uninformative observations (they never get stored in memory)
+// and it caches computations of the posterior. 
+
+
+var pomdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples){
+
+  // Add a pair [state,observation] to memory only if it will make a difference to
+  // belief updating
+  var updateMemory = function(oldMemory, manifestState, newObservation, params){
+    assert.ok( _.isArray(oldMemory) & _.isString(manifestState) & 
+               (_.isString(newObservation) | _.isNumber(newObservation) ), 'updateMemory args');
+    
+    var oldStates = selectIndex(oldMemory,0);
+    
+    if ( (newObservation=='noObservation') | 
+         (params.deterministicObservations & inArray(manifestState, oldStates))){
+      return oldMemory;
+    } else {return push(oldMemory,[manifestState,newObservation]);}
+  };
+  
+ 
+  // In bandit case, agent's uncertainty is about the *latentState*, i.e.
+  // the utility function on states. We sample a setting of *latentState*
+  // from the agent's prior. We then compute the observations that *would* arise
+  // given that setting (*hypotheticalObservation*). We check if these match the actual
+  // observations. 
+  var getPosteriorLatent = dp.cache( 
+    function(manifestState_Observation_pairs, params){
+      var observationEquality = params.observationEquality;
+      
+      return Enumerate( function(){
+        var hypotheticalLatentState = startStatePrior(params).latentState;
+        
+        map( function( manifestState_Observation ){
+          var manifestState = manifestState_Observation[0];
+          var actualObservation = manifestState_Observation[1];
+          var hypotheticalState = buildState(manifestState, hypotheticalLatentState);
+          var hypotheticalObservation = observe( hypotheticalState, params);
+     
+          condition( observationEquality(hypotheticalObservation, actualObservation) ); // should be factor     
+        }, manifestState_Observation_pairs);
+        
+        return hypotheticalLatentState;
+      });
+    });
+  
+
+
+  // agent is called on *manifestState* not *state* since he doesn't know his *state*
+  var agent = dp.cache( 
+  function(manifestState, timeLeft, memory, params){    // update belief: currentBelief, observation
+    assert.ok(timeLeft>0 & _.isArray(memory) & _.isString(manifestState) & params.actions.length>0, 'agent args');
+    
+    return Enumerate( function(){
+      var posterior = getPosteriorLatent(memory, params);
+      var action = uniformDraw(params.actions);
+      
+      var expectedUtility = expectation(
+        Enumerate(function(){
+          var state = buildState(manifestState, sample(posterior));
+          assert.ok(getManifestState(state, params) == manifestState, 'check on state');
+          return expUtility(state, action, timeLeft, memory, params);   
+        }));
+      
+      factor(params.alpha * expectedUtility);
+      return action;
+    });
+  });
+  
+  // expUtility takes a state (not manifestState) because agent is computing value of a state (integrating over
+  // a posterior distribution on latentStates)
+
+  var expUtility = dp.cache(
+    function(state, action, timeLeft, memory, params){
+      var u = utility(state, action, params);
+      
+      if (timeLeft - 1 == 0){
+        return u;
+      } else {                     
+        return u + expectation( Enumerate(function(){
+          var nextState = transition(state, action, params);
+          var nextMemory = updateMemory(memory, getManifestState(nextState, params), observe(nextState,params), params );   
+          var nextAction = sample(agent(getManifestState(nextState, params), timeLeft-1, nextMemory, params));
+          return expUtility(nextState, nextAction, timeLeft-1, nextMemory, params);
+        }));
+      }                      
+    });
+  
+
+  var simulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples){
+    assert.ok(  actualTotalTime <= perceivedTotalTime  &  _.isString(startState.manifestState), 'simulate args');
+    
+    var sampleSequence = function(state, actualTimeLeft, perceivedTimeLeft, history, memory){
+      assert.ok( actualTimeLeft>=0  & perceivedTimeLeft>=0 &  _.isArray(memory) & _.isArray(history), 'sample sequence args');
+      
+      if (actualTimeLeft==0){
+        return history.slice(0,history.length-1);
+      } else {
+        
+        var action = sample(agent( getManifestState(state, params), perceivedTimeLeft, memory, params));
+        var nextState = transition(state, action, params);
+        var nextMemory = updateMemory(memory, getManifestState(nextState, params), observe(nextState,params), params); 
+        var nextHistory = push(history, nextState);
+        
+        return sampleSequence(nextState, actualTimeLeft-1, perceivedTimeLeft-1, nextHistory, nextMemory);
+      }
+    };
+    
+    var N = numberRejectionSamples;
+    var InferFunction = (N==0) ? Enumerate : function(f){return Rejection(f,N, undefined, true);};
+    
+    return InferFunction(function(){    
+      var startHistory = [startState];
+      var startMemory = updateMemory( [], getManifestState(startState, params), observe(startState, params), params);
+      return sampleSequence(startState, actualTotalTime, perceivedTotalTime, startHistory, startMemory);
+      
+    });                 
+  };
+  
+  return simulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples);
+};
+
+
+// ---POMDPSimulate for agent that DOES update beliefs-----
+// The same as previous agent but this time does belief
+// updating and stores no memories. This is the standard
+// Bayesian agent, computing posterior updates in an online fashion.
+
+// Currently, this agent does not filter out observations which
+// will not result in any update (i.e. "noObservation" observations).
+// However, the agent does cache belief updates. So if called in the
+// same manifestState, time and prior and observation, it will return
+// the same ERP without recomputing. 
+
+var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples){
+
+  var isERP = function(x){return x.hasOwnProperty('score') & x.hasOwnProperty('sample');}
+  var observationEquality = params.observationEquality;
+
+  // takes an ERP and updates it on a single observation. Since *observe* takes
+  // a state (not a latentState) we need to build a state from the sampled latentState. 
+  var updateBelief = dp.cache(
+    function(currentBelief, manifestState, observation, params){
+
+      return Enumerate( function(){
+        var hypotheticalLatentState = sample(currentBelief);
+        var hypotheticalState = buildState(manifestState, hypotheticalLatentState);
+        var hypotheticalObservation = observe(hypotheticalState, params);
+        condition( observationEquality(hypotheticalObservation, observation) );
+        return hypotheticalLatentState;
+      });
+    });
+  
+
+  // agent is called on *manifestState* not *state* since he doesn't know his *state*
+  // NB: agent outputs an action and an updated belief. This way, *expUtility* can
+  // iteratively simulate future choices by passing through the agent's updated belief.
+  var agent = dp.cache( 
+    function(manifestState, timeLeft, currentBelief, observation, params){   
+      assert.ok(timeLeft>0  & isERP(currentBelief) & _.isString(manifestState) & params.actions.length>0, 'agent args');
+    
+    return Enumerate( function(){
+      var updatedBelief = updateBelief(currentBelief, manifestState, observation, params);
+      var action = uniformDraw(params.actions);
+      
+      var expectedUtility = expectation(
+        Enumerate(function(){
+          var state = buildState(manifestState, sample(updatedBelief));
+          assert.ok(getManifestState(state, params) == manifestState, 'check on state');
+          return expUtility(state, action, timeLeft, updatedBelief, params);   
+        }));
+      
+      factor(params.alpha * expectedUtility);
+      return {action: action, belief:updatedBelief};
+    });
+  });
+  
+  
+  var expUtility = dp.cache(
+    function(state, action, timeLeft, currentBelief, params){ 
+      var u = utility(state, action, params);
+      
+      if (timeLeft - 1 == 0){
+        return u;
+      } else {                     
+        return u + expectation( Enumerate(function(){
+          var nextState = transition(state, action, params);
+          var nextManifestState = getManifestState(nextState,params);
+          var observation = observe(nextState,params);
+          var out = sample(agent(nextManifestState, timeLeft-1, currentBelief, observation, params));
+          var nextAction = out.action;
+          var nextBelief = out.belief;
+          return expUtility(nextState, nextAction, timeLeft-1, nextBelief, params);
+        }));
+      }                      
+    });
+  
+
+  var simulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples){
+    assert.ok(  actualTotalTime <= perceivedTotalTime  &  _.isString(startState.manifestState), 'simulate args');
+    
+    var sampleSequence = function(state, actualTimeLeft, perceivedTimeLeft, history, currentBelief, observation){
+      assert.ok( actualTimeLeft>=0  & perceivedTimeLeft>=0 & isERP(currentBelief)  & _.isArray(history), 'samp sequence args');
+      
+      if (actualTimeLeft==0){
+        return history.slice(0,history.length-1);
+      } else {
+        
+        var out = sample(agent( getManifestState(state, params), perceivedTimeLeft, currentBelief, observation, params));
+        var action = out.action;
+        var updatedBelief = out.belief;
+        var nextState = transition(state, action, params);
+        var nextObservation = observe(nextState, params);
+        var nextHistory = push(history, nextState);
+        
+        return sampleSequence(nextState, actualTimeLeft-1, perceivedTimeLeft-1, nextHistory, updatedBelief, nextObservation);
+      }
+    };
+    
+    var N = numberRejectionSamples;
+    var InferFunction = (N==0) ? Enumerate : function(f){return Rejection(f,N, undefined, true);};
+    
+    return InferFunction(function(){    
+      var startHistory = [startState];
+      var observation = observe(startState, params);
+      var latentStatePrior = params.latentStatePrior;
+      return sampleSequence(startState, actualTotalTime, perceivedTotalTime, startHistory, latentStatePrior, observation);
+      
+    });                 
+  };
+  
+  return simulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples);
+};
+
+
+
+// Trivial deterministic 2-arm bandits
+// Start in manifestState 'start'. Choose actions 'A' or 'B' which
+// take agent to manifestStates 'A' or 'B' (deterministically) and yield
+// a utility and an observation of that utility. Then repeat
+// for the number of trials (you can never return to 'start').
+
+// States have form {manifestState:'A', latentState:{A:1, B:0} }
+// where the latenState is the utility table for the manifestStates.
+
+// Since we assume the agent knows the utility of A, the agent
+// gets "noObservation" observation in that state, and this
+// can be filtered out to avoid pointless computation of an ERP. 
+
+
+var getBanditParams = function(uA, priorB, alpha){
+
+  // start in special 'start' state which you can never return to
+  var latentStatePriorERP = Enumerate(function(){return {'A':uA, 'B':priorB()};});
+  
+  var startStatePrior = function(){
+    return {manifestState:'start', 
+            latentState: sample(latentStatePriorERP)
+           };
+  };
+
+  var states = ['start','A','B'];
+  var actions = ['A','B'];
+  
+  var transition = function(state, action){
+    return update(state, {manifestState: action});
+  };
+
+  var utility = function(state,action){
+    if (state.manifestState=='start'){return 0;}
+    return state.latentState[state.manifestState];
+  };
+
+  var observe = function(state){
+    var manifestState = state.manifestState;
+
+    return manifestState=='A' || manifestState=='start' ? 
+      'noObservation': state.latentState[manifestState];
+  };
+
+  // could use *_.isEqual* for deep object equality
+  var observationEquality = function(obs1,obs2){return JSON.stringify(obs1)===JSON.stringify(obs2);};
+
+  var getManifestState = function(state){return state.manifestState;};
+  
+  return {deterministicObservations: true,
+          alpha: alpha,
+          states: states,
+          actions: actions,
+          utility: utility,
+          transition: transition, 
+          observe: observe,
+          observationEquality: observationEquality,
+          startStatePrior: startStatePrior,
+          latentStatePrior: latentStatePriorERP,
+          getManifestState: getManifestState,
+          uA: uA
+         };
+};
+
+
+
+
+
+// Correctness and speed tests for agent on 2-arm deterministic bandits
+// Use either *pomdpSimulate* or *updatePOMDPSimulate*
+
+var testBandits = function(pomdpSimulateVersion){
+
+  // helper function
+  var historyToArms = function(history){
+    return map( function(state){return state.manifestState;}, history.slice(1,history.length) );
+  };
+  
+  // main function for running agent on bandit problem
+  var runBanditTest = function(numTrials, uA, priorB, startState, numberRejectionSamples){
+    var perceivedTotalTime = numTrials;
+    var actualTotalTime = perceivedTotalTime;
+    var alpha = 50; // FIXED LOW NOISE
+    var params = getBanditParams( uA, priorB, alpha);
+    var out = pomdpSimulateVersion(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples);
+    return historyToArms(out.MAP().val);
+  };
+
+  var numberRejectionSamples = 0; // ---- use Enumerate instead of Rejection
+  
+  // one trial, so take A
+  var numTrials = 2;
+  var uA = 0.05;
+  var priorB = function(){return categorical([.97, .03], [0,1])};
+  var startState = {manifestState:'start', latentState: {A:uA, B:0}};
+  assert.ok( arraysEqual(['A'], runBanditTest(numTrials, uA, priorB, startState, numberRejectionSamples)), 'testbandits1');
+  
+  
+  // three trials, so try B
+  var numTrials = 4;
+  var uA = 0.05;
+  var priorB = function(){return categorical([.97, .03], [0,10])};
+  var startState = {manifestState:'start', latentState: {A:uA, B:0}};
+  assert.ok( arraysEqual(['B','A','A'], runBanditTest(numTrials, uA, priorB, startState, numberRejectionSamples)), 'testbandits2');
+  console.log('passed first two');
+  
+  // three trials, so try B and stick
+  var numTrials = 4;
+  var uA = 0.05;
+  var priorB = function(){return categorical([.97, .03], [0,10])};
+  var startState = {manifestState:'start', latentState: {A:uA, B:10}};
+  assert.ok( arraysEqual(['B','B','B'], runBanditTest(numTrials, uA, priorB, startState, numberRejectionSamples)), 'testbandits3');
+
+  // single trial, but EU for B is high
+  var numTrials = 2;
+  var uA = 0.05;
+  var priorB = function(){return categorical([.97, .03], [0,100])};
+  var startState = {manifestState:'start', latentState: {A:uA, B:100}};
+  assert.ok( arraysEqual(['B'], runBanditTest(numTrials, uA, priorB, startState, numberRejectionSamples)), 'testbandits4');
+
+  console.log('\n\n passed correctness tests');
+
+  // speed test: rejection vs. enumerate
+
+  var speedTest = function(numberRejectionSamples, numTrialsAr){
+    map( function(numTrials){
+      var uA = .4;
+      var priorB = function(){return categorical([.97, .01], [0,10])};
+      var startState = {manifestState:'start', latentState: {A:uA, B:10}};
+      var runThunk = function(){return  runBanditTest(numTrials, uA, priorB, startState, numberRejectionSamples);};
+      var out = timeit(runThunk);
+      assert.ok( 'B' == out.value[0], 'bandit speed test' );
+      return out.runtimeInMilliseconds;
+    }, numTrialsAr);
+  };
+
+  var numTrialsAr = [8,9,10,11,12];
+  var numberRejectionSamples = 0;
+  console.log('\n\nBandit speed test for ENUMERATE.\n Number of trials', numTrialsAr, 
+              ' \nruntime in ms: ', speedTest(numberRejectionSamples, numTrialsAr));
+
+  var numTrialsAr = [8,9,10,11,12, 13, 14, 15, 20];
+  var numberRejectionSamples = 100;
+  console.log('\n\nBandit speed test for REJECTION (100 samples).\n Number of trials',
+              numTrialsAr,' \nruntime in ms: ', speedTest(numberRejectionSamples, numTrialsAr));
+
+  console.log('\n\n passed bandit tests');
+
+  
+};
+
+// test bandits with two different versions of pomdp simulate
+testBandits(pomdpSimulate);
+console.log('\n-------------\n Done with pomdpSimulate. Now doing updatePOMDPSimulate \n------------');
+testBandits(updatePOMDPSimulate);
+ash();
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // K arm bandits
+// var getKBanditParams = function(numArms, startBeliefState, totalNumActions, u0, categoricalPriorU, mdpAgent, numberRejectionSamples ){
+//   assert.ok( (numArms > 1) & (totalNumActions > 0) & (typeof(u0)=='number') & 
+//              (categoricalPriorU[0].length == categoricalPriorU[1].length & numberRejectionSamples >= 0), 'args for getkbanditparams');
+
+//   var states = ['A'].concat(range(numArms));
+//   assert.ok( startBeliefState.stateToUtilities.length == states.length-1, 'getkbandits states and utilities');
+
+  
+//   // variable params
+//   var alpha = 200; 
+
+//   // identical, independent priors on arms 1,...,k-1
+//   var startBeliefStatePrior = function(){
+//     var priorThunk = function(){return categorical(categoricalPriorU[0], categoricalPriorU[1]);};
+//     return {state:'A',
+//             stateToUtilities: [u0].concat( repeat(numArms-1, priorThunk) )};
+//   }; 
+
+//   // true state is in support of agent's prior
+//   var erpPrior = Enumerate(function(){return startBeliefStatePrior().stateToUtilities;});
+//   assert.ok( Math.exp(erpPrior.score([],startBeliefState.stateToUtilities)) > 0, 'getkbandit erpPrior' )
+
+  
+//   // environment functions
+//   var stateToActions = function(state){
+//     return (state==='A') ? range(numArms) : ['A'];
+//   };
+  
+//   var transition = function(state, action){
+//     return update(state,{state:action});
+//   };
+  
+//   var utility = function(state,action){ 
+//     return state.state=='A' ? 0: state.stateToUtilities[state.state];
+//   };
+
+//   var observe = function(state){ // you observe true utility of state when you visit it
+//     return ( state.state == 0 | state.state == 'A') ? 'no observation' : 
+//       state.stateToUtilities[state.state];
+//   };
+  
+//   var getState = function(state){return state.state;};
+
+//   return {deterministicObservations: true,
+//           totalNumActions: totalNumActions,
+//           stateToActions: stateToActions, 
+//           alpha: alpha,
+//           states: states,
+//           utility: utility,
+//           transition: transition, 
+//           observe: observe,
+//           startBeliefStatePrior: startBeliefStatePrior,
+//           categoricalPriorU: categoricalPriorU, // id purposes
+//           startBeliefState: startBeliefState,
+//           getState: getState,
+//           u0: u0,
+//           mdpAgent: mdpAgent,
+//           numberRejectionSamples: numberRejectionSamples,
+//           numArms: numArms
+//          };
+// };
+
+// var runKBandit = function(params, actualTotalTime, perceivedTotalTime){
+//   var erp =  simulate(agent, params.startBeliefState,  actualTotalTime, perceivedTotalTime, params);
+//   var history = filter( function(state){return state != 'A';}, 
+//                         map(function(state){return state.state;}, erp.MAP().val.history));
+//   return simpleOutput ? erp.MAP().val : history;
+// };
+
+
+// var testKBandits = function(){
+  
+//   var runBanditTest = function(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples){
+//     var oneShot = false;
+//     var mdpAgent = false;
+//     var totalNumActions = 2 * numTrials; 
+//     var perceivedTotalTime = totalNumActions;
+//     var actualTotalTime = oneShot ? 2 : totalNumActions;
+//     var banditParams = getKBanditParams(numArms, startBeliefState, totalNumActions, u0, categoricalPriorU, mdpAgent, numberRejectionSamples );
+//     return runKBandit(banditParams, actualTotalTime, perceivedTotalTime);
+//   };
+
+//   // TWO ARM TESTS
+//   var numberRejectionSamples = 0; // ---- use Enumerate instead of Rejection
+//   var numArms = 2;
+  
+//   // one trial, so take A
+//   var numTrials = 1;
+//   var u0 = 0.05;
+//   var categoricalPriorU = [[.97, .03], [0,1]];
+//   var startBeliefState = {state:'A', stateToUtilities: [u0,0]};
+//   assert.ok( arraysEqual([0], runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples)), 'testkbandits1' );
+
+
+//   // three trials, so try B
+//   var numTrials = 3;
+//   var u0 = 0.05;
+//   var categoricalPriorU = [[.97, .03], [0,10]];
+//   var startBeliefState = {state:'A', stateToUtilities: [u0,0]};
+//   assert.ok( arraysEqual([1,0,0], runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples)), 'testkbandits2' );
+
+//   // three trials, so try B and stick
+//   var numTrials = 3;
+//   var u0 = 0.05;
+//   var categoricalPriorU = [[.97, .03], [0,10]];
+//   var startBeliefState = {state:'A', stateToUtilities: [u0,10]};
+//   assert.ok( arraysEqual([1,1,1], runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples)), 'testkbandits3' );
+
+//   // >2 ARMS
+//   var numArms = 3;
+//   var numTrials = 3;
+//   var u0 = 0.05;
+//   var categoricalPriorU = [[.9, .1], [10,0] ]; // all other arms promising
+//   var startBeliefState = {state:'A', stateToUtilities: [u0,0,0]};
+//   var out = runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples);
+//   assert.ok( arraysEqual([1,2,0], out) | arraysEqual([2,1,0], out), 'testkbandits4');
+
+//   var numArms = 3;
+//   var numTrials = 4;
+//   var u0 = 0.001;
+//   var categoricalPriorU = [[.33, .33, .33], [0,1,2] ]; // all other arms promising
+//   var startBeliefState = {state:'A', stateToUtilities: [u0,1,2]};
+//   var out = runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples);
+//   assert.ok( arraysEqual([1,2,2,2], out) | arraysEqual([2,2,2,2], out), 'testkbandits5');
+
+
+//   // speedtest for numArms
+//   var speedTest = function(numberRejectionSamples, numTrialsAr){
+//     map( function(numArms){
+//       var numTrials = 6;
+//       var u0 = .05;
+//       var categoricalPriorU = [[.1, .9], [0,1]]; // thinks all other arms are u=1
+      
+//       var startBeliefState = {state:'A', stateToUtilities: [u0].concat( zeroes(numArms-1) ) };
+//       var runThunk = function(){return runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples);};
+//       var out = timeit(runThunk);
+//       // test whether all arms explored before going back to known 0-th arm
+//       assert.ok( arraysEqual(  sort(out.value), zeroes(numTrials-numArms).concat(range(numArms))), 'kbandit speed')
+//       return out.runtimeInMilliseconds;
+//     }, numArmsList);
+//   };
+
+//   var numArmsList = [2, 3, 4, 5];
+//   var numberRejectionSamples = 600;
+//   console.log('\n\nBandit speed test for ENUMERATE.\n Number of trials', numArmsList,
+//               ' \nruntime in ms: ', speedTest(numberRejectionSamples, numArmsList));
+
+//   console.log('passed k bandit tests');
+
+// };
+// testKBandits();
+// ash()
