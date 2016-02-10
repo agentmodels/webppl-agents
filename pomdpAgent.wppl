@@ -1,26 +1,9 @@
-// Simplified POMDP model for webbook
-
-
+// POMDP agent model 
 
 // Helper functions
-
-var ash = function(){assert.ok(0,'halt execution here');};
-
-var update = function(base, ext){
-  return _.extend({}, base, ext);
-};
-
-var range = function(n){
-  if (n===0){return [];} 
-  else {return range(n-1).concat([n-1]);}
-};
-
 var zeroes = function(n){return repeat(n, function(){return 0;})};
 var ones = function(n){return repeat(n, function(){return 1;})};
-
-var arraysEqual = function(xs, ys){
-  return JSON.stringify(xs) === JSON.stringify(ys);
-};
+var inArray = function(x, xs){return indexOf(x, xs) != undefined;};
 
 
 // Helper functions because functions can't be called using "dot" notation
@@ -54,19 +37,12 @@ var observe = function(state,params){
   return f(state);
 };
 
-var selectIndex = function(ar,i){
-  return map(function(tuple){return tuple[i];}, ar);
-};
-
-var inArray = function(x, xs){return indexOf(x, xs) != undefined;};
 
 
 // ---------------------------------------
 
 
-// POMDP GENERATIVE MODELS
-
-
+// POMDP GENERATIVE MODELS - two different versions of POMDP simulate
 
 var buildState = function(manifestState,latentState){
   return {manifestState:manifestState, latentState:latentState};
@@ -200,7 +176,10 @@ var pomdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, pa
 };
 
 
-// ---POMDPSimulate for agent that DOES update beliefs-----
+
+
+// ---POMDPSimulate for agent that updates beliefs-----
+
 // The same as previous agent but this time does belief
 // updating and stores no memories. This is the standard
 // Bayesian agent, computing posterior updates in an online fashion.
@@ -313,7 +292,10 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
 
 
 
+
+// BANDIT TEST PROBLEM
 // Trivial deterministic 2-arm bandits
+
 // Start in manifestState 'start'. Choose actions 'A' or 'B' which
 // take agent to manifestStates 'A' or 'B' (deterministically) and yield
 // a utility and an observation of that utility. Then repeat
