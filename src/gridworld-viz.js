@@ -164,7 +164,7 @@ function draw(world, additional) {
       }
 
       var currentPath = _.take(coords, idx+1);
-      currentPath.push(currentLocation)
+      currentPath.push(currentLocation);
 
       agentPath.addSegments(_.map(currentPath, scalePosition));
       agent.position = scalePosition(currentLocation);
@@ -205,7 +205,6 @@ function draw(world, additional) {
 
   var f =_.map(world.terminals, makeTerminal);
   group.addChildren(f);
-  console.log(f);
 
   group.addChild(makeGrid(world));
 
