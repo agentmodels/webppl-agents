@@ -4,7 +4,14 @@
 var zeroes = function(n){return repeat(n, function(){return 0;})};
 var ones = function(n){return repeat(n, function(){return 1;})};
 var inArray = function(x, xs){return indexOf(x, xs) != undefined;};
-
+var range = function(n){
+    assert.ok(typeof(n) == 'number', 'tried to take the range of something that isnt a number');
+    if (n < 0) {
+	return [];
+    } else {
+	return snoc(range(n - 1), n);
+    }
+};
 
 // Helper functions because functions can't be called using "dot" notation
 var startStatePrior = function(params){
@@ -408,12 +415,23 @@ var testBandits = function(pomdpSimulateVersion){
   var startState = {manifestState:'start', latentState: {A:uA, B:10}};
   assert.ok( arraysEqual(['B','B','B'], runBanditTest(numTrials, uA, priorB, startState, numberRejectionSamples)), 'testbandits3');
 
+    console.log('passed third');
+    
   // single trial, but EU for B is high
   var numTrials = 2;
   var uA = 0.05;
   var priorB = function(){return categorical([.97, .03], [0,100])};
   var startState = {manifestState:'start', latentState: {A:uA, B:100}};
-  assert.ok( arraysEqual(['B'], runBanditTest(numTrials, uA, priorB, startState, numberRejectionSamples)), 'testbandits4');
+    assert.ok( arraysEqual(['B'], runBanditTest(numTrials, uA, priorB, startState, numberRejectionSamples)), 'testbandits4');
+
+    console.log('passed fourth');
+
+  // three trials, EU for B is low so don't try
+    var numTrials = 4;
+    var uA = 0.05;
+    var priorB = function(){return categorical([0.97, 0.03], [0, 0.4]);};
+    var startState = {manifestState: 'start', latentState: {A: uA, B: 0.4}};
+    assert.ok( arraysEqual(['A', 'A', 'A'], runBanditTest(numTrials, uA, priorB, startState, numberRejectionSamples)), 'testbandits5');
 
   console.log('\n\n passed correctness tests');
 
@@ -445,13 +463,6 @@ var testBandits = function(pomdpSimulateVersion){
 
   
 };
-
-// test bandits with two different versions of pomdp simulate
-testBandits(pomdpSimulate);
-console.log('\n-------------\n Done with pomdpSimulate. Now doing updatePOMDPSimulate \n------------');
-testBandits(updatePOMDPSimulate);
-ash();
-
 
 
 
@@ -617,3 +628,146 @@ ash();
 // };
 // testKBandits();
 // ash()
+
+
+// HAVE NOT TESTED YET
+
+// function for making parameters for a k-armed bandit. numArms is the number of arms.
+// arms will be labelled 0 through k - 1. u0 is the utility of the first arm (assumed
+// to be known to the agent). priorArms is a function that samples from a prior over the
+// utilities of the other arms, returning an object. alpha represents the softmax noise
+// of the agent.
+var getKArmBanditParams = function(numArms, u0, priorArms, alpha) {
+    var latentStatePriorERP = Enumerate(function(){return update({0: u0}, priorArms());});
+
+    // similarly to getBanditParams, the initial state is a special 'start' state
+    // that can never be returned to.
+    var startStatePrior = function(){
+	return {manifestState: 'start',
+	        latentState: sample(latentStatePriorERP)};
+    };
+
+    var states = cons('start', range(numArms - 1));
+    var actions = range(numArms - 1);
+
+    var transition = function(state, action){
+	return update(state, {manifestState: action});
+    };
+
+    var utility = function(state, action){
+	if (state.manifestState == 'start') {
+	    return 0;
+	} else {
+	    return state.latentState[state.manifestState];
+	}
+    };
+
+    // observe gets you the utility of the state, unless the agent is in
+    // 'start' or 0, in which case there is no observation.
+    var observe = function(state){
+	var manifestState = state.manifestState;
+	return manifestState == 0 || manifestState == 'start' ?
+	    'noObservation' : state.latentState[manifestState];
+    };
+
+    var observationEquality = function(obs1,obs2){return JSON.stringify(obs1)===JSON.stringify(obs2);};
+
+    var getManifestState = function(state){return state.manifestState;};
+
+    return {deterministicObservations: true,
+            alpha: alpha,
+            states: states,
+            actions: actions,
+            utility: utility,
+            transition: transition, 
+            observe: observe,
+            observationEquality: observationEquality,
+            startStatePrior: startStatePrior,
+            latentStatePrior: latentStatePriorERP,
+            getManifestState: getManifestState,
+            u0: u0
+           };
+};
+
+// correctness and speed tests for agent on k-armed deterministic bandits
+// also written to use *pomdpSimulate* or *updatePOMDPsimulate*
+
+var testKArmBandits = function(pomdpSimulateVersion){
+    // helper function
+    var historyToArms = function(history){
+	return map( function(state){return state.manifestState;}, history.slice(1,history.length) );
+    };
+    
+    // main function for running agent on bandit problem
+    var runBanditTest = function(numTrials, numArms, u0, priorArms, startState, numberRejectionSamples){
+	var perceivedTotalTime = numTrials;
+	var actualTotalTime = perceivedTotalTime;
+	var alpha = 50; // FIXED LOW NOISE
+	var params = getKArmBanditParams(numArms, u0, priorArms, alpha);
+	var out = pomdpSimulateVersion(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples);
+	return historyToArms(out.MAP().val);
+    };
+
+    var numberRejectionSamples = 0; // ---- use Enumerate instead of Rejection
+    
+    // check that k arm bandits behave the same way as two armed bandits when k = 2.
+    var numArms = 2;
+    
+    var numTrials = 2;
+    var u0 = 0.05;
+    var priorArms = function(){return {1: categorical([.97, .03], [0,1])};};
+    var startState = {manifestState:'start', latentState: {0: u0, 1: 0}};
+    assert.ok( arraysEqual(['A'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+						numberRejectionSamples)), 'testKbandits1');
+    
+    
+    // three trials, so try B
+    var numTrials = 4;
+    var u0 = 0.05;
+    var priorArms = function(){return {1: categorical([.97, .03], [0,10])};};
+    var startState = {manifestState:'start', latentState: {0:u0, 1:0}};
+    assert.ok( arraysEqual(['B','A','A'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+							numberRejectionSamples)), 'testKbandits2');
+    console.log('passed first two');
+    
+    // three trials, so try B and stick
+    var numTrials = 4;
+    var u0 = 0.05;
+    var priorArms = function(){return {1: categorical([.97, .03], [0,10])};};
+    var startState = {manifestState:'start', latentState: {0:u0, 1:10}};
+    assert.ok( arraysEqual(['B','B','B'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+							numberRejectionSamples)), 'testbandits3');
+
+    console.log('passed third');
+    
+    // single trial, but EU for B is high
+    var numTrials = 2;
+    var u0 = 0.05;
+    var priorArms = function(){return {1: categorical([.97, .03], [0,100])};};
+    var startState = {manifestState:'start', latentState: {0:u0, 1:100}};
+    assert.ok( arraysEqual(['B'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+						numberRejectionSamples)), 'testbandits4');
+
+    console.log('passed fourth');
+
+    // three trials, EU for B is low so don't try
+    var numTrials = 4;
+    var u0 = 0.05;
+    var priorArms = function(){return {1: categorical([0.97, 0.03], [0, 0.4])};};
+    var startState = {manifestState: 'start', latentState: {0: u0, 1: 0.4}};
+    assert.ok( arraysEqual(['A', 'A', 'A'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+							  numberRejectionSamples)), 'testbandits5');
+
+    console.log('\n\n passed k = 2 tests');
+
+};
+
+// test 2 armed bandits with two different versions of pomdp simulate
+console.log('testing 2 armed bandits');
+testBandits(pomdpSimulate);
+console.log('\n-------------\n Done with pomdpSimulate. Now doing updatePOMDPSimulate \n------------');
+testBandits(updatePOMDPSimulate);
+console.log('testing k armed bandits');
+
+ash();
+
