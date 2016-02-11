@@ -1,0 +1,28 @@
+var makeStudy = function(noiseProb, alpha, utilities){
+  var utility = function(state,action){
+    if (state[0] !== 'dead') { 
+      return utilities[state[0]] - .1;
+    } else {
+      return 0;
+    }
+  };
+  var blockedStates = [];
+  var terminals = [[3,0]];
+  return makeBlockedGridParams(4,1, blockedStates, terminals, utility, noiseProb, alpha);
+};
+
+
+var noiseProb = 0;
+var alpha = 500;
+//var basicParams = makeStudy(noiseProb, alpha, [-.1, -.15, -7, 10]);
+var basicParams = makeDonutExtended(0, alpha);
+var params = _.extend(basicParams, {discount : .1});
+
+var outputParams = {erpOverStatesOrActions: 'both', getExpUtilityValues: true, 
+                    trajectoryNumRejectionSamples: 2, conditionOnStates:false};
+
+var out = mdpSimulate([2,0], 10, 10, params, outputParams);
+var trajectory = sample(out.erp);
+
+GridWorld.draw(params, {trajectory : trajectory, expUtilities : out.expUtilityValues});
+trajectory
