@@ -7,6 +7,10 @@ var GridWorld = webpplGridworld; // reference to the exports of gridworld.js
 // GridWorld library and MDP agent
 
 
+// Agent models helper functions
+var argMax = function(f,ar){return maxWith(f,ar)[0]};
+
+
 // Helper Functions
 var ash = function(){assert.ok(0,'assert halt');};
 
