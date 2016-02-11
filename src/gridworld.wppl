@@ -517,7 +517,7 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, mdpP
 
 // THIS IS USED IN CHAPTER 5. TODO: USE MORE DESCRIPTIVE NAMES.
 // *mdpSimulate* function above should be used for inference/MDP experiments
-var mdpSimulateTemp = function(startState, totalTime, params, numRejectionSamples){
+var mdpSimulateGridworld = function(startState, totalTime, params, numRejectionSamples){
   var alpha = params.alpha;
   var transition = params.transition;
   var utility = params.utility;
