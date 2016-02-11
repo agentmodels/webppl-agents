@@ -320,8 +320,10 @@ var makeDonutInfer = function(smallVersion, utilityTable, alpha, transitionNoise
 };
 
 
-var makeHike = function(transitionNoiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost){
-  map( function(input){assert.ok( typeof(input)=='number', 'makeHike inputs' );}, [transitionNoiseProb, alpha, utilityEast, utilityWest, utilityHill, timeCost] );
+var makeHike = function(transitionNoiseProb, alpha, utilityTable){
+  
+  map( function(input){assert.ok( typeof(input)=='number', 'makeHike inputs' );},
+       [transitionNoiseProb, alpha, utilityTable.east, utilityTable.west, utilityTable.hill, utilityTable.timeCost] );
   assert.ok(timeCost <=0, 'makeHike inputs' );
   assert.ok(transitionNoiseProb >= 0 & alpha >= 0, 'makeHike inputs' );
 
@@ -332,22 +334,22 @@ var makeHike = function(transitionNoiseProb, alpha, utilityEast, utilityWest, ut
   var terminals = [ [0,0], [1,0], [2,0], [3,0], [4,0], [2,2], [4,2] ]; 
 
   var labels = [
-    { point: [0,0], content: 'Hill '+utilityHill },
-    { point: [1,0], content: 'Hill '+utilityHill },
-    { point: [2,0], content: 'Hill '+utilityHill },
-    { point: [3,0], content: 'Hill '+utilityHill },
-    { point: [4,0], content: 'Hill '+utilityHill },
+    { point: [0,0], content: 'hill '+utilityTable.hill },
+    { point: [1,0], content: 'hill '+utilityTable.hill },
+    { point: [2,0], content: 'hill '+utilityTable.hill },
+    { point: [3,0], content: 'hill '+utilityTable.hill },
+    { point: [4,0], content: 'hill '+utilityTable.hill },
     
-    { point: [2,2], content: 'West '+utilityWest },
-    { point: [4,2], content: 'East '+utilityEast }
+    { point: [2,2], content: 'west '+utilityTable.west },
+    { point: [4,2], content: 'east '+utilityTable.east }
   ];
   
   var u = function(state,action){
-    if (gridEqual(state,[2,2])){return utilityWest;}
-    if (gridEqual(state,[4,2])){return utilityEast;}
+    if (gridEqual(state,[2,2])){return utilityTable.west;}
+    if (gridEqual(state,[4,2])){return utilityTable.east;}
     if (isPostTerminal(state)){return 0;};
-    if (stateInArray(state,terminals)) {return utilityHill;}
-    return timeCost;
+    if (stateInArray(state,terminals)) {return utilityTable.hill;}
+    return utilityTable.timeCost;
   };
   var out =  makeBlockedGridParams(xLim, yLim, blockedStates, terminals, u, transitionNoiseProb, alpha);
   return update(out, {labels:labels});
