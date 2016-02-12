@@ -1,4 +1,6 @@
-// POMDP agent model 
+// POMDP agent model
+
+// TODO: test gridworld POMDPs
 
 // Helper functions
 var zeroes = function(n){return repeat(n, function(){return 0;})};
@@ -14,6 +16,21 @@ var range = function(n){
 };
 var numToString = function(n){
     return n.toString();
+};
+// Number and parseInt don't seem to work, so...
+var stringToNum = function(str){
+    assert.ok(any(function(digit){return str === digit;}, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']),
+	      'this string is not a digit');
+    if (str === '1') {return 1;}
+    else if (str === '2') {return 2;}
+    else if (str === '3') {return 3;}
+    else if (str === '4') {return 4;}
+    else if (str === '5') {return 5;}
+    else if (str === '6') {return 6;}
+    else if (str === '7') {return 7;}
+    else if (str === '8') {return 8;}
+    else if (str === '9') {return 9;}
+    else {return 0;}
 };
 
 // Helper functions because functions can't be called using "dot" notation
@@ -468,171 +485,6 @@ var testBandits = function(pomdpSimulateVersion){
 };
 
 
-
-
-
-
-
-
-
-
-
-
-// // K arm bandits
-// var getKBanditParams = function(numArms, startBeliefState, totalNumActions, u0, categoricalPriorU, mdpAgent, numberRejectionSamples ){
-//   assert.ok( (numArms > 1) & (totalNumActions > 0) & (typeof(u0)=='number') & 
-//              (categoricalPriorU[0].length == categoricalPriorU[1].length & numberRejectionSamples >= 0), 'args for getkbanditparams');
-
-//   var states = ['A'].concat(range(numArms));
-//   assert.ok( startBeliefState.stateToUtilities.length == states.length-1, 'getkbandits states and utilities');
-
-  
-//   // variable params
-//   var alpha = 200; 
-
-//   // identical, independent priors on arms 1,...,k-1
-//   var startBeliefStatePrior = function(){
-//     var priorThunk = function(){return categorical(categoricalPriorU[0], categoricalPriorU[1]);};
-//     return {state:'A',
-//             stateToUtilities: [u0].concat( repeat(numArms-1, priorThunk) )};
-//   }; 
-
-//   // true state is in support of agent's prior
-//   var erpPrior = Enumerate(function(){return startBeliefStatePrior().stateToUtilities;});
-//   assert.ok( Math.exp(erpPrior.score([],startBeliefState.stateToUtilities)) > 0, 'getkbandit erpPrior' )
-
-  
-//   // environment functions
-//   var stateToActions = function(state){
-//     return (state==='A') ? range(numArms) : ['A'];
-//   };
-  
-//   var transition = function(state, action){
-//     return update(state,{state:action});
-//   };
-  
-//   var utility = function(state,action){ 
-//     return state.state=='A' ? 0: state.stateToUtilities[state.state];
-//   };
-
-//   var observe = function(state){ // you observe true utility of state when you visit it
-//     return ( state.state == 0 | state.state == 'A') ? 'no observation' : 
-//       state.stateToUtilities[state.state];
-//   };
-  
-//   var getState = function(state){return state.state;};
-
-//   return {deterministicObservations: true,
-//           totalNumActions: totalNumActions,
-//           stateToActions: stateToActions, 
-//           alpha: alpha,
-//           states: states,
-//           utility: utility,
-//           transition: transition, 
-//           observe: observe,
-//           startBeliefStatePrior: startBeliefStatePrior,
-//           categoricalPriorU: categoricalPriorU, // id purposes
-//           startBeliefState: startBeliefState,
-//           getState: getState,
-//           u0: u0,
-//           mdpAgent: mdpAgent,
-//           numberRejectionSamples: numberRejectionSamples,
-//           numArms: numArms
-//          };
-// };
-
-// var runKBandit = function(params, actualTotalTime, perceivedTotalTime){
-//   var erp =  simulate(agent, params.startBeliefState,  actualTotalTime, perceivedTotalTime, params);
-//   var history = filter( function(state){return state != 'A';}, 
-//                         map(function(state){return state.state;}, erp.MAP().val.history));
-//   return simpleOutput ? erp.MAP().val : history;
-// };
-
-
-// var testKBandits = function(){
-  
-//   var runBanditTest = function(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples){
-//     var oneShot = false;
-//     var mdpAgent = false;
-//     var totalNumActions = 2 * numTrials; 
-//     var perceivedTotalTime = totalNumActions;
-//     var actualTotalTime = oneShot ? 2 : totalNumActions;
-//     var banditParams = getKBanditParams(numArms, startBeliefState, totalNumActions, u0, categoricalPriorU, mdpAgent, numberRejectionSamples );
-//     return runKBandit(banditParams, actualTotalTime, perceivedTotalTime);
-//   };
-
-//   // TWO ARM TESTS
-//   var numberRejectionSamples = 0; // ---- use Enumerate instead of Rejection
-//   var numArms = 2;
-  
-//   // one trial, so take A
-//   var numTrials = 1;
-//   var u0 = 0.05;
-//   var categoricalPriorU = [[.97, .03], [0,1]];
-//   var startBeliefState = {state:'A', stateToUtilities: [u0,0]};
-//   assert.ok( arraysEqual([0], runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples)), 'testkbandits1' );
-
-
-//   // three trials, so try B
-//   var numTrials = 3;
-//   var u0 = 0.05;
-//   var categoricalPriorU = [[.97, .03], [0,10]];
-//   var startBeliefState = {state:'A', stateToUtilities: [u0,0]};
-//   assert.ok( arraysEqual([1,0,0], runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples)), 'testkbandits2' );
-
-//   // three trials, so try B and stick
-//   var numTrials = 3;
-//   var u0 = 0.05;
-//   var categoricalPriorU = [[.97, .03], [0,10]];
-//   var startBeliefState = {state:'A', stateToUtilities: [u0,10]};
-//   assert.ok( arraysEqual([1,1,1], runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples)), 'testkbandits3' );
-
-//   // >2 ARMS
-//   var numArms = 3;
-//   var numTrials = 3;
-//   var u0 = 0.05;
-//   var categoricalPriorU = [[.9, .1], [10,0] ]; // all other arms promising
-//   var startBeliefState = {state:'A', stateToUtilities: [u0,0,0]};
-//   var out = runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples);
-//   assert.ok( arraysEqual([1,2,0], out) | arraysEqual([2,1,0], out), 'testkbandits4');
-
-//   var numArms = 3;
-//   var numTrials = 4;
-//   var u0 = 0.001;
-//   var categoricalPriorU = [[.33, .33, .33], [0,1,2] ]; // all other arms promising
-//   var startBeliefState = {state:'A', stateToUtilities: [u0,1,2]};
-//   var out = runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples);
-//   assert.ok( arraysEqual([1,2,2,2], out) | arraysEqual([2,2,2,2], out), 'testkbandits5');
-
-
-//   // speedtest for numArms
-//   var speedTest = function(numberRejectionSamples, numTrialsAr){
-//     map( function(numArms){
-//       var numTrials = 6;
-//       var u0 = .05;
-//       var categoricalPriorU = [[.1, .9], [0,1]]; // thinks all other arms are u=1
-      
-//       var startBeliefState = {state:'A', stateToUtilities: [u0].concat( zeroes(numArms-1) ) };
-//       var runThunk = function(){return runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples);};
-//       var out = timeit(runThunk);
-//       // test whether all arms explored before going back to known 0-th arm
-//       assert.ok( arraysEqual(  sort(out.value), zeroes(numTrials-numArms).concat(range(numArms))), 'kbandit speed')
-//       return out.runtimeInMilliseconds;
-//     }, numArmsList);
-//   };
-
-//   var numArmsList = [2, 3, 4, 5];
-//   var numberRejectionSamples = 600;
-//   console.log('\n\nBandit speed test for ENUMERATE.\n Number of trials', numArmsList,
-//               ' \nruntime in ms: ', speedTest(numberRejectionSamples, numArmsList));
-
-//   console.log('passed k bandit tests');
-
-// };
-// testKBandits();
-// ash()
-
-
 // function for making parameters for a k-armed bandit. numArms is the number of arms.
 // arms will be labelled '0' through 'k - 1'. u0 is the utility of the first arm (assumed
 // to be known to the agent). priorArms is a function that samples from a prior over the
@@ -842,7 +694,192 @@ var testKArmBandits = function(pomdpSimulateVersion){
 
 };
 
-// test 2 armed bandits with two different versions of pomdp simulate
+// function that makes parameters for a gridworld pomdp where the latent state represents uncertainty about
+// which grid positions are terminal, and the manifest state is the stringified grid position the agent is in.
+// a grid position is an array containing two numbers, the x- and y- coordinate of the position.
+// The agent knows the utility of all grid positions that might be terminal,
+// conditioned on them actually being terminal. If a grid position is not terminal, then it has no utility
+// (except for the time cost of not being in a terminal grid position). The agent also knows which grid positions
+// are blocked. The agent observes the utility of leaving the grid position that they are currently in.
+// After leaving a terminal grid position, the agent enters a postTerminal state, whose manifest state is the
+// string 'dead'.
+
+// xLim and yLim refer to the size of the grid in the x and y directions. xLim and yLim must both be less than
+// or equal to 10, so that all components of all grid positions are single digits.
+
+// openGridPositions is an array of grid positions that are not blocked.
+
+// startGridPosition is the grid position that the agent starts in. It is assumed not to be terminal.
+
+// terminalPrior is a thunk which returns an array of grid positions which are terminal.
+
+// utilityFunction is a function from grid positions to things that could be utilities. For grid positions that
+// could possibly be terminal, utilityFunction returns the utility of that grid position if it were terminal.
+// for grid positions that could not possibly be terminal, utilityFunction returns a constant time cost.
+// if a state could possibly be terminal but is not, its utility is the time cost.
+
+// transitionNoiseProb is the probability of an action being changed to an action in the orthogonal direction.
+
+// alpha governs the softmax noise of the agent.
+var makeBlockedGridPOMDPParams = function(xLim, yLim, openGridPositions, startGridPosition, terminalPrior,
+					  utilityFunction, transitionNoiseProb, alpha) {
+    assert.ok(typeof(xLim) == 'number' && typeof(yLim) == 'number' && xLim >= 1 && yLim >= 1,
+	      'xLim or yLim wrong in makeBlockedGridPOMDPParams arguments');
+    assert.ok(xLim <= 10 && yLim <= 10,
+	      'xLim or yLim too big in makeBlockedGridPOMDPParams arguments');
+    assert.ok(typeof(openGridPositions[0][0]) == 'number' && typeof(openGridPositions[0][1]) == 'number',
+	      'openGridPositions wrong in makeBlockedGridPOMDPParams arguments');
+    assert.ok(typeof(startGridPosition[0]) == 'number' && typeof(startGridPosition[1]) == 'number',
+	      'startGridPosition wrong in makeBlockedGridPOMDPParams arguments');
+    assert.ok(typeof(transitionNoiseProb) == 'number',
+	      'transitionNoiseProb wrong in makeBlockedGridPOMDPParams arguments');
+    assert.ok(typeof(alpha) == 'number',
+	      'alpha wrong in makeBlockedGridPOMDPParams arguments');
+
+    var startStatePrior = function(){
+	return {manifestState: JSON.stringify(startGridPosition),
+		latentState: map(JSON.stringify, terminalPrior())};
+    };
+
+    var latentStatePriorERP = Enumerate(function(){return map(JSON.stringify, terminalPrior());});
+
+    var actions = ['l', 'r', 'u', 'd'];
+
+    // only works for states that are not postTerminal
+    var manifestStateToGridPosition = function(state) {
+	var x = stringToNum(state.charAt(1));
+	var y = stringToNum(state.charAt(3));
+	return [x,y];
+    };
+
+    // only works for states that are not postTerminal
+    var isTerminal = function(state) {
+	var gridPos = manifestStateToGridPosition(state.manifestState);
+	var terminals = map(manifestStateToGridPosition, state.latentState);
+	return stateInArray(gridPos, terminals);
+    };
+
+    var isPostTerminal = function(state) {
+	return state.manifestState==='dead';
+    };
+    
+    var utility = function(state, action) {
+	if (isPostTerminal(state)) {
+	    return 0;
+	} else if (isTerminal(state)) {
+	    return utilityFunction(manifestStateToGridPosition(state.manifestState));
+	} else {
+	    return utilityFunction(startGridPosition);
+	}
+    };
+    
+    var makeDetGridTransition = function(xLim, yLim, openGridPositions, latentState){
+	
+	var isAllowedGridPos = function(gridPos) {
+	    return (inGrid(xLim, yLim, gridPos) && stateInArray(gridPos, openGridPositions));
+	};
+
+	return function(state, action) {
+	    if (isPostTerminal(state)) {return state;}
+	    else {
+		var gridPos = manifestStateToGridPosition(state);
+		assert.ok(isAllowedGridPos(gridPos),
+			  'tried to transition but current grid position is not allowed');
+		assert.ok(indexOf(action, actions) != undefined,
+			  'tried to transition but action is not allowed');
+
+		var gridTransition = {l: [gridPos[0]-1, gridPos[1]],
+				      r: [gridPos[0]+1, gridPos[1]],
+				      u: [gridPos[0], gridPos[1]+1],
+				      d: [gridPos[0], gridPos[1]-1]};
+
+		if (isTerminal(state)) {
+		    return buildState('dead', state.latentState);
+		} else {
+		    var possibleNextGridPos = gridTransition[action];
+		    return isAllowedGridPos(possibleNextGridPos) ? buildState(JSON.stringify(possibleNextGridPos),
+									      state.latentState) : state;
+		}
+	    }
+	};
+    };
+
+    var makeNoisyGridTransition = function(xLim, yLim, openGridPositions, latentState, transitionNoiseProb){
+	var detTransition = makeDetGridTransition(xLim, yLim, openGridPositions, latentState);
+
+	var noiseActionTable = {u: ['l','r'], d: ['l','r'], l: ['u','d'], r: ['u','d'] };
+
+	return function(state, action) {
+	    return flip(transitionNoiseProb) ? detTransition(state, uniformDraw(noiseActionTable[action])) : detTransition(state, action);
+	};
+    };
+    
+    var transition = function(state, action) {
+	if (transitionNoiseProb === 0) {
+	    return makeDetGridTransition(xLim, yLim, openGridPositions, state.latentState)(state, action);
+	} else {
+	    return makeNoisyGridTransition(xLim, yLim, openGridPositions, state.latentState,
+					   transitionNoiseProb)(state, action);
+	}
+    };
+
+    var observe = function(state) {
+	return utility(state, 'l');
+    };
+
+    var observationEquality = function(obs1,obs2){return JSON.stringify(obs1)===JSON.stringify(obs2);};
+
+    var getManifestState = function(state){return state.manifestState;};
+
+    return {deterministicObservations: true,
+	    alpha: alpha,
+	    actions: actions,
+	    utility: utility,
+	    transition: transition,
+	    observe: observe,
+	    observationEquality: observationEquality,
+	    startStatePrior: startStatePrior,
+	    latentStatePrior: latentStatePriorERP,
+	    getManifestState: getManifestState
+	   };
+};
+
+// everything in the support of terminalPrior must be a sub-array of [[0,0], [1,4], [3,6], [4,2]]
+// utilityTable is a table like {donutSouth: 3, donutNorth: 2, veg: 5, noodle: 1, timeCost: -0.2}
+var makeSmallDonutParams = function(utilityTable, alpha, transitionNoiseProb, terminalPrior) {
+    assert.ok( typeof(utilityTable.veg) == 'number' && typeof(utilityTable.timeCost) == 'number'
+	       && typeof(alpha) == 'number' &&  alpha >= 0 && typeof(transitionNoiseProb) == 'number'
+	       && transitionNoiseProb >= 0, 'makeSmallDonutParams args');
+
+    var openGridPositions = [ [0,0], [0,1],
+			      [1,1], [1,4],
+			      [2,0], [2,1], [2,2], [2,3], [2,4], [2,5],
+			      [3,3], [3,5], [3,6],
+			      [4,2], [4,3], [4,4], [4,5] ];
+    var xLim = 5;
+    var yLim = 7;
+    var startGridPosition = [2,1];
+    var gridPosToRestaurantTable = { '[0,0]': 'donutSouth',
+                                     '[1,4]': 'donutNorth', 
+                                     '[3,6]': 'veg',
+                                     '[4,2]': 'noodle' };
+
+    var gridPosToRestaurant = function(gridPos) {
+	return gridPosToRestaurantTable[JSON.stringify(gridPos)] ? gridPosToRestaurantTable[JSON.stringify(gridPos)] : false;
+    };
+
+    var utilityFunction = function(gridPos) {
+	if (gridPosToRestaurant(gridPos)) {
+	    return utilityTable[gridPosToRestaurant(gridPos)];
+	} else {
+	    return utilityTable['timeCost'];
+	}
+    };
+
+    return makeBlockedGridPOMDPParams(xLim, yLim, openGridPositions, startGridPosition, terminalPrior,
+				      utilityFunction, transitionNoiseProb, alpha);
+};
+
 console.log('testing 2 armed bandits');
 testBandits(pomdpSimulate);
 console.log('\n-------------\n Done with pomdpSimulate. Now doing updatePOMDPSimulate \n------------');
@@ -854,3 +891,168 @@ testKArmBandits(updatePOMDPSimulate);
 
 ash();
 
+
+
+
+
+
+
+
+
+
+
+
+
+// // K arm bandits
+// var getKBanditParams = function(numArms, startBeliefState, totalNumActions, u0, categoricalPriorU, mdpAgent, numberRejectionSamples ){
+//   assert.ok( (numArms > 1) & (totalNumActions > 0) & (typeof(u0)=='number') & 
+//              (categoricalPriorU[0].length == categoricalPriorU[1].length & numberRejectionSamples >= 0), 'args for getkbanditparams');
+
+//   var states = ['A'].concat(range(numArms));
+//   assert.ok( startBeliefState.stateToUtilities.length == states.length-1, 'getkbandits states and utilities');
+
+  
+//   // variable params
+//   var alpha = 200; 
+
+//   // identical, independent priors on arms 1,...,k-1
+//   var startBeliefStatePrior = function(){
+//     var priorThunk = function(){return categorical(categoricalPriorU[0], categoricalPriorU[1]);};
+//     return {state:'A',
+//             stateToUtilities: [u0].concat( repeat(numArms-1, priorThunk) )};
+//   }; 
+
+//   // true state is in support of agent's prior
+//   var erpPrior = Enumerate(function(){return startBeliefStatePrior().stateToUtilities;});
+//   assert.ok( Math.exp(erpPrior.score([],startBeliefState.stateToUtilities)) > 0, 'getkbandit erpPrior' )
+
+  
+//   // environment functions
+//   var stateToActions = function(state){
+//     return (state==='A') ? range(numArms) : ['A'];
+//   };
+  
+//   var transition = function(state, action){
+//     return update(state,{state:action});
+//   };
+  
+//   var utility = function(state,action){ 
+//     return state.state=='A' ? 0: state.stateToUtilities[state.state];
+//   };
+
+//   var observe = function(state){ // you observe true utility of state when you visit it
+//     return ( state.state == 0 | state.state == 'A') ? 'no observation' : 
+//       state.stateToUtilities[state.state];
+//   };
+  
+//   var getState = function(state){return state.state;};
+
+//   return {deterministicObservations: true,
+//           totalNumActions: totalNumActions,
+//           stateToActions: stateToActions, 
+//           alpha: alpha,
+//           states: states,
+//           utility: utility,
+//           transition: transition, 
+//           observe: observe,
+//           startBeliefStatePrior: startBeliefStatePrior,
+//           categoricalPriorU: categoricalPriorU, // id purposes
+//           startBeliefState: startBeliefState,
+//           getState: getState,
+//           u0: u0,
+//           mdpAgent: mdpAgent,
+//           numberRejectionSamples: numberRejectionSamples,
+//           numArms: numArms
+//          };
+// };
+
+// var runKBandit = function(params, actualTotalTime, perceivedTotalTime){
+//   var erp =  simulate(agent, params.startBeliefState,  actualTotalTime, perceivedTotalTime, params);
+//   var history = filter( function(state){return state != 'A';}, 
+//                         map(function(state){return state.state;}, erp.MAP().val.history));
+//   return simpleOutput ? erp.MAP().val : history;
+// };
+
+
+// var testKBandits = function(){
+  
+//   var runBanditTest = function(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples){
+//     var oneShot = false;
+//     var mdpAgent = false;
+//     var totalNumActions = 2 * numTrials; 
+//     var perceivedTotalTime = totalNumActions;
+//     var actualTotalTime = oneShot ? 2 : totalNumActions;
+//     var banditParams = getKBanditParams(numArms, startBeliefState, totalNumActions, u0, categoricalPriorU, mdpAgent, numberRejectionSamples );
+//     return runKBandit(banditParams, actualTotalTime, perceivedTotalTime);
+//   };
+
+//   // TWO ARM TESTS
+//   var numberRejectionSamples = 0; // ---- use Enumerate instead of Rejection
+//   var numArms = 2;
+  
+//   // one trial, so take A
+//   var numTrials = 1;
+//   var u0 = 0.05;
+//   var categoricalPriorU = [[.97, .03], [0,1]];
+//   var startBeliefState = {state:'A', stateToUtilities: [u0,0]};
+//   assert.ok( arraysEqual([0], runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples)), 'testkbandits1' );
+
+
+//   // three trials, so try B
+//   var numTrials = 3;
+//   var u0 = 0.05;
+//   var categoricalPriorU = [[.97, .03], [0,10]];
+//   var startBeliefState = {state:'A', stateToUtilities: [u0,0]};
+//   assert.ok( arraysEqual([1,0,0], runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples)), 'testkbandits2' );
+
+//   // three trials, so try B and stick
+//   var numTrials = 3;
+//   var u0 = 0.05;
+//   var categoricalPriorU = [[.97, .03], [0,10]];
+//   var startBeliefState = {state:'A', stateToUtilities: [u0,10]};
+//   assert.ok( arraysEqual([1,1,1], runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples)), 'testkbandits3' );
+
+//   // >2 ARMS
+//   var numArms = 3;
+//   var numTrials = 3;
+//   var u0 = 0.05;
+//   var categoricalPriorU = [[.9, .1], [10,0] ]; // all other arms promising
+//   var startBeliefState = {state:'A', stateToUtilities: [u0,0,0]};
+//   var out = runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples);
+//   assert.ok( arraysEqual([1,2,0], out) | arraysEqual([2,1,0], out), 'testkbandits4');
+
+//   var numArms = 3;
+//   var numTrials = 4;
+//   var u0 = 0.001;
+//   var categoricalPriorU = [[.33, .33, .33], [0,1,2] ]; // all other arms promising
+//   var startBeliefState = {state:'A', stateToUtilities: [u0,1,2]};
+//   var out = runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples);
+//   assert.ok( arraysEqual([1,2,2,2], out) | arraysEqual([2,2,2,2], out), 'testkbandits5');
+
+
+//   // speedtest for numArms
+//   var speedTest = function(numberRejectionSamples, numTrialsAr){
+//     map( function(numArms){
+//       var numTrials = 6;
+//       var u0 = .05;
+//       var categoricalPriorU = [[.1, .9], [0,1]]; // thinks all other arms are u=1
+      
+//       var startBeliefState = {state:'A', stateToUtilities: [u0].concat( zeroes(numArms-1) ) };
+//       var runThunk = function(){return runBanditTest(numArms, numTrials, u0, categoricalPriorU, startBeliefState, numberRejectionSamples);};
+//       var out = timeit(runThunk);
+//       // test whether all arms explored before going back to known 0-th arm
+//       assert.ok( arraysEqual(  sort(out.value), zeroes(numTrials-numArms).concat(range(numArms))), 'kbandit speed')
+//       return out.runtimeInMilliseconds;
+//     }, numArmsList);
+//   };
+
+//   var numArmsList = [2, 3, 4, 5];
+//   var numberRejectionSamples = 600;
+//   console.log('\n\nBandit speed test for ENUMERATE.\n Number of trials', numArmsList,
+//               ' \nruntime in ms: ', speedTest(numberRejectionSamples, numArmsList));
+
+//   console.log('passed k bandit tests');
+
+// };
+// testKBandits();
+// ash()
