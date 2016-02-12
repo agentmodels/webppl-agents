@@ -1,9 +1,6 @@
 var inGrid = function(map, loc) {
-  var x = loc[0];
-  var y = loc[1];
-
-  return (x >= 0 && x < map.xLim &&
-          y >= 0 && y < map.yLim);
+  return (loc[0] >= 0 && loc[0] < map.xLim &&
+          loc[1] >= 0 && loc[1] < map.yLim);
 }
 
 var isBlockedLoc = function(map, loc) {
@@ -39,16 +36,11 @@ var moveState = function(map, state, action) {
 
 var makeGridTransition = function(map) {
   return function(state,action){    
-    
-    console.log('trans', state);
     var getFeature = map.feature;
-    var feature = getFeature(state);
 
-    if ( feature.name ) { 
-      console.log("update2");
+    if ( getFeature(state).name ) { // there's a restaurant here
       var state2 =  update(state, { digest : state.digest -1}); 
       if (state2.digest <= 0) {
-        console.log("update3");
         return update(state2, { dead : true });
       }
       return state2;
@@ -58,21 +50,18 @@ var makeGridTransition = function(map) {
 };
 
 var makeMap = function(rfeatures)  { 
-
   var features = rfeatures.reverse();
   return { 
     features : features,
     xLim : features[0].length,
     yLim : features.length,
     feature : function (state) { 
-      console.log("feature",  state)
-
       return features[state.loc[1]][state.loc[0]];
     }
   };
 };
 
-var makeDonutExtended = function(){
+var makeDonutWorldExtended = function(){
   var _ = ' '; 
   var D = { name : 'Donut'} ;
   var V = { name : 'Veg'} ;
@@ -82,7 +71,7 @@ var makeDonutExtended = function(){
                   ['#', '#',  _ ,  _ ,  _ , '#'],  
                   ['#', D  ,  _ , '#',  _ ,  N ],
                   ['#', '#',  _ , '#',  _ , '#'],
-                  [D  ,  _ ,  _ ,  _ ,  _ , '#'],
+                  ['#',  _ ,  _ ,  _ ,  _ , '#'],
                   ['#', '#',  _ , '#', '#', '#']];
 
   var map = makeMap(features); 
@@ -93,14 +82,8 @@ var makeDonutExtended = function(){
       });
 };
 
-var makeHyperbolicDiscounter = function (alpha, discount, max_digest) {
-  var rewards = {
-    'Donut' : [1, 0, 0, 0],
-    'Veg'   : [1, 0, 0, 2],
-    'Noodle': [0, 0, 0, 0]
-  };
-
-  var utility = function(world, state, action) {
+var makeDonutUtility = function (max_digest, rewards) { 
+  return function(world, state, action) {
     console.log("uti", state)
     var getFeature = world.feature;
     var feature = getFeature(state);
@@ -110,9 +93,12 @@ var makeHyperbolicDiscounter = function (alpha, discount, max_digest) {
       
       console.log(rewards[feature.name][max_digest - state.digest],[max_digest - state.digest]);
       return rewards[feature.name][max_digest - state.digest]; }
-    return -0.1;
+    return -0.01;
   };
+};
 
+
+var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticatedOrNaive) {
   var agent = cache( 
     function(_agent, _expUtility, state, world, delay){
      
@@ -125,7 +111,6 @@ var makeHyperbolicDiscounter = function (alpha, discount, max_digest) {
         return action;
       });      
     });
-
   
   var expUtility = cache(
     function(_agent, _expUtility, state, action, world, delay){
@@ -133,14 +118,15 @@ var makeHyperbolicDiscounter = function (alpha, discount, max_digest) {
       var u = 1.0/(1 + discount*delay) * utility(world, state, action);
       
       console.log("agent u", u, state, action);
-      assert.ok(u != NaN, state, action);
+      assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state));
       if (state.dead){
         return u; 
       } else {                     
         return u + expectation( Enumerate(function(){
           var transition = world.transition;
           var nextState = transition(state, action); 
-          var nextAction = sample(_agent(_agent, _expUtility, nextState, world, 0));
+          var perceivedDelay = { naive : delay + 1, sophisticated : 0}[sophisticatedOrNaive]; 
+          var nextAction = sample(_agent(_agent, _expUtility, nextState, world, perceivedDelay));
           return _expUtility(_agent, _expUtility, nextState, nextAction, world, delay+1);  
         }));
       }                      
@@ -177,8 +163,13 @@ var start = {
   digest : 4
 };
 
-var world = makeDonutExtended();
-var agent = makeHyperbolicDiscounter(50, 1, 4);
+var world = makeDonutWorldExtended();
+var donutUtility = makeDonutUtility(4, {
+    'Donut' : [1, 0, 0, 0],
+    'Veg'   : [0, 0, 0, 4],
+    'Noodle': [0, 0, 0, 0]});
+
+var agent = makeHyperbolicDiscounter(donutUtility, 500, 1, 'naive');
 var agentAgent = agent.agent;
 var agentExp = agent.expUtility;
 
