@@ -1,28 +1,180 @@
-var makeStudy = function(noiseProb, alpha, utilities){
-  var utility = function(state,action){
-    if (state[0] !== 'dead') { 
-      return utilities[state[0]] - .1;
-    } else {
-      return 0;
-    }
-  };
-  var blockedStates = [];
-  var terminals = [[3,0]];
-  return makeBlockedGridParams(4,1, blockedStates, terminals, utility, noiseProb, alpha);
+var inGrid = function(map, loc) {
+  var x = loc[0];
+  var y = loc[1];
+
+  return (x >= 0 && x < map.xLim &&
+          y >= 0 && y < map.yLim);
+}
+
+var isBlockedLoc = function(map, loc) {
+  var getFeature = map.feature;
+  var feature = getFeature({ loc : loc});
+  return feature === '#';
+}
+
+var isAllowedState = function(map, loc) {
+  return (inGrid(map, loc)) && !isBlockedLoc(map, loc);
 };
 
+var moveState = function(map, state, action) { 
+    console.log('move', state);
+    var loc = state.loc; 
+    var gridTransition = {l: [loc[0]-1, loc[1]],
+                          r: [loc[0]+1, loc[1]],
+                          u: [loc[0], loc[1]+1],
+                          d: [loc[0], loc[1]-1]};
 
-var noiseProb = 0;
-var alpha = 500;
-//var basicParams = makeStudy(noiseProb, alpha, [-.1, -.15, -7, 10]);
-var basicParams = makeDonutExtended(0, alpha);
-var params = _.extend(basicParams, {discount : .1});
+    console.log('move.5', action);
+    var possibleNextLoc = gridTransition[action];
+    console.log('move.5', possibleNextLoc);
+    assert.ok(possibleNextLoc != undefined, 'action was not found');
 
-var outputParams = {erpOverStatesOrActions: 'both', getExpUtilityValues: true, 
-                    trajectoryNumRejectionSamples: 2, conditionOnStates:false};
+    var nextLoc = isAllowedState(map, possibleNextLoc) ? possibleNextLoc : loc;
 
-var out = mdpSimulate([2,0], 10, 10, params, outputParams);
-var trajectory = sample(out.erp);
+    console.log('move2', state);
+    var dead = state.timeLeft > 0 ? state.dead : true;
+    console.log("update4");
+    return update(state, { loc : nextLoc, timeLeft : state.timeLeft - 1, dead : dead});
+}
 
-GridWorld.draw(params, {trajectory : trajectory, expUtilities : out.expUtilityValues});
+var makeGridTransition = function(map) {
+  return function(state,action){    
+    
+    console.log('trans', state);
+    var getFeature = map.feature;
+    var feature = getFeature(state);
+
+    if ( feature.name ) { 
+      console.log("update2");
+      var state2 =  update(state, { digest : state.digest -1}); 
+      if (state2.digest <= 0) {
+        console.log("update3");
+        return update(state2, { dead : true });
+      }
+      return state2;
+    }
+    return moveState(map, state, action);
+  };
+};
+
+var makeMap = function(rfeatures)  { 
+
+  var features = rfeatures.reverse();
+  return { 
+    features : features,
+    xLim : features[0].length,
+    yLim : features.length,
+    feature : function (state) { 
+      console.log("feature",  state)
+
+      return features[state.loc[1]][state.loc[0]];
+    }
+  };
+};
+
+var makeDonutExtended = function(){
+  var _ = ' '; 
+  var D = { name : 'Donut'} ;
+  var V = { name : 'Veg'} ;
+  var N = { name : 'Noodle'} ;
+
+  var features = [['#', '#', '#',  V , '#', '#'],
+                  ['#', '#',  _ ,  _ ,  _ , '#'],  
+                  ['#', D  ,  _ , '#',  _ ,  N ],
+                  ['#', '#',  _ , '#',  _ , '#'],
+                  [D  ,  _ ,  _ ,  _ ,  _ , '#'],
+                  ['#', '#',  _ , '#', '#', '#']];
+
+  var map = makeMap(features); 
+
+  return update(map,
+      { transition : makeGridTransition(map), 
+        actions    : ['l', 'r', 'u', 'd'],
+      });
+};
+
+var makeHyperbolicDiscounter = function (alpha, discount, max_digest) {
+  var rewards = {
+    'Donut' : [6, 0],
+    'Veg'   : [6, 0],
+    'Noodle': [6, 0]
+  };
+
+  var utility = function(world, state, action) {
+    console.log("uti", state)
+    var getFeature = world.feature;
+    var feature = getFeature(state);
+
+    if (state.dead)   { return 0; }
+    if (feature.name) { return rewards[feature.name][max_digest - state.digest]; }
+    return -0.1;
+  };
+
+  var agent = cache( 
+    function(_agent, _expUtility, state, world, delay){
+     
+      return Enumerate(function(){
+        
+        var action = uniformDraw(world.actions);
+        var eu = _expUtility(_agent, _expUtility, state, action, world, delay);    
+        console.log("agent", eu);
+        factor(alpha * eu);
+        return action;
+      });      
+    });
+
+  
+  var expUtility = cache(
+    function(_agent, _expUtility, state, action, world, delay){
+      console.log("exp");
+      var u = 1.0/(1 + discount*delay) * utility(world, state, action);
+      
+      console.log("agent u", u);
+      if (state.dead){
+        return u; 
+      } else {                     
+        return u + expectation( Enumerate(function(){
+          var transition = world.transition;
+          var nextState = transition(state, action); 
+          var nextAction = sample(_agent(_agent, _expUtility, nextState, world, 0));
+          return _expUtility(_agent, _expUtility, nextState, nextAction, world, delay+1);  
+        }));
+      }                      
+    });
+
+    return {
+      utility : utility,
+      expUtility : expUtility,
+      agent : agent,
+      alpha : alpha, 
+      discount : discount
+    };
+};
+
+var simulate = function(state, world, agent, actualTimeLeft, statesOrActions) { 
+    var agentAction = agent.agent;
+    var expUtility = agent.expUtility;
+    var transition = world.transition;
+
+    if (actualTimeLeft==0 | state.dead){
+      return [];
+    } else {
+      var action = sample(agentAction(agentAction, expUtility, state, world, 0));
+      var nextState = transition(state,action); 
+      var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
+      return [ out ].concat( simulate(nextState, world, agent, actualTimeLeft-1, statesOrActions));
+    }
+}
+
+var start = { 
+  loc : [2,0],
+  dead : false,
+  timeLeft : 12,
+  digest : 2
+};
+var world = makeDonutExtended();
+var agent = makeHyperbolicDiscounter(50, .1, 2);
+
+var trajectory = simulate(start, world, agent, 12, 'states');
+
 trajectory
