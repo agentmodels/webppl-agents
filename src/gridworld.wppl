@@ -324,7 +324,6 @@ var makeHike = function(transitionNoiseProb, alpha, utilityTable){
   
   map( function(input){assert.ok( typeof(input)=='number', 'makeHike inputs' );},
        [transitionNoiseProb, alpha, utilityTable.east, utilityTable.west, utilityTable.hill, utilityTable.timeCost] );
-  assert.ok(timeCost <=0, 'makeHike inputs' );
   assert.ok(transitionNoiseProb >= 0 & alpha >= 0, 'makeHike inputs' );
 
   
