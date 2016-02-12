@@ -12,6 +12,9 @@ var range = function(n){
 	return snoc(range(n - 1), n);
     }
 };
+var numToString = function(n){
+    return n.toString();
+};
 
 // Helper functions because functions can't be called using "dot" notation
 var startStatePrior = function(params){
@@ -433,7 +436,7 @@ var testBandits = function(pomdpSimulateVersion){
     var startState = {manifestState: 'start', latentState: {A: uA, B: 0.4}};
     assert.ok( arraysEqual(['A', 'A', 'A'], runBanditTest(numTrials, uA, priorB, startState, numberRejectionSamples)), 'testbandits5');
 
-  console.log('\n\n passed correctness tests');
+  console.log('\n\n passed 2 armed bandit correctness tests');
 
   // speed test: rejection vs. enumerate
 
@@ -459,7 +462,7 @@ var testBandits = function(pomdpSimulateVersion){
   console.log('\n\nBandit speed test for REJECTION (100 samples).\n Number of trials',
               numTrialsAr,' \nruntime in ms: ', speedTest(numberRejectionSamples, numTrialsAr));
 
-  console.log('\n\n passed bandit tests');
+  console.log('\n\n passed 2-armed bandit tests');
 
   
 };
@@ -630,15 +633,13 @@ var testBandits = function(pomdpSimulateVersion){
 // ash()
 
 
-// HAVE NOT TESTED YET
-
 // function for making parameters for a k-armed bandit. numArms is the number of arms.
-// arms will be labelled 0 through k - 1. u0 is the utility of the first arm (assumed
+// arms will be labelled '0' through 'k - 1'. u0 is the utility of the first arm (assumed
 // to be known to the agent). priorArms is a function that samples from a prior over the
 // utilities of the other arms, returning an object. alpha represents the softmax noise
 // of the agent.
 var getKArmBanditParams = function(numArms, u0, priorArms, alpha) {
-    var latentStatePriorERP = Enumerate(function(){return update({0: u0}, priorArms());});
+    var latentStatePriorERP = Enumerate(function(){return update({'0': u0}, priorArms());});
 
     // similarly to getBanditParams, the initial state is a special 'start' state
     // that can never be returned to.
@@ -647,8 +648,8 @@ var getKArmBanditParams = function(numArms, u0, priorArms, alpha) {
 	        latentState: sample(latentStatePriorERP)};
     };
 
-    var states = cons('start', range(numArms - 1));
-    var actions = range(numArms - 1);
+    var actions = map(numToString, range(numArms - 1));
+    var states = cons('start', actions);
 
     var transition = function(state, action){
 	return update(state, {manifestState: action});
@@ -715,50 +716,103 @@ var testKArmBandits = function(pomdpSimulateVersion){
     
     var numTrials = 2;
     var u0 = 0.05;
-    var priorArms = function(){return {1: categorical([.97, .03], [0,1])};};
-    var startState = {manifestState:'start', latentState: {0: u0, 1: 0}};
-    assert.ok( arraysEqual(['A'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+    var priorArms = function(){return {'1': categorical([.97, .03], [0,1])};};
+    var startState = {manifestState:'start', latentState: {'0': u0, '1': 0}};
+    assert.ok( arraysEqual(['0'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
 						numberRejectionSamples)), 'testKbandits1');
     
     
-    // three trials, so try B
+    // three trials, so try 1
     var numTrials = 4;
     var u0 = 0.05;
-    var priorArms = function(){return {1: categorical([.97, .03], [0,10])};};
-    var startState = {manifestState:'start', latentState: {0:u0, 1:0}};
-    assert.ok( arraysEqual(['B','A','A'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+    var priorArms = function(){return {'1': categorical([.97, .03], [0,10])};};
+    var startState = {manifestState:'start', latentState: {'0':u0, '1':0}};
+    assert.ok( arraysEqual(['1','0','0'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
 							numberRejectionSamples)), 'testKbandits2');
     console.log('passed first two');
     
-    // three trials, so try B and stick
+    // three trials, so try 1 and stick
     var numTrials = 4;
     var u0 = 0.05;
-    var priorArms = function(){return {1: categorical([.97, .03], [0,10])};};
-    var startState = {manifestState:'start', latentState: {0:u0, 1:10}};
-    assert.ok( arraysEqual(['B','B','B'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
-							numberRejectionSamples)), 'testbandits3');
+    var priorArms = function(){return {'1': categorical([.97, .03], [0,10])};};
+    var startState = {manifestState:'start', latentState: {'0':u0, '1':10}};
+    assert.ok( arraysEqual(['1','1','1'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+							numberRejectionSamples)), 'testKbandits3');
 
     console.log('passed third');
     
-    // single trial, but EU for B is high
+    // single trial, but EU for 1 is high
     var numTrials = 2;
     var u0 = 0.05;
-    var priorArms = function(){return {1: categorical([.97, .03], [0,100])};};
-    var startState = {manifestState:'start', latentState: {0:u0, 1:100}};
-    assert.ok( arraysEqual(['B'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
-						numberRejectionSamples)), 'testbandits4');
+    var priorArms = function(){return {'1': categorical([.97, .03], [0,100])};};
+    var startState = {manifestState:'start', latentState: {'0':u0, '1':100}};
+    assert.ok( arraysEqual(['1'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+						numberRejectionSamples)), 'testKbandits4');
 
     console.log('passed fourth');
 
-    // three trials, EU for B is low so don't try
+    // three trials, EU for 1 is low so don't try
     var numTrials = 4;
     var u0 = 0.05;
-    var priorArms = function(){return {1: categorical([0.97, 0.03], [0, 0.4])};};
-    var startState = {manifestState: 'start', latentState: {0: u0, 1: 0.4}};
-    assert.ok( arraysEqual(['A', 'A', 'A'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
-							  numberRejectionSamples)), 'testbandits5');
+    var priorArms = function(){return {'1': categorical([0.97, 0.03], [0, 0.4])};};
+    var startState = {manifestState: 'start', latentState: {'0': u0, '1': 0.4}};
+    assert.ok( arraysEqual(['0', '0', '0'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+							  numberRejectionSamples)), 'testKbandits5');
 
     console.log('\n\n passed k = 2 tests');
+
+    // now test the case when k = 3
+    var numArms = 3;
+    
+    // three trials, explore 1, then 2, then stick with 0
+    var numTrials = 4;
+    var u0 = 0.05;
+    var priorArms = function(){return {'1': categorical([0.97, 0.03], [0, 10]),
+				       '2': categorical([0.97, 0.03], [0, 5])};};
+    var startState = {manifestState: 'start', latentState: {'0': u0, '1': 0, '2': 0}};
+    assert.ok( arraysEqual(['1', '2', '0'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+							  numberRejectionSamples)), 'testKbandits6');
+
+    // three trials, explore 1, then stick with 2
+    var numTrials = 4;
+    var u0 = 0.05;
+    var priorArms = function(){return {'1': categorical([0.97, 0.03], [0, 10]),
+				       '2': categorical([0.97, 0.03], [0, 5])};};
+    var startState = {manifestState: 'start', latentState: {'0': u0, '1': 0, '2': 5}};
+    assert.ok( arraysEqual(['1', '2', '2'], runBanditTest(numTrials, numArms, u0, priorArms, startState,
+							  numberRejectionSamples)), 'testKbandits7');
+
+    console.log('\n\n passed k = 3 tests');
+
+    console.log('\n\n passed k armed bandit correctness tests');
+
+    // speed test: rejection vs. enumerate
+
+    var speedTest = function(numberRejectionSamples, numTrialsAr){
+	map( function(numTrials){
+	    var u0 = .05;
+	    var priorArms = function(){return {'1': categorical([0.97, 0.03], [0, 10]),
+					       '2': categorical([0.97, 0.03], [0, 5])};};
+	    var startState = {manifestState: 'start', latentState: {'0': u0, '1': 0, '2': 0}};
+	    var runThunk = function(){return  runBanditTest(numTrials, numArms, u0, priorArms, startState,
+							    numberRejectionSamples);};
+	    var out = timeit(runThunk);
+	    assert.ok( '1' == out.value[0], 'bandit speed test' );
+	    return out.runtimeInMilliseconds;
+	}, numTrialsAr);
+    };
+
+    var numTrialsAr = [5, 6, 7, 8, 9];
+    var numberRejectionSamples = 0;
+    console.log('\n\nK armed bandit speed test for ENUMERATE.\n Number of trials',
+		numTrialsAr,' \nruntime in ms: ', speedTest(numberRejectionSamples, numTrialsAr));
+
+    var numTrialsAr = [5, 6, 7, 8, 9, 10, 15, 20];
+    var numberRejectionSamples = 100;
+    console.log('\n\nK armed bandit speed test for REJECTION (100 samples).\n Number of trials',
+		numTrialsAr,' \nruntime in ms: ', speedTest(numberRejectionSamples, numTrialsAr));
+
+    console.log('\n\n passed k armed bandit tests');
 
 };
 
@@ -767,7 +821,10 @@ console.log('testing 2 armed bandits');
 testBandits(pomdpSimulate);
 console.log('\n-------------\n Done with pomdpSimulate. Now doing updatePOMDPSimulate \n------------');
 testBandits(updatePOMDPSimulate);
-console.log('testing k armed bandits');
+console.log('\n-------------\n testing k armed bandits \n-------------');
+testKArmBandits(pomdpSimulate);
+console.log('\n-------------\n Done with pomdpSimulate. Now doing updatePOMDPSimulate \n------------');
+testKArmBandits(updatePOMDPSimulate);
 
 ash();
 
