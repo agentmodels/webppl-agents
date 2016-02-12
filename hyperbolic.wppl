@@ -95,9 +95,9 @@ var makeDonutExtended = function(){
 
 var makeHyperbolicDiscounter = function (alpha, discount, max_digest) {
   var rewards = {
-    'Donut' : [6, 0],
-    'Veg'   : [6, 0],
-    'Noodle': [6, 0]
+    'Donut' : [1, 0, 0, 0],
+    'Veg'   : [1, 0, 0, 2],
+    'Noodle': [0, 0, 0, 0]
   };
 
   var utility = function(world, state, action) {
@@ -106,7 +106,10 @@ var makeHyperbolicDiscounter = function (alpha, discount, max_digest) {
     var feature = getFeature(state);
 
     if (state.dead)   { return 0; }
-    if (feature.name) { return rewards[feature.name][max_digest - state.digest]; }
+    if (feature.name) { 
+      
+      console.log(rewards[feature.name][max_digest - state.digest],[max_digest - state.digest]);
+      return rewards[feature.name][max_digest - state.digest]; }
     return -0.1;
   };
 
@@ -117,7 +120,7 @@ var makeHyperbolicDiscounter = function (alpha, discount, max_digest) {
         
         var action = uniformDraw(world.actions);
         var eu = _expUtility(_agent, _expUtility, state, action, world, delay);    
-        console.log("agent", eu);
+        console.log("agent", eu, state);
         factor(alpha * eu);
         return action;
       });      
@@ -129,7 +132,8 @@ var makeHyperbolicDiscounter = function (alpha, discount, max_digest) {
       console.log("exp");
       var u = 1.0/(1 + discount*delay) * utility(world, state, action);
       
-      console.log("agent u", u);
+      console.log("agent u", u, state, action);
+      assert.ok(u != NaN, state, action);
       if (state.dead){
         return u; 
       } else {                     
@@ -159,8 +163,8 @@ var simulate = function(state, world, agent, actualTimeLeft, statesOrActions) {
     if (actualTimeLeft==0 | state.dead){
       return [];
     } else {
-      var action = sample(agentAction(agentAction, expUtility, state, world, 0));
-      var nextState = transition(state,action); 
+      var action = agentAction(agentAction, expUtility, state, world, 0);
+      var nextState = transition(state,sample(action)); 
       var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
       return [ out ].concat( simulate(nextState, world, agent, actualTimeLeft-1, statesOrActions));
     }
@@ -169,12 +173,18 @@ var simulate = function(state, world, agent, actualTimeLeft, statesOrActions) {
 var start = { 
   loc : [2,0],
   dead : false,
-  timeLeft : 12,
-  digest : 2
+  timeLeft : 14,
+  digest : 4
 };
+
 var world = makeDonutExtended();
-var agent = makeHyperbolicDiscounter(50, .1, 2);
+var agent = makeHyperbolicDiscounter(50, 1, 4);
+var agentAgent = agent.agent;
+var agentExp = agent.expUtility;
 
-var trajectory = simulate(start, world, agent, 12, 'states');
+var trajectory = simulate(start, world, agent, 14, 'states');
+var exp = map(function(state) {
+  return [state.loc, map(function (a) { return  agentExp(agentAgent, agentExp, state, a, world, 0); }, world.actions)];
+}, trajectory);
 
-trajectory
+GridWorld.draw(world, {trajectory : trajectory, expUtilities : exp });

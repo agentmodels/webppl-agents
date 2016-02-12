@@ -10,11 +10,47 @@ function createCanvas(element, options) {
   return canvas;
 }
 
+function convertDraw(world, additional) {
+  var xyf = _(world.features)
+    .map(function (val, y) {
+      return _.map(val, function (feat, x) { return { feat : feat, pos : [x, y]};})})
+    .flatten()
+    .value();
+  console.log(xyf)
+
+  var blocked = _.map(_.filter(xyf, function (o) { return o.feat == '#' }), 'pos');
+  var terminal = _.map(_.filter(xyf, function (o) { return o.feat.name !== undefined }), 'pos');
+
+  var xLim = world.features[0].length;
+  var yLim = world.features.length;
+
+  var world2 = {
+    blockedStates : blocked, 
+    terminals : terminal, 
+    xLim : xLim, 
+    yLim : yLim
+  };
+
+  var trajectory = _.map(additional.trajectory, function(state) { 
+    return [state.loc, ''];
+  });
+
+  var additional2 = {
+    trajectory : trajectory , expUtilities : additional.expUtilities}
+
+  return draw(world2, additional2);
+}
+
 function draw(world, additional) {
+  if (world.features) { 
+    return convertDraw(world, additional)
+  }
+
   var element = wpEditor.makeResultContainer();
 
   var canvas = createCanvas(element, { width : world.xLim * 100, height : world.yLim * 100});
   paper.setup(canvas);
+
 
   var color = { 
     blocked : 'grey',
@@ -56,6 +92,7 @@ function draw(world, additional) {
     for (var i = 0; i < v.length; i++) { 
       var coord = v[i][0];
       var LRUD = v[i][1];
+      console.log(coord, LRUD);
       var LURD = [LRUD[0], LRUD[2], LRUD[1], LRUD[3]];
 
       for (var j = 0; j < 4; j ++) {
@@ -234,5 +271,5 @@ function draw(world, additional) {
 }
 
 module.exports = {
-  draw: draw
+  draw: draw,
 }
