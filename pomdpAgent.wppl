@@ -452,15 +452,15 @@ var testBandits = function(pomdpSimulateVersion){
     }, numTrialsAr);
   };
 
-  var numTrialsAr = [8,9,10,11,12];
+  var numTrialsArEnum = [8,9,10,11,12];
   var numberRejectionSamples = 0;
-  console.log('\n\nBandit speed test for ENUMERATE.\n Number of trials', numTrialsAr, 
-              ' \nruntime in ms: ', speedTest(numberRejectionSamples, numTrialsAr));
+  console.log('\n\nBandit speed test for ENUMERATE.\n Number of trials', numTrialsArEnum, 
+              ' \nruntime in ms: ', speedTest(numberRejectionSamples, numTrialsArEnum));
 
-  var numTrialsAr = [8,9,10,11,12, 13, 14, 15, 20];
+  var numTrialsArRej = [8,9,10,11,12, 13, 14, 15, 20];
   var numberRejectionSamples = 100;
   console.log('\n\nBandit speed test for REJECTION (100 samples).\n Number of trials',
-              numTrialsAr,' \nruntime in ms: ', speedTest(numberRejectionSamples, numTrialsAr));
+              numTrialsArRej,' \nruntime in ms: ', speedTest(numberRejectionSamples, numTrialsArRej));
 
   console.log('\n\n passed 2-armed bandit tests');
 
@@ -817,26 +817,26 @@ var testKArmBandits = function(pomdpSimulateVersion){
 	}, numTrialsAr);
     };
 
-    var numTrialsAr = [8,9,10,11,12];
+    var numTrialsArEnum2 = [8,9,10,11,12];
     var numberRejectionSamples = 0;
-    console.log('\n\nk=2 armed bandit speed test for ENUMERATE.\n Number of trials', numTrialsAr, 
-		' \nruntime in ms: ', speedTest2(numberRejectionSamples, numTrialsAr));
+    console.log('\n\nk=2 armed bandit speed test for ENUMERATE.\n Number of trials', numTrialsArEnum2, 
+		' \nruntime in ms: ', speedTest2(numberRejectionSamples, numTrialsArEnum2));
 
-    var numTrialsAr = [8,9,10,11,12, 13, 14, 15, 20];
+    var numTrialsArRej2 = [8,9,10,11,12, 13, 14, 15, 20];
     var numberRejectionSamples = 100;
     console.log('\n\nk=2 armed bandit speed test for REJECTION (100 samples).\n Number of trials',
-		numTrialsAr,' \nruntime in ms: ', speedTest2(numberRejectionSamples, numTrialsAr));
+		numTrialsArRej2,' \nruntime in ms: ', speedTest2(numberRejectionSamples, numTrialsArRej2));
 
 
-    var numTrialsAr = [5, 6, 7, 8, 9];
+    var numTrialsArEnum3 = [5, 6, 7, 8, 9];
     var numberRejectionSamples = 0;
     console.log('\n\nK=3 armed bandit speed test for ENUMERATE.\n Number of trials',
-		numTrialsAr,' \nruntime in ms: ', speedTest3(numberRejectionSamples, numTrialsAr));
+		numTrialsArEnum3,' \nruntime in ms: ', speedTest3(numberRejectionSamples, numTrialsArEnum3));
 
-    var numTrialsAr = [5, 6, 7, 8, 9, 10, 15, 20];
+    var numTrialsArRej3 = [5, 6, 7, 8, 9, 10, 15, 20];
     var numberRejectionSamples = 100;
     console.log('\n\nK=3 armed bandit speed test for REJECTION (100 samples).\n Number of trials',
-		numTrialsAr,' \nruntime in ms: ', speedTest3(numberRejectionSamples, numTrialsAr));
+		numTrialsArRej3,' \nruntime in ms: ', speedTest3(numberRejectionSamples, numTrialsArRej3));
 
     console.log('\n\n passed k armed bandit tests');
 
