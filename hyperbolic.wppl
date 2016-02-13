@@ -56,17 +56,18 @@ var makeMap = function(rfeatures)  {
   };
 };
 
-var makeDonutWorldExtended = function(){
+var makeDonutWorldExtended = function(options){
   var _ = ' '; 
   var D = { name : 'Donut'} ;
   var V = { name : 'Veg'} ;
   var N = { name : 'Noodle'} ;
 
+  var X = options.bottomLeftNook;
   var features = [['#', '#', '#',  V , '#', '#'],
                   ['#', '#',  _ ,  _ ,  _ , '#'],  
                   ['#', D  ,  _ , '#',  _ ,  N ],
                   ['#', '#',  _ , '#',  _ , '#'],
-                  ['#',  _ ,  _ ,  _ ,  _ , '#'],
+                  [ X ,  _ ,  _ ,  _ ,  _ , '#'],
                   ['#', '#',  _ , '#', '#', '#']];
 
   var map = makeMap(features); 
@@ -144,6 +145,18 @@ var simulate = function(state, world, agent, actualTimeLeft, statesOrActions) {
     }
 }
 
+var mdpSim = function(start, world, agent, time) { 
+  var agentAgent = agent.agent;
+  var agentExp = agent.expUtility;
+
+  var trajectory = simulate(start, world, agent, 14, 'states');
+  var exp = map(function(state) {
+    return [state.loc, map(function (a) { return  agentExp(agentAgent, agentExp, state, a, world, 0); }, world.actions)];
+  }, trajectory);
+
+  GridWorld.draw(world, {trajectory : trajectory, expUtilities : exp });
+}
+
 var start = { 
   loc : [2,0],
   dead : false,
@@ -151,19 +164,16 @@ var start = {
   digest : 4
 };
 
-var world = makeDonutWorldExtended();
+var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
 var donutUtility = makeDonutUtility(4, {
     'Donut' : [1, 0, 0, 0],
-    'Veg'   : [0, 0, 0, 4],
+    'Veg'   : [0, 0, 0, 3],
     'Noodle': [0, 0, 0, 0]});
 
-var agent = makeHyperbolicDiscounter(donutUtility, 500, 1, 'naive');
-var agentAgent = agent.agent;
-var agentExp = agent.expUtility;
+var agent = makeHyperbolicDiscounter(donutUtility, 500, 1, 'sophisticated');
+mdpSim(start, world, agent, 14)
 
-var trajectory = simulate(start, world, agent, 14, 'states');
-var exp = map(function(state) {
-  return [state.loc, map(function (a) { return  agentExp(agentAgent, agentExp, state, a, world, 0); }, world.actions)];
-}, trajectory);
 
-GridWorld.draw(world, {trajectory : trajectory, expUtilities : exp });
+var world2 = makeDonutWorldExtended({ bottomLeftNook : { name : 'Donut'}  });
+var agent2 = makeHyperbolicDiscounter(donutUtility, 500, 1, 'naive');
+mdpSim(start, world2, agent2, 14)
