@@ -14,23 +14,18 @@ var isAllowedState = function(map, loc) {
 };
 
 var moveState = function(map, state, action) { 
-    console.log('move', state);
     var loc = state.loc; 
     var gridTransition = {l: [loc[0]-1, loc[1]],
                           r: [loc[0]+1, loc[1]],
                           u: [loc[0], loc[1]+1],
                           d: [loc[0], loc[1]-1]};
 
-    console.log('move.5', action);
     var possibleNextLoc = gridTransition[action];
-    console.log('move.5', possibleNextLoc);
     assert.ok(possibleNextLoc != undefined, 'action was not found');
 
     var nextLoc = isAllowedState(map, possibleNextLoc) ? possibleNextLoc : loc;
 
-    console.log('move2', state);
     var dead = state.timeLeft > 0 ? state.dead : true;
-    console.log("update4");
     return update(state, { loc : nextLoc, timeLeft : state.timeLeft - 1, dead : dead});
 }
 
@@ -84,15 +79,11 @@ var makeDonutWorldExtended = function(){
 
 var makeDonutUtility = function (max_digest, rewards) { 
   return function(world, state, action) {
-    console.log("uti", state)
     var getFeature = world.feature;
     var feature = getFeature(state);
 
     if (state.dead)   { return 0; }
-    if (feature.name) { 
-      
-      console.log(rewards[feature.name][max_digest - state.digest],[max_digest - state.digest]);
-      return rewards[feature.name][max_digest - state.digest]; }
+    if (feature.name) { return rewards[feature.name][max_digest - state.digest]; }
     return -0.01;
   };
 };
@@ -106,7 +97,6 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
         
         var action = uniformDraw(world.actions);
         var eu = _expUtility(_agent, _expUtility, state, action, world, delay);    
-        console.log("agent", eu, state);
         factor(alpha * eu);
         return action;
       });      
@@ -114,10 +104,8 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
   
   var expUtility = cache(
     function(_agent, _expUtility, state, action, world, delay){
-      console.log("exp");
       var u = 1.0/(1 + discount*delay) * utility(world, state, action);
       
-      console.log("agent u", u, state, action);
       assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state));
       if (state.dead){
         return u; 
