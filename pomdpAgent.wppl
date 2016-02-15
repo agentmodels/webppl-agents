@@ -895,11 +895,53 @@ ash();
 
 
 
+// Alternative way of writing *makeBlockedPOMDPParams*
+
+// Idea is to define *transition* and *utility* in terms
+// of transition and utility functions for the latent MDP.
+// (so we can reuse that code rather than duplicating it).
+
+// Need to write a wrapper for *makeBlockedGridParams*
+// because that function doesn't take an object as argument:
+
+// var makeGridworldMDP = function(mdpParams){
+//   return makeBlockedGridParams(mdpParams.xLim, mdpParams.yLim, ....
+//                               };
 
 
+// in general, *observeFunction* should be an additional parameter.
 
+// Basic design is that if something has utility 0 in the latentState
+// then we make it a non-terminal. 
 
+var makePOMDPGridworld = function(mdpParamsDefault, utilityValuesTable){
+  // utilityValuesTable == { veg: [0,1,5], timeCost: [-.1,-.2], ... // possible utility values }
 
+  var getMDPParams = function(latentState){
+    //var newTerminals = if something has utility 0 in latentState, 
+    // then remove it from mdpParamsDefault.terminals
+      var out = makeGridworldMDP( update(mdpParams, {utilityTable:latentState, terminals: newTerminals} ) );
+  };
+
+  // would output an erp if transition function is stochastic
+  var transition = function(state,action){
+    var t = getMDPParams(state.latentState).transition;
+    return {manifestState:t(state.manifestState,action), latentState:state.latentState};
+  };
+
+  var utility = function(state,action){
+    var u  = getMDPParams(state.latentState).utility;
+    return u(state.manifestState,action);
+  };
+
+  var observe = function(state,action){
+    return utility(state,action);
+  };
+  
+  var defaultParams = makeGridworldMDP(mdpParamsDefault);
+  return update(defaultParams,{utility:utility, transition:transition, observe:observe});
+};
+1;
 
 
 
