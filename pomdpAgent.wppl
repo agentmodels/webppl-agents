@@ -14,13 +14,18 @@ var range = function(n){
 	return snoc(range(n - 1), n);
     }
 };
-var numToString = function(n){
-    return n.toString();
+// a repackaging of JSON.stringify that you can map onto arrays
+var stringify = function(thing){
+    return JSON.stringify(thing);
+};
+var stringChar = function(string, num) {
+    assert.ok(typeof(string) == 'string' && typeof(num) == 'number', 'args to stringChar');
+    return string.charAt(num);
 };
 // Number and parseInt don't seem to work, so...
 var stringToNum = function(str){
     assert.ok(any(function(digit){return str === digit;}, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']),
-	      'this string is not a digit');
+	      'stringToNum: this string is not a digit');
     if (str === '1') {return 1;}
     else if (str === '2') {return 2;}
     else if (str === '3') {return 3;}
@@ -218,7 +223,6 @@ var pomdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, pa
 // the same ERP without recomputing. 
 
 var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples){
-
   var isERP = function(x){return x.hasOwnProperty('score') & x.hasOwnProperty('sample');}
   var observationEquality = params.observationEquality;
 
@@ -226,7 +230,6 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
   // a state (not a latentState) we need to build a state from the sampled latentState. 
   var updateBelief = dp.cache(
     function(currentBelief, manifestState, observation, params){
-
       return Enumerate( function(){
         var hypotheticalLatentState = sample(currentBelief);
         var hypotheticalState = buildState(manifestState, hypotheticalLatentState);
@@ -241,9 +244,9 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
   // NB: agent outputs an action and an updated belief. This way, *expUtility* can
   // iteratively simulate future choices by passing through the agent's updated belief.
   var agent = dp.cache( 
-    function(manifestState, timeLeft, currentBelief, observation, params){   
+    function(manifestState, timeLeft, currentBelief, observation, params){
+	// console.log(manifestState, " ", observation);
       assert.ok(timeLeft>0  & isERP(currentBelief) & _.isString(manifestState) & params.actions.length>0, 'agent args');
-    
     return Enumerate( function(){
       var updatedBelief = updateBelief(currentBelief, manifestState, observation, params);
       var action = uniformDraw(params.actions);
@@ -254,7 +257,7 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
           assert.ok(getManifestState(state, params) == manifestState, 'check on state');
           return expUtility(state, action, timeLeft, updatedBelief, params);   
         }));
-      
+
       factor(params.alpha * expectedUtility);
       return {action: action, belief:updatedBelief};
     });
@@ -262,9 +265,9 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
   
   
   var expUtility = dp.cache(
-    function(state, action, timeLeft, currentBelief, params){ 
+    function(state, action, timeLeft, currentBelief, params){
       var u = utility(state, action, params);
-      
+
       if (timeLeft - 1 == 0){
         return u;
       } else {                     
@@ -297,7 +300,10 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
         var nextState = transition(state, action, params);
         var nextObservation = observe(nextState, params);
         var nextHistory = push(history, nextState);
-        
+          // for testing:
+	  // var nextHistory = push(history, [action, expUtility(state, action, perceivedTimeLeft, currentBelief, params),
+	  // 				   nextState]);
+	  
         return sampleSequence(nextState, actualTimeLeft-1, perceivedTimeLeft-1, nextHistory, updatedBelief, nextObservation);
       }
     };
@@ -305,7 +311,7 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
     var N = numberRejectionSamples;
     var InferFunction = (N==0) ? Enumerate : function(f){return Rejection(f,N, undefined, true);};
     
-    return InferFunction(function(){    
+    return InferFunction(function(){
       var startHistory = [startState];
       var observation = observe(startState, params);
       var latentStatePrior = params.latentStatePrior;
@@ -313,7 +319,7 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
       
     });                 
   };
-  
+    
   return simulate(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples);
 };
 
@@ -367,7 +373,7 @@ var getBanditParams = function(uA, priorB, alpha){
   };
 
   // could use *_.isEqual* for deep object equality
-  var observationEquality = function(obs1,obs2){return JSON.stringify(obs1)===JSON.stringify(obs2);};
+  var observationEquality = function(obs1,obs2){return stringify(obs1)===stringify(obs2);};
 
   var getManifestState = function(state){return state.manifestState;};
   
@@ -484,6 +490,7 @@ var testBandits = function(pomdpSimulateVersion){
   
 };
 
+// ----------------------------
 
 // function for making parameters for a k-armed bandit. numArms is the number of arms.
 // arms will be labelled '0' through 'k - 1'. u0 is the utility of the first arm (assumed
@@ -500,7 +507,7 @@ var getKArmBanditParams = function(numArms, u0, priorArms, alpha) {
 	        latentState: sample(latentStatePriorERP)};
     };
 
-    var actions = map(numToString, range(numArms - 1));
+    var actions = map(stringify, range(numArms - 1));
     var states = cons('start', actions);
 
     var transition = function(state, action){
@@ -523,7 +530,7 @@ var getKArmBanditParams = function(numArms, u0, priorArms, alpha) {
 	    'noObservation' : state.latentState[manifestState];
     };
 
-    var observationEquality = function(obs1,obs2){return JSON.stringify(obs1)===JSON.stringify(obs2);};
+    var observationEquality = function(obs1,obs2){return stringify(obs1)===stringify(obs2);};
 
     var getManifestState = function(state){return state.manifestState;};
 
@@ -694,7 +701,9 @@ var testKArmBandits = function(pomdpSimulateVersion){
 
 };
 
-// function that makes parameters for a gridworld pomdp where the latent state represents uncertainty about
+// ----------------------
+
+// function that makes parameters for a gridworld pomdp where the latent state represents 
 // which grid positions are terminal, and the manifest state is the stringified grid position the agent is in.
 // a grid position is an array containing two numbers, the x- and y- coordinate of the position.
 // The agent knows the utility of all grid positions that might be terminal,
@@ -716,7 +725,7 @@ var testKArmBandits = function(pomdpSimulateVersion){
 // utilityFunction is a function from grid positions to things that could be utilities. For grid positions that
 // could possibly be terminal, utilityFunction returns the utility of that grid position if it were terminal.
 // for grid positions that could not possibly be terminal, utilityFunction returns a constant time cost.
-// if a state could possibly be terminal but is not, its utility is the time cost.
+// if a state could possibly be terminal but is not, its utility will be the time cost.
 
 // transitionNoiseProb is the probability of an action being changed to an action in the orthogonal direction.
 
@@ -736,24 +745,30 @@ var makeBlockedGridPOMDPParams = function(xLim, yLim, openGridPositions, startGr
     assert.ok(typeof(alpha) == 'number',
 	      'alpha wrong in makeBlockedGridPOMDPParams arguments');
 
+
     var startStatePrior = function(){
-	return {manifestState: JSON.stringify(startGridPosition),
-		latentState: map(JSON.stringify, terminalPrior())};
+	return {manifestState: stringify(startGridPosition),
+		latentState: map(stringify, terminalPrior())};
     };
 
-    var latentStatePriorERP = Enumerate(function(){return map(JSON.stringify, terminalPrior());});
+    var latentStatePriorERP = Enumerate(function(){return map(stringify, terminalPrior());});
 
     var actions = ['l', 'r', 'u', 'd'];
 
     // only works for states that are not postTerminal
     var manifestStateToGridPosition = function(state) {
-	var x = stringToNum(state.charAt(1));
-	var y = stringToNum(state.charAt(3));
+	assert.ok(typeof(state) == 'string', 'manStateToGridPos arg');
+	var x = stringToNum(stringChar(state, 1));
+	var y = stringToNum(stringChar(state, 3));
 	return [x,y];
     };
 
     // only works for states that are not postTerminal
     var isTerminal = function(state) {
+	assert.ok(typeof(state.manifestState) == 'string', 'isTerminal manifest state not string');
+	assert.ok(typeof(state.latentState[0]) == 'string', 'isTerminal latent state not string array');
+	// console.log('isTerminal', state.manifestState);
+	// console.log('isTerminal', state.latentState[0]);
 	var gridPos = manifestStateToGridPosition(state.manifestState);
 	var terminals = map(manifestStateToGridPosition, state.latentState);
 	return stateInArray(gridPos, terminals);
@@ -764,6 +779,8 @@ var makeBlockedGridPOMDPParams = function(xLim, yLim, openGridPositions, startGr
     };
     
     var utility = function(state, action) {
+	assert.ok(typeof(state.manifestState) == 'string', 'utility manifest state not string');
+	// console.log('utility', state.manifestState);
 	if (isPostTerminal(state)) {
 	    return 0;
 	} else if (isTerminal(state)) {
@@ -780,9 +797,11 @@ var makeBlockedGridPOMDPParams = function(xLim, yLim, openGridPositions, startGr
 	};
 
 	return function(state, action) {
+	    assert.ok(typeof(state.manifestState) == 'string', 'det transition manifest state arg not string');
+	    assert.ok(typeof(state.latentState[0]) == 'string', 'det transition latent state arg not array of strings');
 	    if (isPostTerminal(state)) {return state;}
 	    else {
-		var gridPos = manifestStateToGridPosition(state);
+		var gridPos = manifestStateToGridPosition(state.manifestState);
 		assert.ok(isAllowedGridPos(gridPos),
 			  'tried to transition but current grid position is not allowed');
 		assert.ok(indexOf(action, actions) != undefined,
@@ -797,7 +816,7 @@ var makeBlockedGridPOMDPParams = function(xLim, yLim, openGridPositions, startGr
 		    return buildState('dead', state.latentState);
 		} else {
 		    var possibleNextGridPos = gridTransition[action];
-		    return isAllowedGridPos(possibleNextGridPos) ? buildState(JSON.stringify(possibleNextGridPos),
+		    return isAllowedGridPos(possibleNextGridPos) ? buildState(stringify(possibleNextGridPos),
 									      state.latentState) : state;
 		}
 	    }
@@ -810,11 +829,17 @@ var makeBlockedGridPOMDPParams = function(xLim, yLim, openGridPositions, startGr
 	var noiseActionTable = {u: ['l','r'], d: ['l','r'], l: ['u','d'], r: ['u','d'] };
 
 	return function(state, action) {
+	    assert.ok(typeof(state.manifestState) == 'string', 'noisy transition manifest state arg not string');
+	    assert.ok(typeof(state.latentState[0]) == 'string', 'noisy transition latent state arg not array of strings');
 	    return flip(transitionNoiseProb) ? detTransition(state, uniformDraw(noiseActionTable[action])) : detTransition(state, action);
 	};
     };
     
     var transition = function(state, action) {
+	assert.ok(typeof(state.manifestState) == 'string', 'transition manifest state arg not string');
+	assert.ok(typeof(state.latentState[0]) == 'string', 'transition latent state arg not array of strings');
+	// console.log('transition', state.manifestState);
+	// console.log('transition', state.latentState[0]);
 	if (transitionNoiseProb === 0) {
 	    return makeDetGridTransition(xLim, yLim, openGridPositions, state.latentState)(state, action);
 	} else {
@@ -827,7 +852,7 @@ var makeBlockedGridPOMDPParams = function(xLim, yLim, openGridPositions, startGr
 	return utility(state, 'l');
     };
 
-    var observationEquality = function(obs1,obs2){return JSON.stringify(obs1)===JSON.stringify(obs2);};
+    var observationEquality = function(obs1,obs2){return stringify(obs1)===stringify(obs2);};
 
     var getManifestState = function(state){return state.manifestState;};
 
@@ -865,7 +890,7 @@ var makeSmallDonutParams = function(utilityTable, alpha, transitionNoiseProb, te
                                      '[4,2]': 'noodle' };
 
     var gridPosToRestaurant = function(gridPos) {
-	return gridPosToRestaurantTable[JSON.stringify(gridPos)] ? gridPosToRestaurantTable[JSON.stringify(gridPos)] : false;
+	return gridPosToRestaurantTable[stringify(gridPos)] ? gridPosToRestaurantTable[stringify(gridPos)] : false;
     };
 
     var utilityFunction = function(gridPos) {
@@ -879,6 +904,153 @@ var makeSmallDonutParams = function(utilityTable, alpha, transitionNoiseProb, te
     return makeBlockedGridPOMDPParams(xLim, yLim, openGridPositions, startGridPosition, terminalPrior,
 				      utilityFunction, transitionNoiseProb, alpha);
 };
+
+
+// 2x2 grid, possible terminals are [0,1] and [1,0]
+var makeMiniGridParams = function(utilityFunction, alpha, transitionNoiseProb, terminalPrior) {
+    var xLim = 2;
+    var yLim = 2;
+    var openGridPositions = [[0,0], [0,1], [1,0], [1,1]];
+    var startGridPosition = [0,0];
+    return makeBlockedGridPOMDPParams(xLim, yLim, openGridPositions, startGridPosition, terminalPrior,
+				      utilityFunction, transitionNoiseProb, alpha);
+};
+
+var testGridWorlds = function(pomdpSimulateVersion) {
+    // helper function
+    var historyToGridPoses = function(history){
+	return map( function(state){return state.manifestState;}, history.slice(1,history.length) );
+    };
+
+    var runMiniTest = function(startLatentState, utilityFunction, terminalPrior, numberRejectionSamples) {
+	var perceivedTotalTime = 5;
+	var actualTotalTime = 5;
+	var alpha = 50;
+	var params = makeMiniGridParams(utilityFunction, alpha, 0, terminalPrior);
+	var startManifestState = '[0,0]';
+	var startState = buildState(startManifestState, startLatentState);
+	var out = pomdpSimulateVersion(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples);
+	return historyToGridPoses(out.MAP().val);
+    };
+
+    var numberRejectionSamples = 0;
+
+    var miniUtilityFunction = function(gridPos) {
+	if (stringify(gridPos) == stringify([0,1])) {
+	    return 200;
+	} else if (stringify(gridPos) == stringify([1,0])) {
+	    return 1;
+	} else {
+	    return -0.1;
+	}
+    };
+
+    var miniTerminalUnevenPrior = function(p){return function(){
+	if (flip(p)) {
+	    return [[0,1],[1,0]];
+	} else {
+	    return [[1,0]];
+	}};
+    };
+
+    var miniTerminalEvenPrior = function(p) {return function(){
+	if (flip(p)) {
+	    return [[0,1]];
+	} else {
+	    return [[1,0]];
+	}};
+    };
+    
+    // with miniTerminalEvenPrior, just go to the most likely terminal, since if you're wrong you aren't stuck
+    var startLatentState1 = ["[0,1]"];
+    assert.ok(arraysEqual(['[0,1]', 'dead', 'dead', 'dead'], runMiniTest(startLatentState1, miniUtilityFunction,
+									  miniTerminalEvenPrior(0.7), numberRejectionSamples)),
+	      'testMiniGrid1');
+    var startLatentState2 = ["[1,0]"];
+    assert.ok(arraysEqual(["[1,0]", "dead", "dead", "dead"], runMiniTest(startLatentState2, miniUtilityFunction,
+									  miniTerminalEvenPrior(0.3), numberRejectionSamples)),
+	      'testMiniGrid2');
+
+    // with miniTerminalUnevenPrior, go up even if it's unlikely to be terminal, since if you go right you're definitely stuck
+    var startLatentState3 = ["[0,1]", "[1,0]"];
+    assert.ok(arraysEqual(["[0,1]", "dead", "dead", "dead"], runMiniTest(startLatentState3, miniUtilityFunction,
+									  miniTerminalUnevenPrior(0.1), numberRejectionSamples)),
+	      'testMiniGrid3');
+
+    // make sure that the agent makes the same first decision regardless of the latent state
+    var startLatentState4 = ["[1,0]"];
+    assert.ok(arraysEqual(runMiniTest(startLatentState3, miniUtilityFunction, miniTerminalUnevenPrior(0.1), numberRejectionSamples)[0],
+			  runMiniTest(startLatentState4, miniUtilityFunction, miniTerminalUnevenPrior(0.1), numberRejectionSamples)[0]),
+	      'testMiniGrid4');
+
+    console.log('\npassed all minigrid tests');
+
+    var runDonutTest = function(actualTotalTime, startManifestState, startLatentState, utilityTable, terminalPrior) {
+	var perceivedTotalTime = 7;
+	var alpha = 50;
+	var params = makeSmallDonutParams(utilityTable, alpha, 0, terminalPrior);
+	var startState = buildState(startManifestState, startLatentState);
+	// console.log(stringify(startState));
+	var out = pomdpSimulateVersion(startState, actualTotalTime, perceivedTotalTime, params, numberRejectionSamples);
+	return historyToGridPoses(out.MAP().val);
+    };
+
+    var restaurantToGridPosTable = { 'donutSouth': [0,0],
+				     'donutNorth': [1,4], 
+                                     'veg': [3,6],
+                                     'noodle': [4,2] };
+    
+    var restaurantsToGridPoses = function(restaurantArray) {
+	return map(function(restaurant){return restaurantToGridPosTable[restaurant];}, restaurantArray);
+    };
+
+    var noodleOpenPrior = function() {
+	if (flip()) {
+	    return restaurantsToGridPoses(['donutSouth', 'donutNorth', 'veg', 'noodle']);
+	} else {
+	    return restaurantsToGridPoses(['donutSouth', 'donutNorth', 'veg']);
+	}
+    };
+    
+    var noodleLovingUtility = {donutSouth: 1,
+			       donutNorth: 1,
+			       veg: 2,
+			       noodle: 3,
+			       timeCost: -0.05};
+
+    // if you like noodles, check noodle place out, if it's closed, go to veg
+    var startLatentStateD1 = map(stringify, restaurantsToGridPoses(['donutSouth', 'donutNorth', 'veg']));
+    assert.ok(arraysEqual(runDonutTest(4, '[4,3]', startLatentStateD1, noodleLovingUtility, noodleOpenPrior),
+			  ['[4,2]','[4,3]','[4,4]']),
+	      'testDonut1');
+
+    var allOpenPrior = function(){
+	return restaurantsToGridPoses(['donutSouth', 'donutNorth', 'veg', 'noodle']);
+    };
+
+    var donutClosedPrior = function(){
+	return restaurantsToGridPoses(['veg', 'noodle']);
+    };
+    
+    // if you don't like donuts, it doesn't matter if they're open or closed
+    var startLatentStateD2 = map(stringify, restaurantsToGridPoses(['donutSouth', 'donutNorth', 'veg', 'noodle']));
+    var startLatentStateD3 = map(stringify, restaurantsToGridPoses(['veg', 'noodle']));
+    assert.ok(arraysEqual(runDonutTest(4, '[4,3]', startLatentStateD2, noodleLovingUtility, allOpenPrior),
+			  runDonutTest(4, '[4,3]', startLatentStateD3, noodleLovingUtility, donutClosedPrior)),
+	      'testDonut2');
+
+    console.log('\npassed all donut tests');
+
+    // todo: time things
+
+};
+
+console.log('testing gridworlds');
+testGridWorlds(pomdpSimulate);
+console.log('\n-------------\n Done with pomdpSimulate. Now doing updatePOMDPSimulate \n------------');
+testGridWorlds(updatePOMDPSimulate);
+
+ash();
 
 console.log('testing 2 armed bandits');
 testBandits(pomdpSimulate);
