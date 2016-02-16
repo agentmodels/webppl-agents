@@ -1,19 +1,19 @@
-var inGrid = function(map, loc) {
-  return (loc[0] >= 0 && loc[0] < map.xLim &&
-          loc[1] >= 0 && loc[1] < map.yLim);
+var inGrid = function(gridMap, loc) {
+  return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
+          loc[1] >= 0 && loc[1] < gridMap.yLim);
 }
 
-var isBlockedLoc = function(map, loc) {
-  var getFeature = map.feature;
+var isBlockedLoc = function(gridMap, loc) {
+  var getFeature = gridMap.feature;
   var feature = getFeature({ loc : loc});
   return feature === '#';
 }
 
-var isAllowedState = function(map, loc) {
-  return (inGrid(map, loc)) && !isBlockedLoc(map, loc);
+var isAllowedState = function(gridMap, loc) {
+  return (inGrid(gridMap, loc)) && !isBlockedLoc(gridMap, loc);
 };
 
-var moveState = function(map, state, action) { 
+var moveState = function(gridMap, state, action) { 
     var loc = state.loc; 
     var gridTransition = {l: [loc[0]-1, loc[1]],
                           r: [loc[0]+1, loc[1]],
@@ -23,15 +23,15 @@ var moveState = function(map, state, action) {
     var possibleNextLoc = gridTransition[action];
     assert.ok(possibleNextLoc != undefined, 'action was not found');
 
-    var nextLoc = isAllowedState(map, possibleNextLoc) ? possibleNextLoc : loc;
+    var nextLoc = isAllowedState(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
 
     var dead = state.timeLeft > 0 ? state.dead : true;
     return update(state, { loc : nextLoc, timeLeft : state.timeLeft - 1, dead : dead});
 }
 
-var makeGridTransition = function(map) {
+var makeGridTransition = function(gridMap) {
   return function(state,action){    
-    var getFeature = map.feature;
+    var getFeature = gridMap.feature;
 
     if ( getFeature(state).name ) { // there's a restaurant here
       var state2 =  update(state, { digest : state.digest -1}); 
@@ -40,11 +40,11 @@ var makeGridTransition = function(map) {
       }
       return state2;
     }
-    return moveState(map, state, action);
+    return moveState(gridMap, state, action);
   };
 };
 
-var makeMap = function(rfeatures)  { 
+var makeGridMap = function(rfeatures)  { 
   var features = rfeatures.reverse();
   return { 
     features : features,
@@ -70,7 +70,7 @@ var makeDonutWorldExtended = function(options){
                   [ X ,  _ ,  _ ,  _ ,  _ , '#'],
                   ['#', '#',  _ , '#', '#', '#']];
 
-  var map = makeMap(features); 
+  var gridMap = makeGridMap(features); 
 
   var transition = makeGridTransition(gridMap);
   var actions = ['l', 'r', 'u', 'd'];
@@ -188,13 +188,13 @@ var start = {
 var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
 var donutUtility = makeDonutUtility(4, {
     'Donut' : [1, 0, 0, 0],
-    'Veg'   : [0, 0, 0, 3],
+    'Veg'   : [0, 0, 0, 3.5],
     'Noodle': [0, 0, 0, 0]});
 
 var agent = makeHyperbolicDiscounter(donutUtility, 500, 1, 'sophisticated');
-mdpSim(start, world, agent, 14)
+mdpSim(start, world, agent, 14);
 
 
 var world2 = makeDonutWorldExtended({ bottomLeftNook : { name : 'Donut'}  });
 var agent2 = makeHyperbolicDiscounter(donutUtility, 500, 1, 'naive');
-mdpSim(start, world2, agent2, 14)
+mdpSim(start, world2, agent2, 14);
