@@ -72,9 +72,29 @@ var makeDonutWorldExtended = function(options){
 
   var map = makeMap(features); 
 
-  return update(map,
-      { transition : makeGridTransition(map), 
-        actions    : ['l', 'r', 'u', 'd'],
+  var transition = makeGridTransition(gridMap);
+  var actions = ['l', 'r', 'u', 'd'];
+
+  var stateToActions = function (state) { 
+    var timeLessState = JSON.stringify(update(state, {timeLeft : "", digest : ""}));
+
+    var possibleActions = filter(function (action) { 
+      var newState = transition(state, action);
+      var timeLessNewState = JSON.stringify(update(newState, {timeLeft : "", digest : "" }));
+      return timeLessState !== timeLessNewState; 
+    }, actions);
+
+    if (possibleActions.length > 0) {
+      return possibleActions;
+    } else { 
+      return [actions[0]];
+    }
+  };
+
+  return update(gridMap,
+      { transition : transition, 
+        actions    : actions,
+        stateToActions    : stateToActions,
       });
 };
 
@@ -93,10 +113,11 @@ var makeDonutUtility = function (max_digest, rewards) {
 var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticatedOrNaive) {
   var agent = cache( 
     function(_agent, _expUtility, state, world, delay){
+      var stateToActions = world.stateToActions;
      
       return Enumerate(function(){
-        
-        var action = uniformDraw(world.actions);
+        var possibleActions =stateToActions(state);
+        var action = uniformDraw(possibleActions);
         var eu = _expUtility(_agent, _expUtility, state, action, world, delay);    
         factor(alpha * eu);
         return action;
