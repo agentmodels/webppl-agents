@@ -13,6 +13,11 @@ var isAllowedState = function(gridMap, loc) {
   return (inGrid(gridMap, loc)) && !isBlockedLoc(gridMap, loc);
 };
 
+var advanceStateTime = function(state) { 
+  var dead = state.timeLeft > 0 ? state.dead : true;
+  return update(state, { timeLeft : state.timeLeft - 1, dead : dead});
+}
+
 var moveState = function(gridMap, state, action) { 
     var loc = state.loc; 
     var gridTransition = {l: [loc[0]-1, loc[1]],
@@ -24,23 +29,22 @@ var moveState = function(gridMap, state, action) {
     assert.ok(possibleNextLoc != undefined, 'action was not found');
 
     var nextLoc = isAllowedState(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
-
-    var dead = state.timeLeft > 0 ? state.dead : true;
-    return update(state, { loc : nextLoc, timeLeft : state.timeLeft - 1, dead : dead});
+    return update(state, { loc : nextLoc });
 }
 
 var makeGridTransition = function(gridMap) {
   return function(state,action){    
     var getFeature = gridMap.feature;
+    var state2 = advanceStateTime(state)
 
-    if ( getFeature(state).name ) { // there's a restaurant here
-      var state2 =  update(state, { digest : state.digest -1}); 
-      if (state2.digest <= 0) {
-        return update(state2, { dead : true });
+    if ( getFeature(state2).name ) { // there's a restaurant here
+      var state3 =  update(state2, { digest : state2.digest -1}); 
+      if (state3.digest <= 0) {
+        return update(state3, { dead : true });
       }
-      return state2;
+      return state3;
     }
-    return moveState(gridMap, state, action);
+    return moveState(gridMap, state2, action);
   };
 };
 
@@ -111,24 +115,27 @@ var makeDonutUtility = function (max_digest, rewards) {
 
 
 var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticatedOrNaive) {
-  var agent = cache( 
-    function(_agent, _expUtility, state, world, delay){
+
+  var agent = dp.cache( 
+    function(state, world, delay){
       var stateToActions = world.stateToActions;
      
       return Enumerate(function(){
-        var possibleActions =stateToActions(state);
+        var possibleActions = stateToActions(state);
         var action = uniformDraw(possibleActions);
-        var eu = _expUtility(_agent, _expUtility, state, action, world, delay);    
+        var eu = expUtility(state, action, world, delay);    
         factor(alpha * eu);
         return action;
       });      
     });
+
   
-  var expUtility = cache(
-    function(_agent, _expUtility, state, action, world, delay){
+  var expUtility = dp.cache(
+    function(state, action, world, delay){
       var u = 1.0/(1 + discount*delay) * utility(world, state, action);
+      console.log("agent");
       
-      assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state));
+      assert.ok(u === u,"utility not valid " + u /*+ " " + JSON.stringify(state)*/);
       if (state.dead){
         return u; 
       } else {                     
@@ -136,8 +143,8 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
           var transition = world.transition;
           var nextState = transition(state, action); 
           var perceivedDelay = { naive : delay + 1, sophisticated : 0}[sophisticatedOrNaive]; 
-          var nextAction = sample(_agent(_agent, _expUtility, nextState, world, perceivedDelay));
-          return _expUtility(_agent, _expUtility, nextState, nextAction, world, delay+1);  
+          var nextAction = sample(agent(nextState, world, perceivedDelay));
+          return expUtility(nextState, nextAction, world, delay+1);  
         }));
       }                      
     });
@@ -159,7 +166,7 @@ var simulate = function(state, world, agent, actualTimeLeft, statesOrActions) {
     if (actualTimeLeft==0 | state.dead){
       return [];
     } else {
-      var action = agentAction(agentAction, expUtility, state, world, 0);
+      var action = agentAction(state, world, 0);
       var nextState = transition(state,sample(action)); 
       var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
       return [ out ].concat( simulate(nextState, world, agent, actualTimeLeft-1, statesOrActions));
@@ -170,9 +177,9 @@ var mdpSim = function(start, world, agent, time) {
   var agentAgent = agent.agent;
   var agentExp = agent.expUtility;
 
-  var trajectory = simulate(start, world, agent, 14, 'states');
+  var trajectory = simulate(start, world, agent, time, 'states');
   var exp = map(function(state) {
-    return [state.loc, map(function (a) { return  agentExp(agentAgent, agentExp, state, a, world, 0); }, world.actions)];
+    return [state.loc, map(function (a) { return  agentExp(state, a, world, 0); }, world.actions)];
   }, trajectory);
 
   GridWorld.draw(world, {trajectory : trajectory, expUtilities : exp });
@@ -181,20 +188,29 @@ var mdpSim = function(start, world, agent, time) {
 var start = { 
   loc : [2,0],
   dead : false,
-  timeLeft : 14,
+  timeLeft : 9,
   digest : 4
 };
 
-var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
 var donutUtility = makeDonutUtility(4, {
     'Donut' : [1, 0, 0, 0],
     'Veg'   : [0, 0, 0, 3.5],
     'Noodle': [0, 0, 0, 0]});
 
+var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
+/*
 var agent = makeHyperbolicDiscounter(donutUtility, 500, 1, 'sophisticated');
-mdpSim(start, world, agent, 14);
-
+var t1 = timeit( function () { 
+  var f = agent.agent;
+  var trajectory = f(start, world, 0);
+});
+*/
 
 var world2 = makeDonutWorldExtended({ bottomLeftNook : { name : 'Donut'}  });
 var agent2 = makeHyperbolicDiscounter(donutUtility, 500, 1, 'naive');
-mdpSim(start, world2, agent2, 14);
+var t2 = timeit( function () { 
+  var f = agent2.agent;
+  var trajectory = f(start, world2, 0);
+});
+
+t2
