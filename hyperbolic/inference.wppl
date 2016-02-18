@@ -25,7 +25,7 @@ var posterior = Enumerate(function () {
     var state = stateAction[0];
     var action = stateAction[1];
 
-    factor(agentAction(state, 0).score([], action)) ; 
+    factor(agentAction(state).score([], action)) ; 
   }, observed);
 
   return {

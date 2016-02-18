@@ -14,7 +14,7 @@ var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
 var agent = makeHyperbolicDiscounter(donutUtility, 500, 1, 'sophisticated', world);
 var sophisticated = function () { 
   var f = agent.agent;
-  var trajectory = f(start, 0);
+  var trajectory = f(start);
 };
 
 var world2 = makeDonutWorldExtended({ bottomLeftNook : { name : 'Donut'}  });
