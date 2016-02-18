@@ -1,0 +1,28 @@
+var start = { 
+  loc : [2,0],
+  dead : false,
+  timeLeft : 9,
+  digest : 4
+};
+
+var donutUtility = makeDonutUtility(4, {
+    'Donut' : [1, 0, 0, 0],
+    'Veg'   : [0, 0, 0, 3.5],
+    'Noodle': [0, 0, 0, 0]});
+
+var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
+var agent = makeHyperbolicDiscounter(donutUtility, 500, 1, 'sophisticated', world);
+var sophisticated = function () { 
+  var f = agent.agent;
+  var trajectory = f(start, 0);
+};
+
+var world2 = makeDonutWorldExtended({ bottomLeftNook : { name : 'Donut'}  });
+var agent2 = makeHyperbolicDiscounter(donutUtility, 500, 1, 'naive', world2);
+var naive = function () { 
+  var f = agent2.agent;
+  var r = simulate(start, world2, agent2, 9, 'states');
+};
+
+print("sophisticated " + timeit(sophisticated).runtimeInMilliseconds);
+print("naive         " + timeit(naive).runtimeInMilliseconds);
