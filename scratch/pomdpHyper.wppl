@@ -1,3 +1,120 @@
+var inGrid = function(gridMap, loc) {
+  return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
+          loc[1] >= 0 && loc[1] < gridMap.yLim);
+}
+
+var isBlockedLoc = function(gridMap, loc) {
+  var getFeature = gridMap.feature;
+  var feature = getFeature({ loc : loc});
+  return feature === '#';
+}
+
+var isAllowedState = function(gridMap, loc) {
+  return (inGrid(gridMap, loc)) && !isBlockedLoc(gridMap, loc);
+};
+
+var advanceStateTime = function(state) { 
+  var dead = state.timeLeft > 0 ? state.dead : true;
+  return update(state, { timeLeft : state.timeLeft - 1, dead : dead});
+}
+
+var moveState = function(gridMap, state, action) { 
+    var loc = state.loc; 
+    var gridTransition = {l: [loc[0]-1, loc[1]],
+                          r: [loc[0]+1, loc[1]],
+                          u: [loc[0], loc[1]+1],
+                          d: [loc[0], loc[1]-1]};
+
+    var possibleNextLoc = gridTransition[action];
+    assert.ok(possibleNextLoc != undefined, 'action was not found');
+
+    var nextLoc = isAllowedState(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
+    return update(state, { loc : nextLoc });
+}
+
+var makeGridTransition = function(gridMap) {
+  return function(state,action){    
+    var getFeature = gridMap.feature;
+    var state2 = advanceStateTime(state)
+
+    if ( getFeature(state2).name ) { // there's a restaurant here
+      var state3 =  update(state2, { digest : state2.digest -1}); 
+      if (state3.digest <= 0) {
+        return update(state3, { dead : true });
+      }
+      return state3;
+    }
+    return moveState(gridMap, state2, action);
+  };
+};
+
+var makeGridMap = function(rfeatures)  { 
+  var features = rfeatures.reverse();
+  return { 
+    features : features,
+    xLim : features[0].length,
+    yLim : features.length,
+    feature : function (state) { 
+      return features[state.loc[1]][state.loc[0]];
+    }
+  };
+};
+
+var makeDonutWorldExtended = function(options){
+  var _ = ' '; 
+  var D = { name : 'Donut'} ;
+  var V = { name : 'Veg'} ;
+  var N = { name : 'Noodle'} ;
+
+  var X = options.bottomLeftNook;
+  var features = [['#', '#', '#',  V , '#', '#'],
+                  ['#', '#',  _ ,  _ ,  _ , '#'],  
+                  ['#', D  ,  _ , '#',  _ ,  N ],
+                  ['#', '#',  _ , '#',  _ , '#'],
+                  [ X ,  _ ,  _ ,  _ ,  _ , '#'],
+                  ['#', '#',  _ , '#', '#', '#']];
+
+  var gridMap = makeGridMap(features); 
+
+  var transition = makeGridTransition(gridMap);
+  var actions = ['l', 'r', 'u', 'd'];
+
+  var stateToActions = function (state) { 
+    var timeLessState = JSON.stringify(update(state, {timeLeft : "", digest : ""}));
+
+    var possibleActions = filter(function (action) { 
+      var newState = transition(state, action);
+      var timeLessNewState = JSON.stringify(update(newState, {timeLeft : "", digest : "" }));
+      return timeLessState !== timeLessNewState; 
+    }, actions);
+
+    if (possibleActions.length > 0) {
+      return possibleActions;
+    } else { 
+      return [actions[0]];
+    }
+  };
+
+  return update(gridMap,
+      { transition : transition, 
+        actions    : actions,
+        stateToActions    : stateToActions,
+      });
+};
+
+var makeDonutUtility = function (max_digest, rewards) { 
+  return function(world, state, action) {
+    var getFeature = world.feature;
+    var feature = getFeature(state);
+
+    if (state.dead)   { return 0; }
+    if (feature.name) { return rewards[feature.name][max_digest - state.digest]; }
+    return -0.01;
+  };
+};
+
+
+
 
 
 
@@ -77,7 +194,6 @@ var printOut = function( out ){
   console.log('trajectory', map( function(state){return state.loc;}, out.trajectory) );
   console.log('expUtilities',  out.exp );
 };
-
 
 
 var makeBandits = function(numArms, noiseProb){
