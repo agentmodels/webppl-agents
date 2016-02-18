@@ -26,10 +26,10 @@ assert.ok(trajectory[3].loc[0] == 2, "naive didn't take left side");
 
 var state = update(start, { loc : [2,1], timeLeft : 12 });
 var naiveExp = agent2.expUtility;
-var naive22utilities = map(function (a) { return  naiveExp(state, a, 0); }, world.actions);
+var naive22utilities = map(function (a) { return  naiveExp(state, a); }, world.actions);
 
 var sophExp = agent.expUtility;
-var soph22utilities = map(function (a) { return  sophExp(state, a, 0); }, world.actions);
+var soph22utilities = map(function (a) { return  sophExp(state, a); }, world.actions);
     
 assert.ok(
     naive22utilities[0] != soph22utilities[0] &&
