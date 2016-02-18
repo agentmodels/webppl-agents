@@ -19,12 +19,9 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
   
   var expUtility = dp.cache(
     function(state, action, world, delay){
-      console.log('state.timeLeft, delay', state.timeLeft, delay, utility(world, state, action));
       var u = 1.0/(1 + discount*delay) * utility(world, state, action);
-      console.log("agent");
-
       assert.ok(u === u,"utility not valid " + u /*+ " " + JSON.stringify(state)*/);
-      if (state.dead || state.timeLeft == 0){
+      if (state.dead || state.timeLeft - 1 == 0){
         return u; 
       } else {                     
         return u + expectation( Enumerate(function(){
@@ -64,15 +61,22 @@ var simulate = function(state, world, agent, actualTimeLeft, statesOrActions) {
 var mdpSim = function(start, world, agent, time) { 
   var agentAgent = agent.agent;
   var agentExp = agent.expUtility;
+  var stateToActions = world.stateToActions;
 
   var trajectory = simulate(start, world, agent, time, 'states');
-  console.log('got past trajc');
   var exp = map(function(state) {
-    return [state.loc, map(function (a) { return  agentExp(state, a, world, 0); }, world.actions)];
+    return [state.loc,
+            map(function(a){return agentExp(state, a, world, 0);}, stateToActions(state)) ];
   }, trajectory);
-  return {trajectory: trajectory, exp: {}};
+  return {trajectory: trajectory, exp: exp};
+
   //GridWorld.draw(world, {trajectory : trajectory, expUtilities : exp });
-}
+};
+
+var printOut = function( out ){
+  console.log('trajectory', map( function(state){return state.loc;}, out.trajectory) );
+  console.log('expUtilities',  out.exp );
+};
 
 
 
@@ -93,26 +97,89 @@ var makeBandits = function(numArms, noiseProb){
   return {stateToActions: stateToActions, transition:transition};
 };
 
-var numArms = 2;
-var noiseProb = 0;
-var world = makeBandits(numArms, noiseProb);
 
-var utility = function(world, state, action){
-  return {'start':0, 0:1, 1:5}[state.loc];
+var makeLine = function(noiseProb){
+  var detTransition = function(state,action){
+    var newLoc = (state.loc == 0 & action==-1) ? 0 : state.loc + action;
+    return update(state,{loc:newLoc, timeLeft:state.timeLeft-1});
+  };
+
+  var stochasticTransition = function(state,action){
+    return flip(noiseProb) ? detTransition(state,-1) : detTransition(state,action);
+  };
+
+  var transition = noiseProb > 0 ? stochasticTransition : detTransition;
+  
+  var stateToActions = function(state){return  [-1,1];};
+  
+  return {stateToActions: stateToActions, transition: transition};
 };
 
-var alpha = 100;
-var discount = 0;
-var agent = makeHyperbolicDiscounter(utility, alpha, discount, 'sophisticated');
 
-var start = { 
-  loc : 'start',
-  dead : false,
-  timeLeft : 4
+var testLine = function(){
+  var noiseProb = 0;
+  var world = makeLine(noiseProb);
+  
+  var utility = function(world, state, action){
+    if (state.loc==1){return -4;}
+    return state.loc;
+  };
+  
+  var alpha = 100;
+  var perceivedTotalTime = 4;
+  var actualTotalTime = 4;  
+
+  var start = { 
+    loc : 0,
+    dead : false,
+    timeLeft : perceivedTotalTime
+  };
+ 
+  map( function(naiveOrSophisticated){
+
+    var runSim = function(discount, naiveOr){
+      var agent = makeHyperbolicDiscounter(utility, alpha, discount, 
+                                           naiveOrSophisticated);
+      return mdpSim(start, world, agent, actualTotalTime);
+    };
+    
+    assert.ok( runSim(0).trajectory[1].loc == 1 );
+    assert.ok( runSim(.1).trajectory[1].loc == 1 );
+    assert.ok( runSim(1).trajectory[1].loc == 0 );
+    assert.ok( runSim(2).trajectory[1].loc == 0 );
+  }, ['naive', 'sophisticated']);
+  
+  console.log('Passed testLine');
+  //printOut( mdpSim(start, world, agent, actualTotalTime) );
 };
 
+testLine();
+ash();
 
-console.log( mdpSim(start, world, agent, start.timeLeft) );
+var runBandits = function(){
+  var numArms = 3;
+  var noiseProb = 0;
+  var world = makeBandits(numArms, noiseProb);
+  
+  var utility = function(world, state, action){
+    return {'start':0, 0:1, 1:5}[state.loc];
+  };
+  
+  var alpha = 100;
+  var discount = 0;
+  var agent = makeHyperbolicDiscounter(utility, alpha, discount, 'sophisticated');
+  var perceivedTotalTime = 4;
+  var actualTotalTime = 4;  
+
+  var start = { 
+    loc : 'start',
+    dead : false,
+    timeLeft : perceivedTotalTime
+  };
+  
+  printOut( mdpSim(start, world, agent, actualTotalTime) );
+};
+
 ash();
 // var t1 = timeit( function () { 
 //   var f = agent.agent;
