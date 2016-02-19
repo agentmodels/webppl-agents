@@ -136,7 +136,6 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
   var _expUtility = dp.cache(
     function(state, action, delay){
       var u = 1.0/(1 + discount*delay) * utility(world, state, action);
-      console.log(discount, delay)
       
       assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state));
       if (state.dead){

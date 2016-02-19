@@ -16,7 +16,6 @@ function convertDraw(world, additional) {
       return _.map(val, function (feat, x) { return { feat : feat, pos : [x, y]};})})
     .flatten()
     .value();
-  console.log(xyf)
 
   var blocked = _.map(_.filter(xyf, function (o) { return o.feat == '#' }), 'pos');
   var terminal = _.map(_.filter(xyf, function (o) { return o.feat.name !== undefined }), 'pos');
@@ -92,7 +91,6 @@ function draw(world, additional) {
     for (var i = 0; i < v.length; i++) { 
       var coord = v[i][0];
       var LRUD = v[i][1];
-      console.log(coord, LRUD);
       var LURD = [LRUD[0], LRUD[2], LRUD[1], LRUD[3]];
 
       for (var j = 0; j < 4; j ++) {
