@@ -21,7 +21,7 @@ var world2 = makeDonutWorldExtended({ bottomLeftNook : { name : 'Donut'}  });
 var agent2 = makeHyperbolicDiscounter(donutUtility, 500, 1, 'naive', world2);
 var naive = function () { 
   var f = agent2.agent;
-  var r = simulate(start, world2, agent2, 9, 'states');
+  var r = simulate(start, world2, agent2, 9,9, 'states');
 };
 
 print("sophisticated " + timeit(sophisticated).runtimeInMilliseconds);
