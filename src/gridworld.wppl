@@ -83,7 +83,6 @@ var inGrid = function(xLim, yLim, state){
 };
 
 var isBlockedState = function(state,blockedStates){
-  console.log("is lbocked", state);
   return stateInArray(state,blockedStates);
 };
 
@@ -95,16 +94,15 @@ var openToBlocked = function(open, xLim, yLim){
 
 
 //  Construct gridworld transition function
-var makeGridTransition = function(xLim, yLim, blockedStates, terminals, extendedDeath){
+var makeGridTransition = function(xLim, yLim, blockedStates, terminals){
   
   assert.ok( xLim>1 | yLim>1, 'makeGridTransition');
 
   var isAllowedState = function(state){
-    return state[0] === 'dying' || ((inGrid(xLim, yLim, state) | isPostTerminal(state)) & !isBlockedState(state,blockedStates))    ;
+    return (inGrid(xLim, yLim, state) | isPostTerminal(state)) & !isBlockedState(state,blockedStates) ;
   };
 
   return function(state,action){    
-    console.log("in grid transition", state, action);
     assert.ok( isAllowedState(state), 'current state is not allowed');
     assert.ok( indexOf( action, gridActions ) != undefined, 'action in gridActions');
     
@@ -114,25 +112,8 @@ var makeGridTransition = function(xLim, yLim, blockedStates, terminals, extended
                           d: [state[0], state[1]-1]};
 
     // terminals: ignore action
-    if (state[0] === 'dying') { 
-      console.log("in grid transition, dying");
-      if (state[1] < extendedDeath -1) {
-        return ['dying', state[1] + 1, state[2], state[3]];
-      } else { 
-        return ['dead', state[2], state[3]]; 
-      }
-    }
-    if (isPostTerminal(state)){
-      console.log("in grid transition, posterminal");
-      return state;}
-    if (stateInArray(state, terminals)){
-      console.log("in grid transition, termial");
-      if (extendedDeath) {
-        return ['dying', 0, state[0], state[1]];
-      } else {
-        return ['dead', state[0], state[1]];
-      }
-    }
+    if (stateInArray(state, terminals)){return ['dead', state[0], state[1]];}
+    if (isPostTerminal(state)){return state;}
 
     var possibleNextState = gridTransition[action];
     return isAllowedState(possibleNextState) ? possibleNextState : state
@@ -183,8 +164,8 @@ var makeStochasticGridTransition = function(xLim, yLim, blockedStates, transitio
 
 
 // All params for gridworld
-var makeBlockedGridParams = function(xLim, yLim, blockedStates, terminals, utilityFunction, transitionNoiseProb, alpha, labels, extendedDeath){
-  var t = transitionNoiseProb==0 ? makeGridTransition(xLim, yLim, blockedStates, terminals, extendedDeath) : 
+var makeBlockedGridParams = function(xLim, yLim, blockedStates, terminals, utilityFunction, transitionNoiseProb, alpha, labels){
+  var t = transitionNoiseProb==0 ? makeGridTransition(xLim, yLim, blockedStates, terminals) : 
       makeStochasticGridTransition(xLim, yLim, blockedStates, transitionNoiseProb, terminals)
   return {utility: utilityFunction,
           transition: t,
@@ -271,48 +252,6 @@ var makeDonut = function(transitionNoiseProb, alpha){
   return makeBlockedGridParams(6,6, blockedStates, terminals, u, transitionNoiseProb, alpha, labels);
 };
 
-// Donut example from AAAI paper
-var makeDonutExtended = function(transitionNoiseProb, alpha){
-  var blockedStates = [ [0,5], [1,5], [2,5],      [4,5], [5,5],
-                        [0,4], [1,4],                    [5,4],  
-                        [0,3],              [3,3],       
-                        [0,2], [1,2],       [3,2],       [5,2],
-                                                         [5,1],
-                        [0,0], [1,0],       [3,0], [4,0], [5,0] ];
-  var terminals = [[0,1], [1,3], [5,3], [3,5] ];
-  var extendedDeath = 2;
-
-  var labels = [ 
-      { point : [0, 1], content : "Donut"},
-      { point : [1, 3], content : "Donut"},
-      { point : [3, 5], content : "Veg"},
-      { point : [5, 3], content : "Noodle"},
-      { point : [2, 0], content : "Start"}
-  ];
-
-  var rewards = { 
-    "[0,1]" : [6, 0],
-    "[1,3]" : [6, 0],
-    "[3,5]" : [4, 4],
-    "[5,3]" : [0, 0]
-  }
-
-
-  var u = function(state,action){
-    console.log("state", state);
-    if (state[0] === 'dying') { 
-      var c = [state[2], state[3]]; 
-      var dyingTime = state[1];
-      console.log("c", JSON.stringify(c), dyingTime);
-      console.log("c", rewards[JSON.stringify(c)][dyingTime]);
-      return rewards[JSON.stringify(c)][dyingTime];
-    }
-    if (isPostTerminal(state)){return 0;};
-    return -0.1;
-  };
-
-  return makeBlockedGridParams(6,6, blockedStates, terminals, u, transitionNoiseProb, alpha, labels, extendedDeath);
-};
 
 // Better Donut example
 // *smallVersion*==false means a bigger grid that looks more like AAAI paper grid
@@ -505,12 +444,11 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, mdpP
 
 
   var agent = cache( 
-    function(_agent, _expUtility, state, timeLeft, params, delay){
+    function(_agent, _expUtility, state, timeLeft, params){
      
       return Enumerate(function(){
         var action = uniformDraw(params.actions);
-        var eu = _expUtility(_agent, _expUtility, state, action, timeLeft, params, delay);    
-        console.log("action, eu", eu, state, action, timeLeft, params, delay);
+        var eu = _expUtility(_agent, _expUtility, state, action, timeLeft, params);    
         factor(params.alpha * eu);
         return action;
       });      
@@ -518,9 +456,9 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, mdpP
 
   
   var expUtility = cache(
-    function(_agent, _expUtility, state, action, timeLeft, params, delay){
+    function(_agent, _expUtility, state, action, timeLeft, params){
       var utility = params.utility;
-      var u = 1.0/(1 + params.discount*delay) * utility(state,action);
+      var u = utility(state,action);
       
       if (timeLeft - 1 == 0 | isTerminal(state)){
         return u; 
@@ -528,8 +466,8 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, mdpP
         return u + expectation( Enumerate(function(){
           var transition = params.transition;
           var nextState = transition(state, action); 
-          var nextAction = sample(_agent(_agent, _expUtility, nextState, timeLeft-1, params, delay+1));
-          return _expUtility(_agent, _expUtility, nextState, nextAction, timeLeft-1, params, delay+1);  
+          var nextAction = sample(_agent(_agent, _expUtility, nextState, timeLeft-1, params));
+          return _expUtility(_agent, _expUtility, nextState, nextAction, timeLeft-1, params);  
         }));
       }                      
     });
@@ -542,14 +480,13 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, mdpP
       if (actualTimeLeft==0 | isTerminal(state)){
         return [];
       } else {
-        var action = sample(agent(agent, expUtility, state, perceivedTimeLeft, params, 0));
+        var action = sample(agent(agent, expUtility, state, perceivedTimeLeft, params));
         var transition = params.transition;
         var nextState = transition(state,action); 
         var out = {states:state, actions:action, both:[state,action]}[erpOverStatesOrActions];
         return [ out ].concat( sampleSequence(nextState,actualTimeLeft-1, perceivedTimeLeft-1));
       }
     };
-
     // Either enumerate over trajectories or use rejection
     return outputParams.trajectoryNumRejectionSamples==0 ? 
       Enumerate(function(){
@@ -572,9 +509,9 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, mdpP
     var states = erp.MAP().val;
     var timeStates = zip(downToOne(states.length), states);
     
-    return map( function(timeState) {
-      return [timeState[1], map(function(action){
-        return expUtility(agent, expUtility, timeState[1], action, timeState[0], params, 0);
+    return map( function(timeState){
+      return [JSON.stringify(timeState[1]), map(function(action){
+        return expUtility(agent, expUtility, timeState[1], action, timeState[0], params);
       }, params.actions)];
     }, timeStates);
    
@@ -588,7 +525,7 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, mdpP
     return map( function(timeState){
       var time = timeState[0];
       var state = timeState[1];
-      return agent(agent, expUtility, state, time, params, 0);
+      return agent(agent, expUtility, state, time, params);
     }, timeStates);
   };
 
