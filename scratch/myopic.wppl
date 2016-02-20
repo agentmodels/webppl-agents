@@ -1,0 +1,105 @@
+// aim: write a myopic agent.
+// to make it sophisticated: have agent and eu pass around not just a
+// 'delay' arg, but 'currentDelay' and 'futureDelay', which keep track of
+// delay for purposes of current utility and delay for purpose of future
+// actions, respectively. Might implement this later.
+
+var makeMyopicAgent = function (utility, alpha, lookahead, world) {
+    var stateToActions = world.stateToActions;
+    var transition = world.transition;
+
+    var _agent = dp.cache(function(state, delay){
+	return Enumerate(function(){
+	    var possibleActions = stateToActions(state);
+	    var action = uniformDraw(possibleActions);
+	    var eu = _expUtility(state, action, delay);
+	    factor(alpha*eu);
+	    return action;
+	});
+    });
+    var agent = function(state){return _agent(state, 0);};
+
+    var _expUtility = dp.cache(function(state, action, delay){
+	var u = utility(world, state, action);
+
+	if (state.dead || delay >= lookahead) {
+	    return u;
+	} else {
+	    return u + expectation(Enumerate(function(){
+		var nextState = transition(state, action);
+		var nextAction = sample(_agent(nextState, delay + 1));
+		return _expUtility(nextState, nextAction, delay + 1);
+	    }));
+	}
+    });
+    var expUtility = function(state){return _expUtility(state, 0);};
+
+    return {
+	utility: utility,
+	expUtility: expUtility,
+	agent: agent,
+	_expUtility: _expUtility,
+	_agent: _agent,
+	alpha: alpha,
+	lookahead: lookahead
+    };
+};
+
+var simulate = function(state, world, agent, actualTotalTime,
+			perceivedTotalTime, statesOrActions) {
+    var agentAction = agent.agent;
+    var expUtility = agent.expUtility;
+    var transition = world.transition;
+    var _state = update(state, {timeLeft: perceivedTotalTime});
+
+    var _sim = function(state, actualTimeLeft) {
+	if (actualTimeLeft === 0 || state.dead) {
+	    return [];
+	} else {
+	    var action = sample(agentAction(state));
+	    var nextState = transition(state, action);
+	    var out = {states: state,
+		       actions: action,
+		       both: [state, action]}[statesOrActions];
+	    return cons(out, _sim(nextState, actualTimeLeft - 1));
+	}
+    };
+
+    return _sim(_state, actualTotalTime);
+};
+
+var start = {
+    loc: [2,1],
+    dead: false,
+    digest: 1
+};
+
+var donutUtility = makeDonutUtility(1, {
+    'Donut': [1],
+    'Veg': [5],
+    'Noodle': [20]
+});
+
+// in world 1, the agent starts close to a donut shop. because the agent's
+// lookahead is too low for it to see the veg or noodle shops, it goes
+// straight towards the donut shop that it is close to.
+
+var world1 = makeDonutWorldExtended({bottomLeftNook: {name: 'Donut'}});
+var agent1 = makeMyopicAgent(donutUtility, 500, 3, world1);
+var trajectory1 = simulate(start, world1, agent1, 10, 10, 'states');
+GridWorld.draw(world1, {trajectory: trajectory1});
+
+// in world 2, there is no donut shop close to the agent at the start.
+// this means that the agent tries to go to the donut shop at [1,3].
+// however, once close, the agent notices the veg shop and heads there
+// instead of the noodle shop. but then, once the agent gets close to the
+// veg shop, it notices the noodle shop, and goes towards there.
+// this results in the agent going around the long way to the noodle shop.
+
+var world2 = makeDonutWorldExtended({bottomLeftNook: '#'});
+var agent2 = makeMyopicAgent(donutUtility, 500, 3, world2);
+var trajectory2 = simulate(start, world1, agent1, 10, 10, 'states');
+GridWorld.draw(world2, {trajectory: trajectory2});
+
+// once pomdp bandits are available, can write examples of
+// low exploration
