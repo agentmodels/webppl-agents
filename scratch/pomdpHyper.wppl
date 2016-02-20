@@ -184,7 +184,6 @@ var simulate = function(state, world, agent, actualTotalTime, perceivedTotalTime
         var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
         return [ out ].concat( _sim(nextState, actualTimeLeft-1));
       }
-
     };
  
     return _sim(state, actualTotalTime)
@@ -192,10 +191,9 @@ var simulate = function(state, world, agent, actualTotalTime, perceivedTotalTime
 
 
 var mdpSim = function(start, world, agent, actualTotalTime, perceivedTotalTime) { 
-  // TODO assert.ok( all not undefined: map(agent.utility, world.states) );
-  // check that utility functions matches up with states
+  // TODO utility matches states: assert.ok( all not undefined: map(agent.utility, world.states) 
 
-  assert.ok(perceivedTotalTime > 1, 'perceivedTotalTime <=1. If ==1, then we should have state.dead. But then simulate wont work');
+  assert.ok(perceivedTotalTime > 1,'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
     
   var _agentExp = agent._expUtility;
   var stateToActions = world.stateToActions;
