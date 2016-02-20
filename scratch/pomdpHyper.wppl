@@ -132,7 +132,7 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
 
   var updateBelief = dp.cache(
     function (manifestState, currentBelief, observation) {
-      return Enumerate( function () {
+      return Enumerate(function () {
         var latentState = sample(currentBelief);
         var state = buildState(manifestState, latentState);
         condition(_.isEqual(observe(state), observation));
@@ -145,17 +145,17 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
       assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), 'agent args');
       var newBelief = updateBelief(manifestState, currentBelief, observation);
       return Enumerate(function () {
-        var action = uniformDraw( stateToActions(state) );
-        var expectedUtility = expUtility(manifestState, currentBelief, action);
+        var action = uniformDraw(stateToActions(state));
+        var eu = expectedUtility(manifestState, currentBelief, action);
         factor(alpha * eu);
-        return { action: action, belief:newBelief };
+        return { action: action, belief: newBelief };
       });
     });
   var agent = function (manifestState, currentBelief, observation) {
     return _agent(manifestState, currentBelief, observation, 0);
   };
 
-  var _expUtility = dp.cache(
+  var _expectedUtility = dp.cache(
     function (manifestState, currentBelief, action, delay) {
       return expectation(
         Enumerate(function () {
@@ -168,21 +168,21 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
             var nextState = transition(state, action);
             var perceivedDelay = { naive : delay + 1, sophisticated : 0 }[sophisticatedOrNaive];
             var agentNext = sample(_agent(nextState.manifestState, currentBelief, observe(nextState), perceivedDelay));
-            var futureU = _expUtility(nextState, agentNext.belief, agentNext.action, delay + 1);
+            var futureU = _expectedUtility(nextState, agentNext.belief, agentNext.action, delay + 1);
             return u + futureU;
           }
         }));
     });
 
-  var expUtility = function (manifestState, currentBelief, action) {
-    return _expUtility(manifestState, currentBelief, action, 0);
+  var expectedUtility = function (manifestState, currentBelief, action) {
+    return _expectedUtility(manifestState, currentBelief, action, 0);
   };
 
   return {
     utility : utility,
-    expUtility : expUtility,
+    expectedUtility : expectedUtility,
     agent : agent,
-    _expUtility : _expUtility,
+    _expectedUtility : _expectedUtility,
     _agent : _agent,   // TODO why expose this?
     alpha : alpha,
     discount : discount,
@@ -224,19 +224,19 @@ var mdpSim = function (startState, world, agent, actualTotalTime, perceivedTotal
 
   assert.ok(perceivedTotalTime > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
 
-  var _agentExp = agent._expUtility;
+  var _agentExp = agent._expectedUtility;
   var stateToActions = world.stateToActions;
 
   var trajectory = simulate(startState, world, agent, actualTotalTime, perceivedTotalTime, 'states');
   var len = trajectory.length;
 
-  // expUtility from the startState, which should be different for naive and sophisticated agents
+  // expectedUtility from the startState, which should be different for naive and sophisticated agents
   var expectedUtilityStart = map(function (state) {
     return [state.loc,
             map(function (a) {return _agentExp(state, a, len - state.timeLeft);}, stateToActions(state))];
   }, trajectory);
 
-  // TODO expUtility from the second time step onwards, we just slice the trajectory
+  // TODO expectedUtility from the second time step onwards, we just slice the trajectory
   var getExpectedUtilityFromTimestep = function (timestep) {
     var trajectory = trajectory.slice(timestep, trajectory.length);
     return map(function (state) {
@@ -293,10 +293,10 @@ var testDonut = function () {
 
 
   var state = update(start, { loc : [2, 1], timeLeft : 12 });
-  var naiveExp = agent2.expUtility;
+  var naiveExp = agent2.expectedUtility;
   var naive22utilities = map(function (a) { return naiveExp(state, a); }, world.actions);
 
-  var sophExp = agent.expUtility;
+  var sophExp = agent.expectedUtility;
   var soph22utilities = map(function (a) { return sophExp(state, a); }, world.actions);
 
   assert.ok(
