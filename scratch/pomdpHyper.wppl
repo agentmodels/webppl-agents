@@ -167,8 +167,8 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
           } else {
             var nextState = transition(state, action);
             var perceivedDelay = { naive : delay + 1, sophisticated : 0 }[sophisticatedOrNaive];
-            var agentNext = sample(_agent(nextState.manifestState, currentBelief, observe(nextState), perceivedDelay));
-            var futureU = _expectedUtility(nextState, agentNext.belief, agentNext.action, delay + 1);
+            var nextAction = sample(_agent(nextState.manifestState, currentBelief, observe(nextState), perceivedDelay));
+            var futureU = _expectedUtility(nextState, nextAction.belief, nextAction.action, delay + 1);
             return u + futureU;
           }
         }));
@@ -204,14 +204,13 @@ var simulate = function (startState, world, agent, actualTotalTime, perceivedTot
       function (actualTimeLeft, state) {return actualTimeLeft == 0;};
 
   var sampleSequence = function (state, currentBelief, actualTimeLeft) {
-
     if (cutoffCondition(actualTimeLeft, state.manifestState) ) {
       return [];
     } else {
-      var agentNext = sample(agentAction(state.manifestState, currentBelief, observe(state)));
-      var nextState = transition(state, agentNext.action);
+      var nextAction = sample(agentAction(state.manifestState, currentBelief, observe(state)));
+      var nextState = transition(state, nextAction.action);
       var out = { states:state, actions:action, both:[state, action] }[statesOrActions]; // could return observations
-      return [out].concat( sampleSequence(nextState, agentNext.belief, actualTimeLeft - 1));
+      return [out].concat( sampleSequence(nextState, nextAction.belief, actualTimeLeft - 1));
     }
   };
 
