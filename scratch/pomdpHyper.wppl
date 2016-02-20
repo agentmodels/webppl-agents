@@ -22,17 +22,17 @@ var advanceStateTime = function(state) {
 }
 
 var moveState = function(gridMap, state, action) { 
-    var loc = state.loc; 
-    var gridTransition = {l: [loc[0]-1, loc[1]],
-                          r: [loc[0]+1, loc[1]],
-                          u: [loc[0], loc[1]+1],
-                          d: [loc[0], loc[1]-1]};
+  var loc = state.loc; 
+  var gridTransition = {l: [loc[0]-1, loc[1]],
+                        r: [loc[0]+1, loc[1]],
+                        u: [loc[0], loc[1]+1],
+                        d: [loc[0], loc[1]-1]};
 
-    var possibleNextLoc = gridTransition[action];
-    assert.ok(possibleNextLoc != undefined, 'action was not found');
+  var possibleNextLoc = gridTransition[action];
+  assert.ok(possibleNextLoc != undefined, 'action was not found');
 
-    var nextLoc = isAllowedState(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
-    return update(state, { loc : nextLoc });
+  var nextLoc = isAllowedState(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
+  return update(state, { loc : nextLoc });
 }
 
 var makeGridTransition = function(gridMap) {
@@ -96,10 +96,10 @@ var makeDonutWorldExtended = function(options){
   };
 
   return update(gridMap,
-      { transition : transition, 
-        actions    : actions,
-        stateToActions    : stateToActions,
-      });
+                { transition : transition, 
+                  actions    : actions,
+                  stateToActions    : stateToActions,
+                });
 };
 
 var makeDonutUtility = function (max_digest, rewards) { 
@@ -134,8 +134,8 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
     function(manifestState, currentBelief, observation){
       return Enumerate( function(){
         var latentState = sample(currentBelief);
-        factor( observe(buildState(manifestState, latentState), params).score([], observation));
-        // TODO: does factor always work at recognizing equality of objects?
+        var state = buildState(manifestState, latentState);
+        condition(_.isEqual(observe(state), observation))
         return latentState;
       });
     });
@@ -143,13 +143,14 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
   var _agent = dp.cache( 
     function(manifestState, currentBelief, observation, delay){
       assert.ok(isGreaterZero(manifestState.timeLeft)  && isERP(currentBelief) && _.isFinite(delay), 'agent args')
+      var newBelief = updateBelief(manifestState, currentBelief, observation);
       
       return Enumerate(function(){
-        var newBelief = updateBelief(manifestState, currentBelief, observation);
         var action = uniformDraw( stateToActions(state) );
         var expectedUtility = expectation(
-          Enumrate(function(){
-            var state = buildState(manifestState, sample(newBelief));
+          Enumerate(function(){
+            var latentState = sample(newBelief);
+            var state = buildState(manifestState, latentState);
             assert.ok(getManifestState(state, params) == manifestState, 'didnt build state correctly');
             return _expUtility(state, action, newBelief, delay);   
           }));
@@ -175,14 +176,14 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
           var nextState = transition(state, action); 
           var perceivedDelay = { naive : delay + 1, sophisticated : 0}[sophisticatedOrNaive]; 
           var agentNext = sample(_agent(nextState.manifestState, currentBelief, observe(nextState), perceivedDelay));
-     
+          
           return _expUtility(nextState, agentNext.action, agentNext.belief, delay+1);  
         }));
       }                      
     });
   var expUtility = function(state, action, currentBelief) { return _expUtility(state, action, currentBelief, 0); };
 
-    
+  
   return {
     utility : utility,
     expUtility : expUtility,
@@ -197,7 +198,7 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
 
 var simulate = function(startState, world, agent, actualTotalTime, perceivedTotalTime, statesOrActions) { 
   assert.ok(  actualTotalTime <= perceivedTotalTime && isState(startState), 'simulate args');
-    
+  
   var agentAction = agent.agent;
   var transition = world.transition;
   var observe = world.observe;
@@ -208,17 +209,17 @@ var simulate = function(startState, world, agent, actualTotalTime, perceivedTota
       function(actualTimeLeft, state){return actualTimeLeft==0};
   
   var sampleSequence = function (state, currentBelief, actualTimeLeft) {
-      
+    
     if (cutoffCondition(actualTimeLeft, state.manifestState) ){
-        return [];
-      } else {
-        var agentNext = sample(agentAction(state.manifestState, currentBelief, observe(state)));
-        var nextState = transition(state, agentNext.action);
-        var out = {states:state, actions:action, both:[state,action]}[statesOrActions]; // could return observations
-        return [ out ].concat( sampleSequence(nextState, agentNext.belief, actualTimeLeft-1));
-      }
-    };
- 
+      return [];
+    } else {
+      var agentNext = sample(agentAction(state.manifestState, currentBelief, observe(state)));
+      var nextState = transition(state, agentNext.action);
+      var out = {states:state, actions:action, both:[state,action]}[statesOrActions]; // could return observations
+      return [ out ].concat( sampleSequence(nextState, agentNext.belief, actualTimeLeft-1));
+    }
+  };
+  
   return sampleSequence(startState, priorBelief, actualTotalTime);
 };
 
@@ -227,7 +228,7 @@ var mdpSim = function(startState, world, agent, actualTotalTime, perceivedTotalT
   // TODO check utility matches states: assert.ok( all not undefined: map(agent.utility, world.states) 
 
   assert.ok(perceivedTotalTime > 1,'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
-    
+  
   var _agentExp = agent._expUtility;
   var stateToActions = world.stateToActions;
 

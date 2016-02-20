@@ -1,0 +1,7 @@
+- think about better name for `discount`
+- bundle up agent parameters into a single object, like world parameters
+  - this will also make it easier to run the same agent on different worlds
+- stick with current handling of agents and worlds for now
+- address webppl issue: reassignment of functions necessary to allow
+  compound calls
+[x] belief updating using _.isEqual
