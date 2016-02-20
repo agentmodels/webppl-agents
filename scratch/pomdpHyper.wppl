@@ -82,10 +82,7 @@ var makeDonutWorldExtended = function(options){
   var transition = makeGridTransition(gridMap);
   var actions = ['l', 'r', 'u', 'd'];
 
-
-
   var stateToActions = function (state) { 
-
     var possibleActions = filter(function (action) { 
       var newState = transition(state, action);
       return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
@@ -200,15 +197,10 @@ var mdpSim = function(start, world, agent, actualTotalTime, perceivedTotalTime) 
 
   assert.ok(perceivedTotalTime > 1, 'perceivedTotalTime <=1. If ==1, then we should have state.dead. But then simulate wont work');
     
-  var agentAgent = agent.agent;
-  var agentExp = agent.expUtility;
   var _agentExp = agent._expUtility;
-
   var stateToActions = world.stateToActions;
 
   var trajectory = simulate(start, world, agent, actualTotalTime, perceivedTotalTime, 'states');
-
-
   var len = trajectory.length;
 
   // expUtility from the start, which should be different for naive and sophisticated agents
@@ -226,45 +218,95 @@ var mdpSim = function(start, world, agent, actualTotalTime, perceivedTotalTime) 
                   stateToActions(state))]; 
     }, trajectory);
   };
-  
-  console.log('\n\ntraj, expectedUtilityStart', trajectory, expectedUtilityStart);
 
-  return {trajectory: trajectory};
+  return {trajectory: trajectory, startEU: expectedUtilityStart};
   //GridWorld.draw(world, {trajectory : trajectory, expUtilities : exp });
 }
 
 
-
 var printOut = function( out ){
   console.log('trajectory', map( function(state){return state.loc;}, out.trajectory) );
-  //console.log('expUtilities',  out.exp );
+  console.log('expUtilities',  out.startEU);
 };
 
 
+// TODO get output working for donut, including exp utilities
+
+// ADD POMDP STUFF WITH BANDITS, paying attention to
+// (a) using the MDP transition to create the POMDP (maybe building the function
+// with in the body of simulate, so save computation time
+// (b) adding updateDelay so that delay overhead avoided when discount==0
+// (c) combining pomdp and digest thing. 
 
 
-var makeLine = function(noiseProb){
-  
-  var detTransition = function(state,action){
-    var newLoc = (state.loc == 0 & action==-1) ? 0 : state.loc + action;
-    var dead = state.timeLeft - 1  == 1 ? true : false;
-    assert.ok(state.timeLeft != 0, 'detTransition for makeLine');
-    return update(state,{loc:newLoc, timeLeft:state.timeLeft-1, dead:dead});
+var testDonut = function(){
+  var start = { 
+    loc : [2,0],
+    dead : false,
+    digest : 4
   };
 
-  var stochasticTransition = function(state,action){
-    return flip(noiseProb) ? detTransition(state,uniformDraw([-1,1])) : detTransition(state,action);
-  };
+  var donutUtility = makeDonutUtility(4, {
+    'Donut' : [1, 0, 0, 0],
+    'Veg'   : [0, 0, 0, 3.5],
+    'Noodle': [0, 0, 0, 0]
+  });
 
-  var transition = noiseProb > 0 ? stochasticTransition : detTransition;
+  var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
+  var agent = makeHyperbolicDiscounter(donutUtility, 500, 1, 'sophisticated', world);
+  var trajectory = simulate(start, world, agent, 12, 12, 'states');
+  assert.ok(gridEqual(last(trajectory).loc, [3, 5]), "sophisticated didn't end up in 3,5");
+  assert.ok(trajectory[5].loc[0] == 4, "sophisticated didn't take right side");
   
-  var stateToActions = function(state){return  [-1,1];};
+  var world2 = makeDonutWorldExtended({ bottomLeftNook : { name : 'Donut' } });
+  var agent2 = makeHyperbolicDiscounter(donutUtility, 500, 1, 'naive', world2);
+  var trajectory = simulate(start, world2, agent2, 12, 12, 'states');
+  assert.ok(gridEqual(last(trajectory).loc, [1, 3]), "naive didn't end up in 1,3");
+  assert.ok(trajectory[3].loc[0] == 2, "naive didn't take left side");
   
-  return {stateToActions: stateToActions, transition: transition};
+  
+  var state = update(start, { loc : [2,1], timeLeft : 12 });
+  var naiveExp = agent2.expUtility;
+  var naive22utilities = map(function (a) { return  naiveExp(state, a); }, world.actions);
+  
+  var sophExp = agent.expUtility;
+  var soph22utilities = map(function (a) { return  sophExp(state, a); }, world.actions);
+  
+  assert.ok(
+    naive22utilities[0] != soph22utilities[0] &&
+      naive22utilities[1] != soph22utilities[1] &&
+      naive22utilities[2] != soph22utilities[2] &&
+      naive22utilities[3] != soph22utilities[3] 
+    , "some utilities match!");
+
+  console.log('passed tests donut');
 };
+testDonut();
+ash();
+
 
 
 var testLine = function(){
+  
+  var makeLine = function(noiseProb){
+    var detTransition = function(state,action){
+      var newLoc = (state.loc == 0 & action==-1) ? 0 : state.loc + action;
+      var dead = state.timeLeft - 1  == 1 ? true : false;
+      assert.ok(state.timeLeft != 0, 'detTransition for makeLine');
+      return update(state,{loc:newLoc, timeLeft:state.timeLeft-1, dead:dead});
+    };
+    
+    var stochasticTransition = function(state,action){
+      return flip(noiseProb) ? detTransition(state,uniformDraw([-1,1])) : detTransition(state,action);
+    };
+    
+    var transition = noiseProb > 0 ? stochasticTransition : detTransition;
+    var stateToActions = function(state){return  [-1,1];};
+    
+    return {stateToActions: stateToActions, transition: transition};
+  };
+
+  
   var noiseProb = 0;
   var world = makeLine(noiseProb);
 
@@ -284,7 +326,6 @@ var testLine = function(){
     assert.ok( _.isEqual([update(start,{timeLeft:2}), update(start,{timeLeft:1, dead:true})],
                          trajectory), 'smallTraj test'); 
   };
-  
   smallTrajectory();
   
   
@@ -296,8 +337,7 @@ var testLine = function(){
       var actualTotalTime = 4;  
       
       var runSim = function(discount){
-        var agent = makeHyperbolicDiscounter(utility, alpha, discount, 
-                                             naiveOrSophisticated, world);
+        var agent = makeHyperbolicDiscounter(utility, alpha, discount, naiveOrSophisticated, world);
         return mdpSim(start, world, agent, actualTotalTime, perceivedTotalTime);
       };
       
@@ -308,16 +348,15 @@ var testLine = function(){
     }, ['naive', 'sophisticated']);
   };
   
-  map(mediumTrajectory,[0,.01,.05]);
+  map(mediumTrajectory,[0,.01]);
   console.log('Passed testLine');
 };
 
-testLine();
-ash();
+//testLine();
 
 
 
-var runBandits = function(){
+var testBandits = function(){
 
   var makeBandits = function(numArms, noiseProb){
     var actions = _.range(numArms);
@@ -326,40 +365,46 @@ var runBandits = function(){
       var dead = state.timeLeft - 1  == 1 ? true : false;
       return update(state,{loc:action, timeLeft:state.timeLeft-1, dead:dead});
     };
-    
+
+    // try best arm, risk going to 'start' (zero payoff)
     var stochasticTransition = function(state,action){
-      return flip(noiseProb) ? detTransition(state,uniformDraw(actions)) : detTransition(state,action);
+      return (flip(noiseProb) && action==0 ) ? detTransition(state,'start') : detTransition(state,action);
     };
     
     var transition = noiseProb > 0 ? stochasticTransition : detTransition;
-    
     var stateToActions = function(state){return actions;};
     
-    return {stateToActions: stateToActions, transition:transition};
+    return {stateToActions: stateToActions, transition:transition, defaultStart: {loc:'start', dead:false}};
   };
 
-  var numArms = 3;
-  var noiseProb = 0;
-  var world = makeBandits(numArms, noiseProb);
-  
-  var utility = function(world, state, action){
-    return {'start':0, 0:1, 1:5}[state.loc];
-  };
-  
-  var alpha = 100;
-  var discount = 0;
-  var agent = makeHyperbolicDiscounter(utility, alpha, discount, 'sophisticated');
-  var perceivedTotalTime = 4;
-  var actualTotalTime = 4;  
 
-  var start = { 
-    loc : 'start',
-    dead : false,
-    timeLeft : perceivedTotalTime
+  var smallTest = function(){
+    // fixed params
+    var numArms = 2; 
+    var utility = function(world, state, action){
+      return {'start':0, 0:10, 1:5}[state.loc];
+    };
+    var alpha = 100;
+    var discount = 0;
+
+    var noiseProb = 0;
+    var world = makeBandits(numArms, noiseProb);
+    var agent = makeHyperbolicDiscounter(utility, alpha, discount , 'naive', world);
+    var trajectory =  mdpSim(world.defaultStart, world, agent, 2, 2).trajectory;
+    assert.ok(trajectory[1].loc == 0, 'testbandits small');
+
+    // with noise, there's .6 chance that you go 'start' and get zero if you go 0, so go 1 instead
+    var noiseProb = 0.6;
+    var world = makeBandits(numArms, noiseProb);
+    var agent = makeHyperbolicDiscounter(utility, alpha, discount , 'naive', world);
+    var trajectory =  mdpSim(world.defaultStart, world, agent, 2, 2).trajectory;
+    assert.ok(trajectory[1].loc == 1, 'testbandits small');
   };
+  smallTest();
   
-  printOut( mdpSim(start, world, agent, actualTotalTime) );
+  console.log('passed testbandits');
 };
+testBandits();
 
 ash();
 // var t1 = timeit( function () { 
