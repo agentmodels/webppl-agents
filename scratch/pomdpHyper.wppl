@@ -162,12 +162,11 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
     return _agent(manifestState, currentBelief, observation, 0);
   };
 
-  
   var _expUtility = dp.cache(
     function(state, action, currentBelief, delay){
       var u = 1.0/(1 + discount*delay) * utility(world, state, action);
       
-      assert.ok(_.isFinite(u) && isERP(currentBelief), 'expUtility args');
+      assert.ok(_.isFinite(u) && isERP(currentBelief) && isState(state), 'expUtility args');
       
       if (state.manifestState.dead){
         return u; 
