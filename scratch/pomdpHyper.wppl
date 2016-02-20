@@ -1,3 +1,6 @@
+
+
+
 var inGrid = function(gridMap, loc) {
   return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
           loc[1] >= 0 && loc[1] < gridMap.yLim);
@@ -79,13 +82,13 @@ var makeDonutWorldExtended = function(options){
   var transition = makeGridTransition(gridMap);
   var actions = ['l', 'r', 'u', 'd'];
 
+
+
   var stateToActions = function (state) { 
-    var timeLessState = JSON.stringify(update(state, {timeLeft : "", digest : ""}));
 
     var possibleActions = filter(function (action) { 
       var newState = transition(state, action);
-      var timeLessNewState = JSON.stringify(update(newState, {timeLeft : "", digest : "" }));
-      return timeLessState !== timeLessNewState; 
+      return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
     }, actions);
 
     if (possibleActions.length > 0) {
@@ -109,119 +112,148 @@ var makeDonutUtility = function (max_digest, rewards) {
 
     if (state.dead)   { return 0; }
     if (feature.name) { return rewards[feature.name][max_digest - state.digest]; }
-    return -0.01;
+    return -0.01; // TIMECOST (should this be part of *rewards* at least optionally?
   };
 };
 
 
+var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticatedOrNaive, world) {
 
-
-
-
-var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticatedOrNaive) {
-
-  var agent = dp.cache( 
-    function(state, world, delay){
-      var stateToActions = world.stateToActions;
-     
+  var stateToActions = world.stateToActions;
+  var transition = world.transition;
+ 
+    
+  var _agent = dp.cache( 
+    function(state, delay){
       return Enumerate(function(){
         var possibleActions = stateToActions(state);
         var action = uniformDraw(possibleActions);
-        var eu = expUtility(state, action, world, delay);    
+        var eu = _expUtility(state, action, delay);    
         factor(alpha * eu);
         return action;
       });      
     });
+  var agent = function(state) { return _agent(state, 0); };
 
   
-  var expUtility = dp.cache(
-    function(state, action, world, delay){
+  var _expUtility = dp.cache(
+    function(state, action, delay){
       var u = 1.0/(1 + discount*delay) * utility(world, state, action);
-      assert.ok(u === u,"utility not valid " + u /*+ " " + JSON.stringify(state)*/);
-      if (state.dead || state.timeLeft - 1 == 0){
+      
+      assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state)+ '  '+JSON.stringify([world, state, action]));
+      
+      if (state.dead){
         return u; 
       } else {                     
         return u + expectation( Enumerate(function(){
-          var transition = world.transition;
           var nextState = transition(state, action); 
           var perceivedDelay = { naive : delay + 1, sophisticated : 0}[sophisticatedOrNaive]; 
-          var nextAction = sample(agent(nextState, world, perceivedDelay));
-          return expUtility(nextState, nextAction, world, delay+1);  
+          var nextAction = sample(_agent(nextState, perceivedDelay));
+          return _expUtility(nextState, nextAction, delay+1);  
         }));
       }                      
     });
+  var expUtility = function(state, action) { return _expUtility(state, action, 0); };
 
-    return {
-      utility : utility,
-      expUtility : expUtility,
-      agent : agent,
-      alpha : alpha, 
-      discount : discount
-    };
+
+  return {
+    utility : utility,
+    expUtility : expUtility,
+    agent : agent,
+    _expUtility : _expUtility,
+    _agent : _agent,   // TODO why expose this?
+    alpha : alpha, 
+    discount : discount
+  };
 };
 
-var simulate = function(state, world, agent, actualTimeLeft, statesOrActions) { 
-    var agentAction = agent.agent;
-    var expUtility = agent.expUtility;
-    var transition = world.transition;
+var simulate = function(state, world, agent, actualTotalTime, perceivedTotalTime, statesOrActions) { 
+  var agentAction = agent.agent;
+  var expUtility = agent.expUtility; // TODO remove
+  var transition = world.transition;
+  var state = update(state, { timeLeft : perceivedTotalTime });
 
-    if (actualTimeLeft==0 | state.dead){
-      return [];
-    } else {
-      var action = agentAction(state, world, 0);
-      var nextState = transition(state,sample(action)); 
-      var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
-      return [ out ].concat( simulate(nextState, world, agent, actualTimeLeft-1, statesOrActions));
-    }
-}
+  var isGridworld = arraysEqual(world.actions, ['l', 'r', 'u', 'd']);
+  var cutoffCondition = isGridworld ? function(actualTimeLeft, state){return actualTimeLeft==0 || state.dead;} :
+      function(actualTimeLeft, state){return actualTimeLeft==0};
+  
+  var _sim = function (state, actualTimeLeft) {
+      
+    if (cutoffCondition(actualTimeLeft, state) ){
+        return [];
+      } else {
+        var action = sample(agentAction(state));
+        var nextState = transition(state,action); 
+        var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
+        return [ out ].concat( _sim(nextState, actualTimeLeft-1));
+      }
 
-var mdpSim = function(start, world, agent, time) { 
+    };
+ 
+    return _sim(state, actualTotalTime)
+};
+
+
+var mdpSim = function(start, world, agent, actualTotalTime, perceivedTotalTime) { 
+  // TODO assert.ok( all not undefined: map(agent.utility, world.states) );
+  // check that utility functions matches up with states
+
+  assert.ok(perceivedTotalTime > 1, 'perceivedTotalTime <=1. If ==1, then we should have state.dead. But then simulate wont work');
+    
   var agentAgent = agent.agent;
   var agentExp = agent.expUtility;
+  var _agentExp = agent._expUtility;
+
   var stateToActions = world.stateToActions;
 
-  var trajectory = simulate(start, world, agent, time, 'states');
-  var exp = map(function(state) {
-    return [state.loc,
-            map(function(a){return agentExp(state, a, world, 0);}, stateToActions(state)) ];
-  }, trajectory);
-  return {trajectory: trajectory, exp: exp};
+  var trajectory = simulate(start, world, agent, actualTotalTime, perceivedTotalTime, 'states');
 
+
+  var len = trajectory.length;
+
+  // expUtility from the start, which should be different for naive and sophisticated agents
+  var expectedUtilityStart = map(function(state){
+    return [state.loc,
+            map(function(a){return _agentExp(state, a, len - state.timeLeft);}, stateToActions(state))]; 
+  }, trajectory);
+  
+  // TODO expUtility from the second time step onwards, we just slice the trajectory
+  var getExpectedUtilityFromTimestep = function(timestep){
+    var trajectory = trajectory.slice(timestep,trajectory.length);
+    return map(function(state){
+      return [state.loc, 
+              map(function(a){return _agentExp(state, a, trajectory.length - state.timeLeft);}, 
+                  stateToActions(state))]; 
+    }, trajectory);
+  };
+  
+  console.log('\n\ntraj, expectedUtilityStart', trajectory, expectedUtilityStart);
+
+  return {trajectory: trajectory};
   //GridWorld.draw(world, {trajectory : trajectory, expUtilities : exp });
-};
+}
+
+
 
 var printOut = function( out ){
   console.log('trajectory', map( function(state){return state.loc;}, out.trajectory) );
-  console.log('expUtilities',  out.exp );
+  //console.log('expUtilities',  out.exp );
 };
 
 
-var makeBandits = function(numArms, noiseProb){
-  
-  var detTransition = function(state,action){
-    return update(state,{loc:action, timeLeft:state.timeLeft-1});
-  };
-  
-  var stochasticTransition = function(state,action){
-    return flip(noiseProb) ? detTransition(state,0) : detTransition(state,action);
-  };
-
-  var transition = noiseProb > 0 ? stochasticTransition : detTransition;
-  
-  var stateToActions = function(state){return  _.range(numArms);};
-  
-  return {stateToActions: stateToActions, transition:transition};
-};
 
 
 var makeLine = function(noiseProb){
+  
   var detTransition = function(state,action){
     var newLoc = (state.loc == 0 & action==-1) ? 0 : state.loc + action;
-    return update(state,{loc:newLoc, timeLeft:state.timeLeft-1});
+    var dead = state.timeLeft - 1  == 1 ? true : false;
+    assert.ok(state.timeLeft != 0, 'detTransition for makeLine');
+    return update(state,{loc:newLoc, timeLeft:state.timeLeft-1, dead:dead});
   };
 
   var stochasticTransition = function(state,action){
-    return flip(noiseProb) ? detTransition(state,-1) : detTransition(state,action);
+    return flip(noiseProb) ? detTransition(state,uniformDraw([-1,1])) : detTransition(state,action);
   };
 
   var transition = noiseProb > 0 ? stochasticTransition : detTransition;
@@ -235,44 +267,77 @@ var makeLine = function(noiseProb){
 var testLine = function(){
   var noiseProb = 0;
   var world = makeLine(noiseProb);
-  
+
+  // agent params
   var utility = function(world, state, action){
     if (state.loc==1){return -4;}
     return state.loc;
   };
-  
+
   var alpha = 100;
-  var perceivedTotalTime = 4;
-  var actualTotalTime = 4;  
+  var start = {loc:0, dead:false};
 
-  var start = { 
-    loc : 0,
-    dead : false,
-    timeLeft : perceivedTotalTime
+  var smallTrajectory = function(){
+    var agent = makeHyperbolicDiscounter(utility, alpha, 0, 'naive', world);
+    var trajectory = mdpSim(start, world, agent, 2, 2).trajectory;
+    console.log('start, trajectory', JSON.stringify(start), JSON.stringify(trajectory) );
+    assert.ok( _.isEqual([update(start,{timeLeft:2}), update(start,{timeLeft:1, dead:true})],
+                         trajectory), 'smallTraj test'); 
   };
- 
-  map( function(naiveOrSophisticated){
-
-    var runSim = function(discount, naiveOr){
-      var agent = makeHyperbolicDiscounter(utility, alpha, discount, 
-                                           naiveOrSophisticated);
-      return mdpSim(start, world, agent, actualTotalTime);
-    };
-    
-    assert.ok( runSim(0).trajectory[1].loc == 1 );
-    assert.ok( runSim(.1).trajectory[1].loc == 1 );
-    assert.ok( runSim(1).trajectory[1].loc == 0 );
-    assert.ok( runSim(2).trajectory[1].loc == 0 );
-  }, ['naive', 'sophisticated']);
   
+  smallTrajectory();
+  
+  
+  // test length==4 trajectories
+  var mediumTrajectory = function(noiseProb){
+    var world = makeLine(noiseProb);
+    map( function(naiveOrSophisticated){
+      var perceivedTotalTime = 4;
+      var actualTotalTime = 4;  
+      
+      var runSim = function(discount){
+        var agent = makeHyperbolicDiscounter(utility, alpha, discount, 
+                                             naiveOrSophisticated, world);
+        return mdpSim(start, world, agent, actualTotalTime, perceivedTotalTime);
+      };
+      
+      assert.ok( runSim(0).trajectory[1].loc == 1, 'no discount go to 1'+' naiveOr:'+naiveOrSophisticated );
+      assert.ok( runSim(.1).trajectory[1].loc == 1, 'small discount go to 1' +' naiveOr:'+naiveOrSophisticated );
+      assert.ok( runSim(1).trajectory[1].loc == 0, 'bigger discount stay' +' naiveOr:'+naiveOrSophisticated );
+      assert.ok( runSim(2).trajectory[1].loc == 0, 'even bigger discount stay' + '  naiveOr:'+naiveOrSophisticated);
+    }, ['naive', 'sophisticated']);
+  };
+  
+  map(mediumTrajectory,[0,.01,.05]);
   console.log('Passed testLine');
-  //printOut( mdpSim(start, world, agent, actualTotalTime) );
 };
 
 testLine();
 ash();
 
+
+
 var runBandits = function(){
+
+  var makeBandits = function(numArms, noiseProb){
+    var actions = _.range(numArms);
+    
+    var detTransition = function(state,action){
+      var dead = state.timeLeft - 1  == 1 ? true : false;
+      return update(state,{loc:action, timeLeft:state.timeLeft-1, dead:dead});
+    };
+    
+    var stochasticTransition = function(state,action){
+      return flip(noiseProb) ? detTransition(state,uniformDraw(actions)) : detTransition(state,action);
+    };
+    
+    var transition = noiseProb > 0 ? stochasticTransition : detTransition;
+    
+    var stateToActions = function(state){return actions;};
+    
+    return {stateToActions: stateToActions, transition:transition};
+  };
+
   var numArms = 3;
   var noiseProb = 0;
   var world = makeBandits(numArms, noiseProb);
