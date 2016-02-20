@@ -135,26 +135,18 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
       return Enumerate( function(){
         var latentState = sample(currentBelief);
         var state = buildState(manifestState, latentState);
-        condition(_.isEqual(observe(state), observation))
+        condition(_.isEqual(observe(state), observation));
         return latentState;
       });
     });
   
   var _agent = dp.cache( 
     function(manifestState, currentBelief, observation, delay){
-      assert.ok(isGreaterZero(manifestState.timeLeft)  && isERP(currentBelief) && _.isFinite(delay), 'agent args')
+      assert.ok(isGreaterZero(manifestState.timeLeft)  && isERP(currentBelief) && _.isFinite(delay), 'agent args');
       var newBelief = updateBelief(manifestState, currentBelief, observation);
-      
       return Enumerate(function(){
         var action = uniformDraw( stateToActions(state) );
-        var expectedUtility = expectation(
-          Enumerate(function(){
-            var latentState = sample(newBelief);
-            var state = buildState(manifestState, latentState);
-            assert.ok(getManifestState(state, params) == manifestState, 'didnt build state correctly');
-            return _expUtility(state, action, newBelief, delay);   
-          }));
-
+        var expectedUtility = expUtility(....);
         factor(alpha * eu);
         return {action: action, belief:newBelief};
       });      
@@ -164,25 +156,27 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
   };
 
   var _expUtility = dp.cache(
-    function(state, action, currentBelief, delay){
-      var u = 1.0/(1 + discount*delay) * utility(world, state, action);
-      
-      assert.ok(_.isFinite(u) && isERP(currentBelief) && isState(state), 'expUtility args');
-      
-      if (state.manifestState.dead){
-        return u; 
-      } else {                     
-        return u + expectation( Enumerate(function(){
-          var nextState = transition(state, action); 
-          var perceivedDelay = { naive : delay + 1, sophisticated : 0}[sophisticatedOrNaive]; 
-          var agentNext = sample(_agent(nextState.manifestState, currentBelief, observe(nextState), perceivedDelay));
-          
-          return _expUtility(nextState, agentNext.action, agentNext.belief, delay+1);  
+    function(manifestState, currentBelief, delay, action){
+      return expectation(
+        Enumerate(function(){
+          var latentState = sample(currentBelief);
+          var state = buildState(manifestState, latentState);
+          var u = 1.0/(1 + discount*delay) * utility(state, action);
+          if (state.manifestState.dead){
+            return u; 
+          } else {
+            var nextState = transition(state, action); 
+            var perceivedDelay = { naive : delay + 1, sophisticated : 0}[sophisticatedOrNaive]; 
+            var agentNext = sample(_agent(nextState.manifestState, currentBelief, observe(nextState), perceivedDelay));
+            var futureU = _expUtility(nextState, agentNext.action, agentNext.belief, delay+1);
+            return u + futureU;
+          }
         }));
-      }                      
     });
-  var expUtility = function(state, action, currentBelief) { return _expUtility(state, action, currentBelief, 0); };
 
+  var expUtility = function(state, action, currentBelief) {
+    return _expUtility(state, action, currentBelief, 0);
+  };
   
   return {
     utility : utility,
@@ -202,6 +196,7 @@ var simulate = function(startState, world, agent, actualTotalTime, perceivedTota
   var agentAction = agent.agent;
   var transition = world.transition;
   var observe = world.observe;
+  
   var startState = update(startState, update(state.latentState, { timeLeft : perceivedTotalTime }));
 
   var isGridworld = arraysEqual(world.actions, ['l', 'r', 'u', 'd']);
