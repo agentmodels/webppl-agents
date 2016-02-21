@@ -11,8 +11,8 @@ var makeDonutUtility = function (max_digest, rewards) {
 
 
 var makeHyperbolicDiscounter = function (agentParams, world) {
-  map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeAgent args');}, 
-      ['utility','alpha','discount','naiveOrSophisticated']);
+  map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeAgent args: ' + s + '; ' + JSON.stringify(agentParams));}, 
+      ['utility','alpha','discount','sophisticatedOrNaive']);
 
   var stateToActions = world.stateToActions;
   var transition = world.transition;
@@ -61,8 +61,7 @@ var makeHyperbolicDiscounter = function (agentParams, world) {
 };
 
 var simulate = function(state, world, agent, actualTotalTime, statesOrActions) { 
-  var perceivedTotalTime = startState.manifestState.timeLeft;
-  assert.ok( actualTotalTime <= perceivedTotalTime, 'simulate args');
+  var perceivedTotalTime = state.timeLeft;
   assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
 
 
@@ -81,7 +80,7 @@ var simulate = function(state, world, agent, actualTotalTime, statesOrActions) {
     }
 
   };
-  return sampleSequence(state, actualTotalTime)
+  return sampleSequence(state, actualTotalTime);
 };
 
 
