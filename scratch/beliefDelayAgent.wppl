@@ -13,6 +13,9 @@ var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
 var isERP = function (x) {return x.hasOwnProperty('score') && x.hasOwnProperty('sample');};
 var isState = function (x) {x.hasOwnProperty('latentState') && _.isFinite(x.manifestState.timeLeft);};
 var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
+var isWorld = function (x) { return x.hasOwnProperty('transition') && x.hasOwnProperty('manifestStateToActions') &&
+                             x.hasOwnProperty('observe');};
+
 
 // POMDP AGENT AND WORLD
 
@@ -26,6 +29,7 @@ var buildState = function (manifestState, latentState) {
 var makeBeliefDelayAgent = function (agentParams, world){
   map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeAgent args');}, 
       ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief']);
+  assert.ok( isWorld(world), 'world lacks transition, stateToActions, observe');
 
   var utility = agentParams.utility;
   
@@ -56,7 +60,8 @@ var makeBeliefDelayAgent = function (agentParams, world){
 
   var _agent = dp.cache(
     function (manifestState, currentBelief, observation, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), 'agent args fail');
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), 'agent args fail' +
+                'agent args   ' + JSON.stringify(manifestState) + JSON.stringify(sample(currentBelief)));
 
 
       
@@ -118,6 +123,8 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
   var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {return actualTimeLeft == 0 || state.dead;} :
       function (actualTimeLeft, state) {return actualTimeLeft == 0;};
 
+  
+
   var sampleSequence = function(state, currentBelief, actualTimeLeft) {
     if (cutoffCondition(actualTimeLeft, state.manifestState) ) {
       return [];
@@ -125,7 +132,8 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
       var nextAction = sample(agentAction(state.manifestState, currentBelief, observe(state)));
       
       var nextState = transition(state, nextAction.action);
-      var out = { states:state, actions:nextAction, both:[state, nextAction] }[outputStatesOrActions]; // could return observations
+      var out = {states:state, actions:nextAction, both:[state, nextAction],
+                 stateBelief: [state, currentBelief]}[outputStatesOrActions]; // could return observations
       
       return [out].concat( sampleSequence(nextState, nextAction.belief, actualTimeLeft - 1));
     }
@@ -136,23 +144,33 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
 
 // TODO. grab the beliefERPs so this works in belief setting also
 var getExpectedUtilities = function (startState, world, agent, actualTotalTime){
-
-  var trajectory = simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states');
+  assert.ok( !agent.agentParams.noDelays, 'delays switched off');
+  
+  var trajectory = simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'stateBelief');
   
   var expectedUtility = agent._expectedUtility;
-  var stateToActions = world.stateToActions;
+  var stateToActions = world.manifestStateToActions;
 
+  
+  
   var getExpectedUtilityFromTimestep = function(t){
     var trajectoryAfterT = trajectory.slice(t, trajectory.length);
+    var len = trajectoryAfterT.length;
     
-    return map(function(state){
-      return [state.loc,
-              map(function(a){return expectedUtility(state, a, trajectoryAfterT.length - state.timeLeft);},
-                  stateToActions(state))];
+    return map(function(stateBelief){
+      var manifestState = stateBelief[0].manifestState;
+      var belief = stateBelief[1];
+      var timeLeft = manifestState.timeLeft;
+
+      return [stateBelief[0], 
+              map(function(a){
+                return expectedUtility(manifestState, belief, a, len - timeLeft);
+              }, stateToActions(manifestState))
+             ];
     }, trajectoryAfterT);
   };
 
-  var timestepToExpectedUtilities = map(getExpectedUtilityFromTimestep,_.range(trajectory.length));
+  var timestepToExpectedUtilities = map(getExpectedUtilityFromTimestep, _.range(trajectory.length));
 
   return {trajectory: trajectory, timestepToExpectedUtilities: timestepToExpectedUtilities};
   
@@ -214,7 +232,15 @@ var runBandits = function (numArms, armToRewards, priorBelief, discount, noDelay
   var actualTotalTime = perceivedTotalTime;
   var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, dead:false}, 
                     latentState: armToRewards};
- 
+
+  var agent = makeBeliefDelayAgent(update(agentParams,{noDelays:false}),world);
+  var out = getExpectedUtilities(startState, world, agent, actualTotalTime);
+  //console.log(JSON.stringify(out.timestepToExpectedUtilities));
+  //ash();
+  map( function(EUs){
+    console.log('EUs: ', EUs, ' \n\n');
+  }, out.timestepToExpectedUtilities);
+  ash();
   return simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states');
 };
 
@@ -233,6 +259,8 @@ var testBandits = function () {
   var trajectory = runBandits(numArms, armToRewards, priorBelief, discount, noDelays, perceivedTotalTime);
   map( function(index){assert.ok( trajectory[index].manifestState.loc == 0);}, [1,2] );
 
+  
+  
 
   // Discounting agent will explore a risky arm less
   var testDiscount = function(discount){
