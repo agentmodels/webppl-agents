@@ -117,7 +117,6 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
   var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {return actualTimeLeft == 0 || state.dead;} :
       function (actualTimeLeft, state) {return actualTimeLeft == 0;};
 
-  
 
   var sampleSequence = function(state, currentBelief, actualTimeLeft) {
     if (cutoffCondition(actualTimeLeft, state.manifestState) ) {
@@ -136,7 +135,6 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
 };
 
 
-// TODO. grab the beliefERPs so this works in belief setting also
 var getExpectedUtilities = function (startState, world, agent, actualTotalTime){
   assert.ok( !agent.agentParams.noDelays, 'delays switched off');
   
@@ -145,7 +143,6 @@ var getExpectedUtilities = function (startState, world, agent, actualTotalTime){
   var expectedUtility = agent._expectedUtility;
   var stateToActions = world.manifestStateToActions;
 
-  
   
   var getExpectedUtilityFromTimestep = function(t){
     var trajectoryAfterT = trajectory.slice(t, trajectory.length);
@@ -227,14 +224,14 @@ var runBandits = function (numArms, armToRewards, priorBelief, discount, noDelay
   var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, dead:false}, 
                     latentState: armToRewards};
 
-  var agent = makeBeliefDelayAgent(update(agentParams,{noDelays:false}),world);
-  var out = getExpectedUtilities(startState, world, agent, actualTotalTime);
-  //console.log(JSON.stringify(out.timestepToExpectedUtilities));
-  //ash();
-  map( function(EUs){
-    console.log('EUs: ', EUs, ' \n\n');
-  }, out.timestepToExpectedUtilities);
-  ash();
+  // var agent = makeBeliefDelayAgent(update(agentParams,{noDelays:false}),world);
+  // var out = getExpectedUtilities(startState, world, agent, actualTotalTime);
+  // //console.log(JSON.stringify(out.timestepToExpectedUtilities));
+  // //ash();
+  // map( function(EUs){
+  //   console.log('EUs: ', EUs, ' \n\n');
+  // }, out.timestepToExpectedUtilities);
+  // ash();
   return simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states');
 };
 
@@ -253,8 +250,6 @@ var testBandits = function () {
   var trajectory = runBandits(numArms, armToRewards, priorBelief, discount, noDelays, perceivedTotalTime);
   map( function(index){assert.ok( trajectory[index].manifestState.loc == 0);}, [1,2] );
 
-  
-  
 
   // Discounting agent will explore a risky arm less
   var testDiscount = function(discount){
