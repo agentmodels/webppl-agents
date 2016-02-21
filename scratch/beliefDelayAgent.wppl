@@ -59,10 +59,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
 
   var _agent = dp.cache(
     function (manifestState, currentBelief, observation, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), 'agent args fail' +
-                'agent args   ' + JSON.stringify(manifestState) + JSON.stringify(sample(currentBelief)));
-
-
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), 'agent args fail');
       
       var newBelief = updateBelief(manifestState, currentBelief, observation);
       return Enumerate(function () {
@@ -81,8 +78,6 @@ var makeBeliefDelayAgent = function (agentParams, world){
     function (manifestState, currentBelief, action, delay) {
       return expectation(
         Enumerate(function () {
-         
-
           var latentState = sample(currentBelief);
           var state = buildState(manifestState, latentState);
           var u = 1.0 / (1 + agentParams.discount * delay) * utility(state, action);
