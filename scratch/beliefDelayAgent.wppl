@@ -25,6 +25,16 @@ var makeBeliefDelayAgent = function (agentParams, world){
   var transition = world.transition;
   var observe = world.observe;
 
+  // TODO: set all delays to zero to speed up runtime
+  var getPerceivedDelay = function(currentDelay){
+    return agentParams.noDelays == 0 ? 0 :
+      {naive: delay + 1, sophisticated: 0 }[agentParams.sophisticatedOrNaive];
+  };
+  
+  var incrementDelay = function(currentDelay){
+    return agentParams.noDelays == 0 ? 0 : currentDelay + 1;
+  };
+
   // *currentBelief* is ERP on latent states, returns posterior ERP on latent states
   var updateBelief = dp.cache(
     function (manifestState, currentBelief, observation) {
