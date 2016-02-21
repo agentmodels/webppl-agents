@@ -1,0 +1,262 @@
+// Helper functions for testing argument types (warning: heuristics only)
+var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
+var isERP = function (x) {return x.hasOwnProperty('score')
+			  && x.hasOwnProperty('sample');};
+var isState = function (x) {x.hasOwnProperty('latentState')
+			    && _.isFinite(x.manifestState.timeLeft);};
+var isGridworld = function(world){return arraysEqual(world.actions,
+						     ['l', 'r', 'u', 'd']);};
+var isWorld = function (x) { return x.hasOwnProperty('transition')
+			     && x.hasOwnProperty('manifestStateToActions')
+			     && x.hasOwnProperty('observe');};
+
+// Helper function for building state from its components
+var buildState = function (manifestState, latentState) {
+    return { manifestState:manifestState, latentState:latentState };
+};
+
+
+
+// POMDP AGENT WITHOUT DELAYS
+// basically the same as makeBeliefDelayAgent without delays or discounting
+
+var makeBeliefAgent = function(agentParams, world) {
+    map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeBeliefAgent args');}, 
+	['utility','alpha', 'priorBelief']);
+    assert.ok( isWorld(world),
+	       'world argument lacks transition, stateToActions, or observe');
+
+    var utility = agentParams.utility;
+
+    var manifestStateToActions = world.manifestStateToActions;
+    var transition = world.transition;
+    var observe = world.observe;
+
+    var updateBelief = dp.cache(
+	function(manifestState, currentBelief, observation){
+	    return Enumerate(function(){
+		var latentState = sample(currentBelief);
+		var state = buildState(manifestState, latentState);
+		condition(_.isEqual(observe(state), observation));
+		return latentState;
+	    });
+	});
+
+    var agent = dp.cache(
+	function(manifestState, currentBelief, observation) {
+	    assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief),
+		      'agent args fail');
+
+	    var newBelief = updateBelief(manifestState, currentBelief, observation);
+
+	    return Enumerate(function(){
+		var action = uniformDraw(manifestStateToActions(manifestState));
+		var eu = expectedUtility(manifestState, newBelief, action);
+		factor(agentParams.alpha * eu);
+		return {action: action, belief: newBelief};
+	    });
+	});
+
+    var expectedUtility = dp.cache(
+	function(manifestState, currentBelief, action) {
+	    return expectation(
+		Enumerate(function(){
+		    var latentState = sample(currentBelief);
+		    var state = buildState(manifestState, latentState);
+		    var u = utility(state, action);
+		    if (state.manifestState.dead) {
+			return u;
+		    } else {
+			var nextState = transition(state, action);
+			var nextAction = sample(agent(nextState.manifestState,
+						      currentBelief,
+						      observe(nextState)));
+			var futureU = expectedUtility(nextState.manifestState,
+						      nextAction.belief,
+						      nextAction.action);
+			return u + futureU;
+		    }
+		})
+	    );
+	});
+
+    return {agent: agent, expectedUtility: expectedUtility, agentParams: agentParams};
+};
+
+// *simulateBeliefDelayAgent* doesn't actually refer to the delays, so I can copy and
+// paste it here
+var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
+				    outputStatesOrActions) {
+    var perceivedTotalTime = startState.manifestState.timeLeft;
+    assert.ok( actualTotalTime <= perceivedTotalTime && isState(startState),
+	       'simulate args');
+    assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
+
+    var agentAction = agent.agent;
+    var priorBelief = agent.agentParams.priorBelief;
+    var transition = world.transition;
+    var observe = world.observe;
+
+    var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {
+	return actualTimeLeft == 0 || state.dead;
+    } :	function (actualTimeLeft, state) {return actualTimeLeft == 0;};
+
+
+    var sampleSequence = function(state, currentBelief, actualTimeLeft) {
+	if (cutoffCondition(actualTimeLeft, state.manifestState) ) {
+	    return [];
+	} else {
+	    var nextAction = sample(agentAction(state.manifestState, currentBelief,
+						observe(state)));
+	    
+	    var nextState = transition(state, nextAction.action);
+	    var out = {states:state, actions:nextAction, both:[state, nextAction],
+                       stateBelief: [state, currentBelief]}[outputStatesOrActions];
+	    // could return observations
+	    
+	    return [out].concat( sampleSequence(nextState, nextAction.belief,
+						actualTimeLeft - 1));
+	}
+    };
+    return sampleSequence(startState, priorBelief, actualTotalTime);
+};
+
+var printOut = function ( trajectory ) {
+    console.log('trajectory', map( function (state) {return state.manifestState.loc;},
+				   trajectory) );
+    //console.log('expUtilities', out.startEU);
+};
+
+// Multi-arm deterministic bandits.
+// Rewards of arms are fixed by the latent state. 
+var makeBandits = function (numArms) {
+    var actions = _.range(numArms);
+    
+    var mdpTransition = function (state, action) {
+	var dead = state.timeLeft - 1 == 1 ? true : false;
+	return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
+    };
+    
+    var manifestStateToActions = function (manifestState) {return actions;};
+
+    var transition = function(state, action){
+	return buildState( mdpTransition(state.manifestState, action),
+			   state.latentState);
+    };
+
+    var observe = function(state){
+	// agent observes the reward of arm when he chooses it
+	return state.latentState[state.manifestState.loc];
+    };
+    
+    return {manifestStateToActions: manifestStateToActions, transition:transition,
+	    observe:observe};
+};
+
+// *armToRewards* is the actual rewards for each arm (true latentState)
+// *priorBelief* is agent's belief about rewards,
+// which must have true latentState in support
+var runBandits = function(numArms, armToRewards, priorBelief,
+			  perceivedTotalTime) {
+    map( function(n){assert.ok(_.isFinite(armToRewards[n]),'check armTo');},
+	 _.range(numArms) );
+    var world = makeBandits(numArms);
+
+    // agent params 
+    assert.ok( _.isFinite(priorBelief.score([],armToRewards)),
+	       "actual latent not in prior's support" );
+
+    var agentParams = { 
+	utility: function (state,action) {
+	    return state.latentState[state.manifestState.loc];
+	}, // utility == reward
+	alpha: 100,
+	priorBelief: priorBelief
+    };
+
+    var agent = makeBeliefAgent(agentParams, world);
+
+    var actualTotalTime = perceivedTotalTime;
+    var startState = {manifestState: {loc: 'start',
+				      timeLeft: perceivedTotalTime,
+				      dead: false},
+		      latentState: armToRewards};
+
+    return simulateBeliefAgent(startState, world, agent, actualTotalTime, 'states');
+};
+
+// testing bandits for *beliefAgent*. Basically the same as the tests for
+// *beliefDelayAgent* on the pomdpBanditTests branch, but without the ones that
+// display behaviour caused by discounting.
+var testBandits = function () {
+
+    // Agent thinks 0 is likely better. It is better and so agent stays
+    var numArms = 2;
+    var armToRewards = {'start':0, 0:10, 1:5}; 
+    var priorBelief = Enumerate(function(){
+	return flip(.8) ? armToRewards : update(armToRewards,{1:15});
+    });
+    var perceivedTotalTime = 3;
+    var trajectory = runBandits(numArms, armToRewards, priorBelief,
+				perceivedTotalTime);
+    // console.log(printOut(trajectory));
+    map( function(index){assert.ok( trajectory[index].manifestState.loc == 0);},
+	 [1,2] );
+
+    // Agent thinks 0 is likely better, but tries 1 for the VOI.
+    // 1 is worse, so it goes back to 0.
+
+    var priorBelief2 = Enumerate(function(){
+	return flip(.6) ? armToRewards : update(armToRewards,{1:15});
+    });
+    var perceivedTotalTime2 = 5;
+    var trajectory2 = runBandits(numArms, armToRewards, priorBelief2,
+				 perceivedTotalTime2);
+    assert.ok(trajectory2[1].manifestState.loc == 1);
+    map( function(index){assert.ok( trajectory2[index].manifestState.loc == 0,
+				    'test2');},
+	 [2,3] );
+
+    // Same as above, but 1 is actually better
+    var armToRewards3 = {'start': 0, 0:10, 1:15};
+    var trajectory3 = runBandits(numArms, armToRewards3, priorBelief2,
+				 perceivedTotalTime2);
+    map( function(index){assert.ok( trajectory3[index].manifestState.loc == 1,
+				    'test3');},
+	 [1,2,3] );
+
+    // three arms. Explore 1, then 2, then stick with 0.
+    var numArms4 = 3;
+    var armToRewards4 = {'start': 0, 0: 1, 1: 0, 2: 0};
+    var priorBelief4 = Enumerate(function(){
+	return {
+	    'start': 0,
+	    0: 1,
+	    1: categorical([0.8, 0.2], [0, 200]),
+	    2: categorical([0.8, 0.2], [0, 150])
+	};
+    });
+    var trajectory4 = runBandits(numArms4, armToRewards4, priorBelief4,
+				 perceivedTotalTime2);
+    // console.log(printOut(trajectory4));
+    assert.ok( arraysEqual([1, 2, 0],
+			   map(function(index){
+			       return trajectory4[index].manifestState.loc;},
+			       [1,2,3])),
+	       'test4');
+
+    // three arms, explore 1, then stick with 2.
+    var armToRewards5 = {'start': 0, 0: 1, 1: 0, 2: 150};
+    var trajectory5 = runBandits(numArms4, armToRewards5, priorBelief4,
+				 perceivedTotalTime2);
+    assert.ok( arraysEqual([1,2,2],
+			   map(function(index){
+			       return trajectory5[index].manifestState.loc;},
+			       [1,2,3])),
+	       'test5');
+    
+    console.log('passed testbandits');  
+};
+
+testBandits();                                                       
+ash();
