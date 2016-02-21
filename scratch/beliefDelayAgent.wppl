@@ -1,4 +1,12 @@
 
+// TODO for beliefDelay agent
+
+// 0. Finish features that set all delays to zero (to speed up POMDPs)
+// 1. Fix getExpectedUtilities for pomdp case by having option
+// of outputting beliefs as well as [state,action]
+// 2. Get gridworld examples running (to make sure there's no gotchas)
+// 3. Add some inference examples and add agent to /src
+// 4. Add myopia and bound VOI agents. 
 
 // Helper functions for testing argument types (warning: heuristics only)
 var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
@@ -150,11 +158,6 @@ var printOut = function ( trajectory ) {
   console.log('trajectory', map( function (state) {return state.manifestState.loc;}, trajectory) );
   //console.log('expUtilities', out.startEU);
 };
-
-
-// ADD POMDP STUFF WITH BANDITS, paying attention to
-// (b) adding updateDelay so that delay overhead avoided when discount==0
-// (c) combining pomdp and digest thing.
 
 
 
