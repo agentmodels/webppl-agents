@@ -1,4 +1,4 @@
-var inGrid = function(gridMap, loc) {
+var inGrid_ = function(gridMap, loc) {
   return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
           loc[1] >= 0 && loc[1] < gridMap.yLim);
 }
@@ -9,8 +9,8 @@ var isBlockedLoc = function(gridMap, loc) {
   return feature === '#';
 }
 
-var isAllowedState = function(gridMap, loc) {
-  return (inGrid(gridMap, loc)) && !isBlockedLoc(gridMap, loc);
+var isAllowedState_ = function(gridMap, loc) {
+  return (inGrid_(gridMap, loc)) && !isBlockedLoc(gridMap, loc);
 };
 
 var advanceStateTime = function(state) { 
@@ -28,11 +28,11 @@ var moveState = function(gridMap, state, action) {
     var possibleNextLoc = gridTransition[action];
     assert.ok(possibleNextLoc != undefined, 'action was not found');
 
-    var nextLoc = isAllowedState(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
+    var nextLoc = isAllowedState_(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
     return update(state, { loc : nextLoc });
 }
 
-var makeGridTransition = function(gridMap) {
+var makeGridTransition_ = function(gridMap) {
   return function(state,action){    
     var getFeature = gridMap.feature;
     var state2 = advanceStateTime(state)
@@ -76,7 +76,7 @@ var makeDonutWorldExtended = function(options){
 
   var gridMap = makeGridMap(features); 
 
-  var transition = makeGridTransition(gridMap);
+  var transition = makeGridTransition_(gridMap);
   var actions = ['l', 'r', 'u', 'd'];
 
 
@@ -87,6 +87,7 @@ var makeDonutWorldExtended = function(options){
       var newState = transition(state, action);
       return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
     }, actions);
+  var transition = makeGridTransition_(gridMap);
 
     if (possibleActions.length > 0) {
       return possibleActions;
@@ -149,7 +150,7 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
         }));
       }                      
     });
-  var expUtility = function(state) { return _expUtility(state, 0); };
+  var expUtility = function(state, action) { return _expUtility(state, action, 0); };
 
 
   return {
