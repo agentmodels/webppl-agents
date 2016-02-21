@@ -235,7 +235,6 @@ var runBandits = function (numArms, armToRewards, priorBelief, discount, noDelay
   return simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states');
 };
 
-
 var testBandits = function () {
 
   // Agent thinks 0 is likely better. It is better and so agent stays
@@ -248,6 +247,7 @@ var testBandits = function () {
   var noDelays = true;
   var perceivedTotalTime = 3;
   var trajectory = runBandits(numArms, armToRewards, priorBelief, discount, noDelays, perceivedTotalTime);
+    // console.log(printOut(trajectory));
   map( function(index){assert.ok( trajectory[index].manifestState.loc == 0);}, [1,2] );
 
     // Agent thinks 0 is likely better, but tries 1 for the VOI.
@@ -259,13 +259,41 @@ var testBandits = function () {
     var perceivedTotalTime2 = 5;
     var trajectory2 = runBandits(numArms, armToRewards, priorBelief2, discount, noDelays, perceivedTotalTime2);
     assert.ok(trajectory2[1].manifestState.loc == 1);
-    map( function(index){assert.ok( trajectory2[index].manifestState.loc == 0);}, [2,3] );
+    map( function(index){assert.ok( trajectory2[index].manifestState.loc == 0, 'test2');}, [2,3] );
 
     // Same as above, but 1 is actually better
     var armToRewards3 = {'start': 0, 0:10, 1:15};
     var trajectory3 = runBandits(numArms, armToRewards3, priorBelief2, discount, noDelays, perceivedTotalTime2);
-    map( function(index){assert.ok( trajectory[index].manifestState.loc == 0);}, [1,2,3] );
-    
+    map( function(index){assert.ok( trajectory3[index].manifestState.loc == 1, 'test3');}, [1,2,3] );
+
+    // three arms. Explore 1, then 2, then stick with 0.
+    var numArms4 = 3;
+    var armToRewards4 = {'start': 0, 0: 1, 1: 0, 2: 0};
+    var priorBelief4 = Enumerate(function(){
+	return {
+	    'start': 0,
+	    0: 1,
+	    1: categorical([0.8, 0.2], [0, 200]),
+	    2: categorical([0.8, 0.2], [0, 150])
+	};
+    });
+    var trajectory4 = runBandits(numArms4, armToRewards4, priorBelief4, discount, noDelays, perceivedTotalTime2);
+    // console.log(printOut(trajectory4));
+    assert.ok( arraysEqual([1, 2, 0],
+			   map(function(index){
+			       return trajectory4[index].manifestState.loc;},
+			       [1,2,3])),
+	       'test4');
+
+    // three arms, explore 1, then stick with 2.
+    var armToRewards5 = {'start': 0, 0: 1, 1: 0, 2: 150};
+    var trajectory5 = runBandits(numArms4, armToRewards5, priorBelief4, discount, noDelays, perceivedTotalTime2);
+    assert.ok( arraysEqual([1,2,2],
+			   map(function(index){
+			       return trajectory5[index].manifestState.loc;},
+			       [1,2,3])),
+	       'test5');
+
   // Discounting agent will explore a risky arm less
   var testDiscount = function(discount){
     var numArms = 2;
