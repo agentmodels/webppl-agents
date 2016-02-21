@@ -11,7 +11,7 @@ var donutUtility = makeDonutUtility(4, {
     'Noodle': [0, 0, 0, 0]
 });
 
-var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
+var world = makeDonutWorld2({ bottomLeftNook : '#' });
 var agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
@@ -22,7 +22,7 @@ var trajectory = simulate(start, world, agent, 12, 'states');
 assert.ok(gridEqual(last(trajectory).loc, [3, 5]), "sophisticated didn't end up in 3,5");
 assert.ok(trajectory[5].loc[0] == 4, "sophisticated didn't take right side");
 
-var world2 = makeDonutWorldExtended({ bottomLeftNook : { name : 'Donut' } });
+var world2 = makeDonutWorld2({ bottomLeftNook : { name : 'Donut' } });
 var agent2 = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 

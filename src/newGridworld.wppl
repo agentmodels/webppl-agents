@@ -1,4 +1,3 @@
-
 var inGrid_ = function(gridMap, loc) {
   return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
           loc[1] >= 0 && loc[1] < gridMap.yLim);
@@ -61,26 +60,65 @@ var makeGridMap = function(rfeatures)  {
   };
 };
 
-var makeDonutWorldExtended = function(options){
+var makeStateToActions = function(transition, actions) { 
+  return function (state) { 
+    var possibleActions = filter(function (action) { 
+      var newState = transition(state, action);
+      return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
+    }, actions);
+
+    if (possibleActions.length > 0) {
+      return possibleActions;
+    } else { 
+      return [actions[0]];
+    }
+  };
+};
+
+var restaurant = {
+  donut : { name : 'Donut'},
+  veg   : { name : 'Veg'},
+  noodle: { name : 'Noodle'}
+};
+
+var makeDonutWorld2 = function(options) { 
   var _ = ' '; 
-  var D = { name : 'Donut'} ;
-  var V = { name : 'Veg'} ;
-  var N = { name : 'Noodle'} ;
+  var D = restaurant.donut;
+  var V = restaurant.veg;
+  var N = restaurant.noodle;
 
-  var X = options.bottomLeftNook;
-  var features = [['#', '#', '#',  V , '#', '#'],
-                  ['#', '#',  _ ,  _ ,  _ , '#'],  
-                  ['#', D  ,  _ , '#',  _ ,  N ],
-                  ['#', '#',  _ , '#',  _ , '#'],
-                  [ X ,  _ ,  _ ,  _ ,  _ , '#'],
-                  ['#', '#',  _ , '#', '#', '#']];
+  var options = options || {};
+  var X = options.bottomLeftNook || D;
 
+  var small = 
+    [['#', '#', '#',  V , '#'],
+     ['#', '#',  _ ,  _ ,  _ ],  
+     ['#', D  ,  _ , '#',  _ ],
+     ['#', '#',  _ ,  _ ,  _ ],
+     ['#', '#',  _ , '#',  N ],
+     [ _ ,  _ ,  _ , '#', '#'],
+     [ X , '#',  _ , '#', '#']];
+
+  var big = 
+    [['#', '#', '#', '#',  V , '#'],
+     ['#', '#', '#',  _ ,  _ ,  _ ],  
+     ['#', '#', D  ,  _ , '#',  _ ],
+     ['#', '#', '#',  _ , '#',  _ ],
+     ['#', '#', '#',  _ ,  _ ,  _ ],
+     ['#', '#', '#',  _ , '#',  N ],
+     [ _ ,  _ ,  _ ,  _ , '#', '#'],
+     [ X , '#', '#',  _ , '#', '#']];
+
+  var features = options.big ? big : small;
+  return makeGridWorld(features);
+}
+
+
+var makeGridWorld = function(features) {
   var gridMap = makeGridMap(features); 
 
   var transition = makeGridTransition_(gridMap);
   var actions = ['l', 'r', 'u', 'd'];
-
-
 
   var stateToActions = function (state) { 
 
@@ -97,8 +135,8 @@ var makeDonutWorldExtended = function(options){
   };
 
   return update(gridMap,
-      { transition : transition, 
-        actions    : actions,
-        stateToActions    : stateToActions,
-      });
+    { transition : transition, 
+      actions    : actions,
+      stateToActions    : stateToActions,
+    });
 };

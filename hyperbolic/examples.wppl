@@ -11,7 +11,7 @@ var donutUtility = makeDonutUtility(4, {
     'Noodle': [0, 0, 0, 0]
 });
 
-var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
+var world = makeDonutWorld2({ bottomLeftNook : '#', big : true});
 var agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
@@ -20,7 +20,7 @@ var agent = makeHyperbolicDiscounter(
     }, world);
 mdpSim(start, world, agent, 12);
 
-var world2 = makeDonutWorldExtended({ bottomLeftNook : { name : 'Donut'}  });
+var world2 = makeDonutWorld2({ bottomLeftNook : { name : 'Donut'}  });
 var agent2 = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 

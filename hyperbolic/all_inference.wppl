@@ -11,7 +11,7 @@ var donutUtility = makeDonutUtility(4, {
     'Noodle': [0, 0, 0, 0]
 });
 
-var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
+var world = makeDonutWorld2({ bottomLeftNook : '#' });
 var actual_agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
