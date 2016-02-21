@@ -250,7 +250,22 @@ var testBandits = function () {
   var trajectory = runBandits(numArms, armToRewards, priorBelief, discount, noDelays, perceivedTotalTime);
   map( function(index){assert.ok( trajectory[index].manifestState.loc == 0);}, [1,2] );
 
+    // Agent thinks 0 is likely better, but tries 1 for the VOI.
+    // 1 is worse, so it goes back to 0.
 
+    var priorBelief2 = Enumerate(function(){
+	return flip(.6) ? armToRewards : update(armToRewards,{1:15});
+    });
+    var perceivedTotalTime2 = 5;
+    var trajectory2 = runBandits(numArms, armToRewards, priorBelief2, discount, noDelays, perceivedTotalTime2);
+    assert.ok(trajectory2[1].manifestState.loc == 1);
+    map( function(index){assert.ok( trajectory2[index].manifestState.loc == 0);}, [2,3] );
+
+    // Same as above, but 1 is actually better
+    var armToRewards3 = {'start': 0, 0:10, 1:15};
+    var trajectory3 = runBandits(numArms, armToRewards3, priorBelief2, discount, noDelays, perceivedTotalTime2);
+    map( function(index){assert.ok( trajectory[index].manifestState.loc == 0);}, [1,2,3] );
+    
   // Discounting agent will explore a risky arm less
   var testDiscount = function(discount){
     var numArms = 2;
