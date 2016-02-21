@@ -1,7 +1,6 @@
 
 // TODO for beliefDelay agent
 
-// 0. Finish features that set all delays to zero (to speed up POMDPs)
 // 1. Fix getExpectedUtilities for pomdp case by having option
 // of outputting beliefs as well as [state,action]
 // 2. Get gridworld examples running (to make sure there's no gotchas)
@@ -29,7 +28,7 @@ var buildState = function (manifestState, latentState) {
 var makeBeliefDelayAgent = function (agentParams, world){
   map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeAgent args');}, 
       ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief']);
-  assert.ok( isWorld(world), 'world lacks transition, stateToActions, observe');
+  assert.ok( isWorld(world), 'world argument lacks transition, stateToActions, or observe');
 
   var utility = agentParams.utility;
   
