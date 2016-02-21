@@ -33,14 +33,14 @@ var makeBeliefDelayAgent = function (agentParams, world){
   var transition = world.transition;
   var observe = world.observe;
 
-  // TODO: set all delays to zero to speed up runtime
+  // Set all delays to zero to speed up runtime
   var getPerceivedDelay = function(currentDelay){
-    return agentParams.noDelays == 0 ? 0 :
-      {naive: delay + 1, sophisticated: 0 }[agentParams.sophisticatedOrNaive];
+    return agentParams.noDelays ? 0 :
+      {naive: currentDelay + 1, sophisticated: 0 }[agentParams.sophisticatedOrNaive];
   };
   
   var incrementDelay = function(currentDelay){
-    return agentParams.noDelays == 0 ? 0 : currentDelay + 1;
+    return agentParams.noDelays ? 0 : currentDelay + 1;
   };
 
   // *currentBelief* is ERP on latent states, returns posterior ERP on latent states
@@ -57,6 +57,8 @@ var makeBeliefDelayAgent = function (agentParams, world){
   var _agent = dp.cache(
     function (manifestState, currentBelief, observation, delay) {
       assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), 'agent args fail');
+
+
       
       var newBelief = updateBelief(manifestState, currentBelief, observation);
       return Enumerate(function () {
@@ -75,6 +77,8 @@ var makeBeliefDelayAgent = function (agentParams, world){
     function (manifestState, currentBelief, action, delay) {
       return expectation(
         Enumerate(function () {
+         
+
           var latentState = sample(currentBelief);
           var state = buildState(manifestState, latentState);
           var u = 1.0 / (1 + agentParams.discount * delay) * utility(state, action);
@@ -82,10 +86,11 @@ var makeBeliefDelayAgent = function (agentParams, world){
             return u;
           } else {
             var nextState = transition(state, action);
-            var perceivedDelay = {naive: delay + 1, sophisticated: 0 }[agentParams.sophisticatedOrNaive];
+            var perceivedDelay = getPerceivedDelay(delay);
             var nextAction = sample(_agent(nextState.manifestState, currentBelief, observe(nextState), perceivedDelay));
 
-            var futureU = _expectedUtility(nextState.manifestState, nextAction.belief, nextAction.action, delay + 1);
+            var futureU = _expectedUtility(nextState.manifestState, nextAction.belief, nextAction.action, incrementDelay(delay));
+                                                                                                                        
             return u + futureU;
           }
         }));
@@ -187,7 +192,7 @@ var makeBandits = function (numArms) {
 
 // *armToRewards* is the actual rewards for each arm (true latentState)
 // *priorBelief* is agent's belief about rewards, which must have true latentState in support
-var runBandits = function (numArms, armToRewards, priorBelief, discount, perceivedTotalTime){
+var runBandits = function (numArms, armToRewards, priorBelief, discount, noDelays, perceivedTotalTime){
   
   map( function(n){assert.ok(_.isFinite(armToRewards[n]),'check armTo')}, _.range(numArms) );
   var world = makeBandits(numArms);
@@ -200,7 +205,8 @@ var runBandits = function (numArms, armToRewards, priorBelief, discount, perceiv
     alpha: 100,
     discount: discount,
     sophisticatedOrNaive: 'naive',
-    priorBelief: priorBelief
+    priorBelief: priorBelief,
+    noDelays: noDelays
   };
 
   var agent = makeBeliefDelayAgent(agentParams, world);
@@ -222,8 +228,9 @@ var testBandits = function () {
     return flip(.8) ? armToRewards : update(armToRewards,{1:15});
   });
   var discount = 0;
+  var noDelays = true;
   var perceivedTotalTime = 3;
-  var trajectory = runBandits(numArms, armToRewards, priorBelief, discount, perceivedTotalTime);
+  var trajectory = runBandits(numArms, armToRewards, priorBelief, discount, noDelays, perceivedTotalTime);
   map( function(index){assert.ok( trajectory[index].manifestState.loc == 0);}, [1,2] );
 
 
@@ -236,8 +243,10 @@ var testBandits = function () {
       var utility1 = uniformDraw([-10, 5]);
       return {'start':0, 0:1, 1:utility1};
     });
+    var noDelays = false;
     var perceivedTotalTime = 5;
-    return last(runBandits(numArms, armToRewards, priorBelief, discount, perceivedTotalTime)).manifestState.loc;
+   
+    return last(runBandits(numArms, armToRewards, priorBelief, discount, noDelays, perceivedTotalTime)).manifestState.loc;
   };
   assert.ok( testDiscount(0) == 1, 'testdiscount');
   assert.ok( testDiscount(2) == 0, 'testdiscount');
