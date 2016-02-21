@@ -1,108 +1,3 @@
-var inGrid_ = function(gridMap, loc) {
-  return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
-          loc[1] >= 0 && loc[1] < gridMap.yLim);
-}
-
-var isBlockedLoc = function(gridMap, loc) {
-  var getFeature = gridMap.feature;
-  var feature = getFeature({ loc : loc});
-  return feature === '#';
-}
-
-var isAllowedState_ = function(gridMap, loc) {
-  return (inGrid_(gridMap, loc)) && !isBlockedLoc(gridMap, loc);
-};
-
-var advanceStateTime = function(state) { 
-  var dead = state.timeLeft > 0 ? state.dead : true;
-  return update(state, { timeLeft : state.timeLeft - 1, dead : dead});
-}
-
-var moveState = function(gridMap, state, action) { 
-    var loc = state.loc; 
-    var gridTransition = {l: [loc[0]-1, loc[1]],
-                          r: [loc[0]+1, loc[1]],
-                          u: [loc[0], loc[1]+1],
-                          d: [loc[0], loc[1]-1]};
-
-    var possibleNextLoc = gridTransition[action];
-    assert.ok(possibleNextLoc != undefined, 'action was not found');
-
-    var nextLoc = isAllowedState_(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
-    return update(state, { loc : nextLoc });
-}
-
-var makeGridTransition_ = function(gridMap) {
-  return function(state,action){    
-    var getFeature = gridMap.feature;
-    var state2 = advanceStateTime(state)
-
-    if ( getFeature(state2).name ) { // there's a restaurant here
-      var state3 =  update(state2, { digest : state2.digest -1}); 
-      if (state3.digest <= 0) {
-        return update(state3, { dead : true });
-      }
-      return state3;
-    }
-    return moveState(gridMap, state2, action);
-  };
-};
-
-var makeGridMap = function(rfeatures)  { 
-  var features = rfeatures.reverse();
-  return { 
-    features : features,
-    xLim : features[0].length,
-    yLim : features.length,
-    feature : function (state) { 
-      return features[state.loc[1]][state.loc[0]];
-    }
-  };
-};
-
-var makeDonutWorldExtended = function(options){
-  var _ = ' '; 
-  var D = { name : 'Donut'} ;
-  var V = { name : 'Veg'} ;
-  var N = { name : 'Noodle'} ;
-
-  var X = options.bottomLeftNook;
-  var features = [['#', '#', '#',  V , '#', '#'],
-                  ['#', '#',  _ ,  _ ,  _ , '#'],  
-                  ['#', D  ,  _ , '#',  _ ,  N ],
-                  ['#', '#',  _ , '#',  _ , '#'],
-                  [ X ,  _ ,  _ ,  _ ,  _ , '#'],
-                  ['#', '#',  _ , '#', '#', '#']];
-
-  var gridMap = makeGridMap(features); 
-
-  var transition = makeGridTransition_(gridMap);
-  var actions = ['l', 'r', 'u', 'd'];
-
-
-
-  var stateToActions = function (state) { 
-
-    var possibleActions = filter(function (action) { 
-      var newState = transition(state, action);
-      return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
-    }, actions);
-  var transition = makeGridTransition_(gridMap);
-
-    if (possibleActions.length > 0) {
-      return possibleActions;
-    } else { 
-      return [actions[0]];
-    }
-  };
-
-  return update(gridMap,
-      { transition : transition, 
-        actions    : actions,
-        stateToActions    : stateToActions,
-      });
-};
-
 var makeDonutUtility = function (max_digest, rewards) { 
   return function(world, state, action) {
     var getFeature = world.feature;
@@ -115,10 +10,10 @@ var makeDonutUtility = function (max_digest, rewards) {
 };
 
 
-var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticatedOrNaive, world) {
-
+var makeHyperbolicDiscounter = function (agentParams, world) {
   var stateToActions = world.stateToActions;
   var transition = world.transition;
+  var utility = agentParams.utility;
  
     
   var _agent = dp.cache( 
@@ -126,17 +21,17 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
       return Enumerate(function(){
         var possibleActions = stateToActions(state);
         var action = uniformDraw(possibleActions);
-        var eu = _expUtility(state, action, delay);    
-        factor(alpha * eu);
+        var eu = _expectedUtility(state, action, delay);    
+        factor(agentParams.alpha * eu);
         return action;
       });      
     });
   var agent = function(state) { return _agent(state, 0); };
 
   
-  var _expUtility = dp.cache(
+  var _expectedUtility = dp.cache(
     function(state, action, delay){
-      var u = 1.0/(1 + discount*delay) * utility(world, state, action);
+      var u = 1.0/(1 + agentParams.discount*delay) * utility(world, state, action);
       
       assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state));
       if (state.dead){
@@ -144,56 +39,53 @@ var makeHyperbolicDiscounter = function (utility, alpha, discount, sophisticated
       } else {                     
         return u + expectation( Enumerate(function(){
           var nextState = transition(state, action); 
-          var perceivedDelay = { naive : delay + 1, sophisticated : 0}[sophisticatedOrNaive]; 
+          var perceivedDelay = { naive : delay + 1, sophisticated : 0}[agentParams.sophisticatedOrNaive]; 
           var nextAction = sample(_agent(nextState, perceivedDelay));
-          return _expUtility(nextState, nextAction, delay+1);  
+          return _expectedUtility(nextState, nextAction, delay+1);  
         }));
       }                      
     });
-  var expUtility = function(state, action) { return _expUtility(state, action, 0); };
+  var expectedUtility = function(state, action) { return _expectedUtility(state, action, 0); };
 
 
   return {
-    utility : utility,
-    expUtility : expUtility,
+    agentParams : agentParams,
+    expectedUtility : expectedUtility,
     agent : agent,
-    _expUtility : _expUtility,
+    _expectedUtility : _expectedUtility,
     _agent : _agent,
-    alpha : alpha, 
-    discount : discount
   };
 };
 
-var simulate = function(state, world, agent, actualTotalTime, perceivedTotalTime, statesOrActions) { 
+var simulate = function(state, world, agent, actualTotalTime, statesOrActions) { 
     var agentAction = agent.agent;
-    var expUtility = agent.expUtility;
+    var expectedUtility = agent.expectedUtility;
     var transition = world.transition;
-    var state = update(state, { timeLeft : perceivedTotalTime });
-    
-    var _sim = function (state, actualTimeLeft) {
+
+    var sampleSequence = function (state, actualTimeLeft) {
       if (actualTimeLeft==0 | state.dead){
         return [];
       } else {
         var action = sample(agentAction(state));
-        var nextState = transition(state,action); 
+        var nextState = transition(state, action); 
         var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
-        return [ out ].concat( _sim(nextState, actualTimeLeft-1));
+        return [ out ].concat( sampleSequence(nextState, actualTimeLeft-1));
       }
 
     };
-    return _sim(state, actualTotalTime)
+    return sampleSequence(state, actualTotalTime)
 };
 
 
-var mdpSim = function(start, world, agent, actualTotalTime, perceivedTotalTime) { 
+var mdpSim = function(start, world, agent, actualTotalTime) { 
   var agentAgent = agent.agent;
-  var agentExp = agent.expUtility;
+  var expectedUtility = agent.expectedUtility;
 
-  var trajectory = simulate(start, world, agent, actualTotalTime, perceivedTotalTime, 'states');
+  var trajectory = simulate(start, world, agent, actualTotalTime, 'states');
 
-  var exp = map(function(state) {
-    return [state.loc, map(function (a) { return  agentExp(state, a); }, world.actions)];
+  var expectedUtilities = map(function(state) {
+    return [state.loc, map(function (a) { return  expectedUtility(state, a); }, world.actions)];
   }, trajectory);
 
-  GridWorld.draw(world, {trajectory : trajectory, expUtilities : exp });
+  GridWorld.draw(world, {trajectory : trajectory, expUtilities : expectedUtilities });
 }

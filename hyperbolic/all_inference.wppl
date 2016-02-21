@@ -18,19 +18,28 @@ var actual_agent = makeHyperbolicDiscounter(
       discount : 1, 
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
-
 var observed = simulate(start, world, actual_agent, 12, 'both');
 
-var posterior = Enumerate(function () {
+var posterior = timeit( function () {
+MH(function () {
   var discount = randomInteger(3); 
   var type = uniformDraw(['sophisticated', 'naive']);
+  var alpha = uniformDraw([1, 10, 100, 500]);
+  var dU = randomInteger(4) - 1;
+  var vU = randomInteger(4) - .5;
+
+  var donutUtility = makeDonutUtility(4, {
+      'Donut' : [dU, 0, 0, 0],
+      'Veg'   : [0, 0, 0, vU],
+      'Noodle': [0, 0, 0, 0]
+  });
 
   var agent = makeHyperbolicDiscounter(
-    { utility : donutUtility,
-      alpha : 500, 
-      discount : discount, 
-      sophisticatedOrNaive  : type
-    }, world);
+      { utility : donutUtility,
+        alpha : alpha, 
+        discount : discount, 
+        sophisticatedOrNaive  : type,
+      }, world);
   var agentAction = agent.agent;
 
   map(function (stateAction) {
@@ -40,9 +49,8 @@ var posterior = Enumerate(function () {
     factor(agentAction(state).score([], action)) ; 
   }, observed);
 
-  return {
-    type : type, 
-    discount : discount
-  };
+  return { type:type, discount:discount, alpha:alpha, dU:dU, vU:vU };
+})
+
 });
-viz.print(posterior);
+viz.print(posterior.value)

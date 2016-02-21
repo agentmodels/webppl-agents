@@ -14,7 +14,8 @@
   "webppl": {
     "wppl": [
       "src/gridworld.wppl",
-      "src/hyperbolic.wppl"
+      "src/hyperbolic.wppl",
+      "src/newGridworld.wppl"
     ]
   },
   "repository": {
