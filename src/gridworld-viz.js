@@ -154,9 +154,9 @@ function draw(world, additional) {
   };      
 
   var addAgentPath = function(trajectory, group) {
-    var agentPath = new paper.Path();
-
     var coords = _.map(trajectory, 0);
+
+    var agentPath = new paper.Path();
     agentPath.strokeColor = 'black';
     agentPath.strokeWidth = 2;
     agentPath.dashArray = [8,8];
@@ -166,7 +166,13 @@ function draw(world, additional) {
     agent.fillColor = color.agent;
     group.addChild(agent);
 
+    var segPerSec = 3;
+    var extraAtEnd = 1;
+    var lastTime = 0;
+
     var scale, offsetx, offsety;
+    var active = true;
+    var offsett = 0;
     paper.view.onFrame = function (event) { 
       //the first time we execute we need to find out how things have been rescaled
       if (scale === undefined) {
@@ -179,31 +185,46 @@ function draw(world, additional) {
         return [x[0] * scale + offsetx, x[1] * scale + offsety];
       } 
 
-      var segPerSec = 3;
-      var extraAtEnd = 1;
+      if (active) {
+        if (event.time - lastTime > .1) {
+          console.log(event.time - lastTime, offsett);
+          offsett += event.time - lastTime;
+        }
+        lastTime = event.time;
 
-      var segments = event.time*segPerSec;
-      var frac = segments % 1;
-      var idx = _.toInteger(Math.min(Math.floor(segments) % (trajectory.length + extraAtEnd), trajectory.length-1));
+        var segments = (event.time - offsett)*segPerSec;
+        var frac = segments % 1;
+        var idx = _.toInteger(Math.min(Math.floor(segments) % (trajectory.length + extraAtEnd), trajectory.length-1));
 
-      agentPath.removeSegments();
+        agentPath.remove()
 
-      var currentLocation;
-      if (idx < trajectory.length-1) {
-        currentLocation = [
-          (1-frac) * coords[idx][0] + frac * coords[idx+1][0],
-          (1-frac) * coords[idx][1] + frac * coords[idx+1][1]
-        ];
-      } else { 
-        currentLocation = coords[idx];
+        var currentLocation;
+        if (idx < trajectory.length-1) {
+          currentLocation = [
+            (1-frac) * coords[idx][0] + frac * coords[idx+1][0],
+            (1-frac) * coords[idx][1] + frac * coords[idx+1][1]
+          ];
+        } else { 
+          currentLocation = coords[idx];
+        }
+
+        var currentPath = _.take(coords, idx+1);
+        currentPath.push(currentLocation)
+
+        agentPath = new paper.Path();
+        agentPath.strokeColor = 'black';
+        agentPath.strokeWidth = 2;
+        agentPath.dashArray = [8,8];
+        group.addChild(agentPath);
+
+        agentPath.addSegments(_.map(currentPath, scalePosition));
+        agent.position = scalePosition(currentLocation);
       }
-
-      var currentPath = _.take(coords, idx+1);
-      currentPath.push(currentLocation);
-
-      agentPath.addSegments(_.map(currentPath, scalePosition));
-      agent.position = scalePosition(currentLocation);
     };
+
+    paper.view.on('mousedown', function (event) { 
+      active = !active;
+    });
 
   };
   var axisx = _.map(_.range(world.xLim), function (i) { 
@@ -269,5 +290,5 @@ function draw(world, additional) {
 }
 
 module.exports = {
-  draw: draw,
+  draw: draw
 }
