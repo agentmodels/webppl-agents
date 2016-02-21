@@ -285,123 +285,114 @@ ash();
 
 
 
-var testLine = function () {
+// var testLine = function () {
 
-  var makeLine = function (noiseProb) {
-    var detTransition = function (state, action) {
-      var newLoc = (state.loc == 0 & action == -1) ? 0 : state.loc + action;
-      var dead = state.timeLeft - 1 == 1 ? true : false;
-      assert.ok(state.timeLeft != 0, 'detTransition for makeLine');
-      return update(state, { loc:newLoc, timeLeft:state.timeLeft - 1, dead:dead });
-    };
+//   var makeLine = function (noiseProb) {
+//     var detTransition = function (state, action) {
+//       var newLoc = (state.loc == 0 & action == -1) ? 0 : state.loc + action;
+//       var dead = state.timeLeft - 1 == 1 ? true : false;
+//       assert.ok(state.timeLeft != 0, 'detTransition for makeLine');
+//       return update(state, { loc:newLoc, timeLeft:state.timeLeft - 1, dead:dead });
+//     };
 
-    var stochasticTransition = function (state, action) {
-      return flip(noiseProb) ? detTransition(state, uniformDraw([-1, 1])) : detTransition(state, action);
-    };
+//     var stochasticTransition = function (state, action) {
+//       return flip(noiseProb) ? detTransition(state, uniformDraw([-1, 1])) : detTransition(state, action);
+//     };
 
-    var transition = noiseProb > 0 ? stochasticTransition : detTransition;
-    var stateToActions = function (state) {return [-1, 1];};
+//     var transition = noiseProb > 0 ? stochasticTransition : detTransition;
+//     var stateToActions = function (state) {return [-1, 1];};
 
-    return { stateToActions: stateToActions, transition: transition };
-  };
-
-
-  var noiseProb = 0;
-  var world = makeLine(noiseProb);
-
-  // agent params
-  var utility = function (world, state, action) {
-    if (state.loc == 1) {return -4;}
-    return state.loc;
-  };
-
-  var alpha = 100;
-  var start = { loc:0, dead:false };
-
-  var smallTrajectory = function () {
-    var agent = makeHyperbolicDiscounter(utility, alpha, 0, 'naive', world);
-    var trajectory = mdpSim(start, world, agent, 2, 2).trajectory;
-    console.log('start, trajectory', JSON.stringify(start), JSON.stringify(trajectory) );
-    assert.ok( _.isEqual([update(start, { timeLeft:2 }), update(start, { timeLeft:1, dead:true })],
-                         trajectory), 'smallTraj test');
-  };
-  smallTrajectory();
+//     return { stateToActions: stateToActions, transition: transition };
+//   };
 
 
-  // test length==4 trajectories
-  var mediumTrajectory = function (noiseProb) {
-    var world = makeLine(noiseProb);
-    map( function (sophisticatedOrNaive) {
-      var perceivedTotalTime = 4;
-      var actualTotalTime = 4;
+//   var noiseProb = 0;
+//   var world = makeLine(noiseProb);
 
-      var runSim = function (discount) {
-        var agent = makeHyperbolicDiscounter(utility, alpha, discount, sophisticatedOrNaive, world);
-        return mdpSim(start, world, agent, actualTotalTime, perceivedTotalTime);
-      };
+//   // agent params
+//   var utility = function (world, state, action) {
+//     if (state.loc == 1) {return -4;}
+//     return state.loc;
+//   };
 
-      assert.ok( runSim(0).trajectory[1].loc == 1, 'no discount go to 1' + ' naiveOr:' + sophisticatedOrNaive );
-      assert.ok( runSim(.1).trajectory[1].loc == 1, 'small discount go to 1' + ' naiveOr:' + sophisticatedOrNaive );
-      assert.ok( runSim(1).trajectory[1].loc == 0, 'bigger discount stay' + ' naiveOr:' + sophisticatedOrNaive );
-      assert.ok( runSim(2).trajectory[1].loc == 0, 'even bigger discount stay' + '  naiveOr:' + sophisticatedOrNaive);
-    }, ['naive', 'sophisticated']);
-  };
+//   var alpha = 100;
+//   var start = { loc:0, dead:false };
 
-  map(mediumTrajectory, [0, .01]);
-  console.log('Passed testLine');
-};
+//   var smallTrajectory = function () {
+//     var agent = makeHyperbolicDiscounter(utility, alpha, 0, 'naive', world);
+//     var trajectory = mdpSim(start, world, agent, 2, 2).trajectory;
+//     console.log('start, trajectory', JSON.stringify(start), JSON.stringify(trajectory) );
+//     assert.ok( _.isEqual([update(start, { timeLeft:2 }), update(start, { timeLeft:1, dead:true })],
+//                          trajectory), 'smallTraj test');
+//   };
+//   smallTrajectory();
 
 
+//   // test length==4 trajectories
+//   var mediumTrajectory = function (noiseProb) {
+//     var world = makeLine(noiseProb);
+//     map( function (sophisticatedOrNaive) {
+//       var perceivedTotalTime = 4;
+//       var actualTotalTime = 4;
+
+//       var runSim = function (discount) {
+//         var agent = makeHyperbolicDiscounter(utility, alpha, discount, sophisticatedOrNaive, world);
+//         return mdpSim(start, world, agent, actualTotalTime, perceivedTotalTime);
+//       };
+
+//       assert.ok( runSim(0).trajectory[1].loc == 1, 'no discount go to 1' + ' naiveOr:' + sophisticatedOrNaive );
+//       assert.ok( runSim(.1).trajectory[1].loc == 1, 'small discount go to 1' + ' naiveOr:' + sophisticatedOrNaive );
+//       assert.ok( runSim(1).trajectory[1].loc == 0, 'bigger discount stay' + ' naiveOr:' + sophisticatedOrNaive );
+//       assert.ok( runSim(2).trajectory[1].loc == 0, 'even bigger discount stay' + '  naiveOr:' + sophisticatedOrNaive);
+//     }, ['naive', 'sophisticated']);
+//   };
+
+//   map(mediumTrajectory, [0, .01]);
+//   console.log('Passed testLine');
+// };
 
 
 
-
-
-
-
-
-
-
-// version of makeHyperbolic with two expectations
-var makeHyperbolicDiscounterDoubleExpectation = function (utility, alpha, discount, sophisticatedOrNaive, world, priorBelief) {
+// // version of makeHyperbolic with two expectations
+// var makeHyperbolicDiscounterDoubleExpectation = function (utility, alpha, discount, sophisticatedOrNaive, world, priorBelief) {
   
-  var _agent = dp.cache( 
-    function(manifestState, currentBelief, observation, delay){
+//   var _agent = dp.cache( 
+//     function(manifestState, currentBelief, observation, delay){
 
-      var newBelief = updateBelief(manifestState, currentBelief, observation);      
+//       var newBelief = updateBelief(manifestState, currentBelief, observation);      
 
-      return Enumerate(function(){
-        var action = uniformDraw( stateToActions(state) );
-        var expectedUtility = expectation(
-          Enumrate(function(){
-            var state = buildState(manifestState, sample(newBelief));
-            assert.ok(state.manifestState == manifestState, 'didnt build state correctly');
-            return _expUtility(state, action, newBelief, delay);   
-          }));
+//       return Enumerate(function(){
+//         var action = uniformDraw( stateToActions(state) );
+//         var expectedUtility = expectation(
+//           Enumrate(function(){
+//             var state = buildState(manifestState, sample(newBelief));
+//             assert.ok(state.manifestState == manifestState, 'didnt build state correctly');
+//             return _expUtility(state, action, newBelief, delay);   
+//           }));
 
-        factor(alpha * eu);
-        return {action: action, belief:newBelief};
-      });      
-    });
+//         factor(alpha * eu);
+//         return {action: action, belief:newBelief};
+//       });      
+//     });
 
-  var _expUtility = dp.cache(
-    function(state, action, currentBelief, delay){
-      var u = 1.0/(1 + discount*delay) * utility(world, state, action);
+//   var _expUtility = dp.cache(
+//     function(state, action, currentBelief, delay){
+//       var u = 1.0/(1 + discount*delay) * utility(world, state, action);
       
-      if (state.manifestState.dead){
-        return u; 
-      } else {                     
-        return u + expectation( Enumerate(function(){
-          var nextState = transition(state, action); 
-          var perceivedDelay = { naive : delay + 1, sophisticated : 0}[sophisticatedOrNaive]; 
-          var agentNext = sample(_agent(nextState.manifestState, currentBelief, observe(nextState), perceivedDelay));
+//       if (state.manifestState.dead){
+//         return u; 
+//       } else {                     
+//         return u + expectation( Enumerate(function(){
+//           var nextState = transition(state, action); 
+//           var perceivedDelay = { naive : delay + 1, sophisticated : 0}[sophisticatedOrNaive]; 
+//           var agentNext = sample(_agent(nextState.manifestState, currentBelief, observe(nextState), perceivedDelay));
      
-          return _expUtility(nextState, agentNext.action, agentNext.belief, delay+1);  
-        }));
-      }                      
-    });
+//           return _expUtility(nextState, agentNext.action, agentNext.belief, delay+1);  
+//         }));
+//       }                      
+//     });
  
-};
+// };
 
 
 
