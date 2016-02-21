@@ -1,129 +1,18 @@
 
+
+// Helper functions for testing argument types (warning: heuristics only)
+var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
+var isERP = function (x) {return x.hasOwnProperty('score') && x.hasOwnProperty('sample');};
+var isState = function (x) {x.hasOwnProperty('latentState') && _.isFinite(x.manifestState.timeLeft);};
 var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
 
+// POMDP AGENT AND WORLD
 
-var inGrid = function (gridMap, loc) {
-  return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
-          loc[1] >= 0 && loc[1] < gridMap.yLim);
-};
-
-var isBlockedLoc = function (gridMap, loc) {
-  var getFeature = gridMap.feature;
-  var feature = getFeature({ loc : loc });
-  return feature === '#';
-};
-
-var isAllowedState = function (gridMap, loc) {
-  return (inGrid(gridMap, loc)) && !isBlockedLoc(gridMap, loc);
-};
-
-var advanceStateTime = function (state) {
-  var dead = state.timeLeft > 0 ? state.dead : true;
-  return update(state, { timeLeft : state.timeLeft - 1, dead : dead });
-};
-
-var moveState = function (gridMap, state, action) {
-  var loc = state.loc;
-  var gridTransition = { l: [loc[0] - 1, loc[1]],
-                        r: [loc[0] + 1, loc[1]],
-                        u: [loc[0], loc[1] + 1],
-                        d: [loc[0], loc[1] - 1] };
-
-  var possibleNextLoc = gridTransition[action];
-  assert.ok(possibleNextLoc != undefined, 'action was not found');
-
-  var nextLoc = isAllowedState(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
-  return update(state, { loc : nextLoc });
-};
-
-var makeGridTransition = function (gridMap) {
-  return function (state, action) {
-    var getFeature = gridMap.feature;
-    var state2 = advanceStateTime(state);
-
-    if ( getFeature(state2).name ) { // there's a restaurant here
-      var state3 = update(state2, { digest : state2.digest - 1 });
-      if (state3.digest <= 0) {
-        return update(state3, { dead : true });
-      }
-      return state3;
-    }
-    return moveState(gridMap, state2, action);
-  };
-};
-
-var makeGridMap = function (rfeatures) {
-  var features = rfeatures.reverse();
-  return {
-    features : features,
-    xLim : features[0].length,
-    yLim : features.length,
-    feature : function (state) {
-      return features[state.loc[1]][state.loc[0]];
-    }
-  };
-};
-
-var makeDonutWorldExtended = function (options) {
-  var _ = ' ';
-  var D = { name : 'Donut' };
-  var V = { name : 'Veg' };
-  var N = { name : 'Noodle' };
-
-  var X = options.bottomLeftNook;
-  var features = [['#', '#', '#', V, '#', '#'],
-                  ['#', '#', _, _, _, '#'],
-                  ['#', D, _, '#', _, N],
-                  ['#', '#', _, '#', _, '#'],
-                  [X, _, _, _, _, '#'],
-                  ['#', '#', _, '#', '#', '#']];
-
-  var gridMap = makeGridMap(features);
-
-  var transition = makeGridTransition(gridMap);
-  var actions = ['l', 'r', 'u', 'd'];
-
-  var stateToActions = function (state) {
-    var possibleActions = filter(function (action) {
-      var newState = transition(state, action);
-      return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
-    }, actions);
-
-    if (possibleActions.length > 0) {
-      return possibleActions;
-    } else {
-      return [actions[0]];
-    }
-  };
-
-  return update(gridMap,
-                { transition : transition,
-                  actions    : actions,
-                  stateToActions    : stateToActions,
-                });
-};
-
-var makeDonutUtility = function (max_digest, rewards) {
-  return function (world, state, action) {
-    var getFeature = world.feature;
-    var feature = getFeature(state);
-
-    if (state.dead) { return 0; }
-    if (feature.name) { return rewards[feature.name][max_digest - state.digest]; }
-    return -0.01; // TIMECOST (should this be part of *rewards* at least optionally?
-  };
-};
-
-
-
+// Helper function for building state from its components
 var buildState = function (manifestState, latentState) {
   return { manifestState:manifestState, latentState:latentState };
 };
 
-var isERP = function (x) {return x.hasOwnProperty('score') && x.hasOwnProperty('sample');};
-var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
-var isState = function (x) {x.hasOwnProperty('manifestState') && x.hasOwnProperty('latentState') &&
-                          _.isFinite(x.manifestState.timeLeft);};
 
 
 var makeBeliefDelayAgent = function (agentParams, world){
@@ -149,7 +38,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
 
   var _agent = dp.cache(
     function (manifestState, currentBelief, observation, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), 'agent args ' + [manifestState, currentBelief, observation, delay, manifestState.timeLeft, sample(currentBelief)]);
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), 'agent args fail');
       
       var newBelief = updateBelief(manifestState, currentBelief, observation);
       return Enumerate(function () {
@@ -169,7 +58,6 @@ var makeBeliefDelayAgent = function (agentParams, world){
       return expectation(
         Enumerate(function () {
           var latentState = sample(currentBelief);
-          
           var state = buildState(manifestState, latentState);
           var u = 1.0 / (1 + agentParams.discount * delay) * utility(state, action);
           if (state.manifestState.dead) {
@@ -189,16 +77,12 @@ var makeBeliefDelayAgent = function (agentParams, world){
     return _expectedUtility(manifestState, currentBelief, action, 0);
   };
 
-  return {
-    agent : agent,
-    _expectedUtility : _expectedUtility,
-    agentParams: agentParams
-  };
+  return { agent : agent, _expectedUtility : _expectedUtility, agentParams: agentParams};
 };
 
 
 
-var simulate = function (startState, world, agent, actualTotalTime, outputStatesOrActions) {
+var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTime, outputStatesOrActions) {
   var perceivedTotalTime = startState.manifestState.timeLeft;
   assert.ok( actualTotalTime <= perceivedTotalTime && isState(startState), 'simulate args');
   assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
@@ -207,7 +91,6 @@ var simulate = function (startState, world, agent, actualTotalTime, outputStates
   var priorBelief = agent.agentParams.priorBelief;
   var transition = world.transition;
   var observe = world.observe;
-  
 
   var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {return actualTimeLeft == 0 || state.dead;} :
       function (actualTimeLeft, state) {return actualTimeLeft == 0;};
@@ -231,7 +114,7 @@ var simulate = function (startState, world, agent, actualTotalTime, outputStates
 // TODO. grab the beliefERPs so this works in belief setting also
 var getExpectedUtilities = function (startState, world, agent, actualTotalTime){
 
-  var trajectory = simulate(startState, world, agent, actualTotalTime, 'states');
+  var trajectory = simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states');
   
   var expectedUtility = agent._expectedUtility;
   var stateToActions = world.stateToActions;
@@ -260,18 +143,17 @@ var printOut = function ( trajectory ) {
 
 
 // ADD POMDP STUFF WITH BANDITS, paying attention to
-// (a) using the MDP transition to create the POMDP (maybe building the function
-// with in the body of simulate, so save computation time)
 // (b) adding updateDelay so that delay overhead avoided when discount==0
 // (c) combining pomdp and digest thing.
 
 
 
-
+// Multi-arm deterministic bandits.
+// Rewards of arms are fixed by the latent state. 
 var makeBandits = function (numArms) {
   var actions = _.range(numArms);
   
-  var baseTransition = function (state, action) {
+  var mdpTransition = function (state, action) {
     var dead = state.timeLeft - 1 == 1 ? true : false;
     return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
   };
@@ -279,10 +161,10 @@ var makeBandits = function (numArms) {
   var manifestStateToActions = function (manifestState) {return actions;};
 
   var transition = function(state, action){
-    return buildState( baseTransition(state.manifestState, action), state.latentState);
+    return buildState( mdpTransition(state.manifestState, action), state.latentState);
   };
 
-  var observe = function(state){ // you directly observe the reward of the state
+  var observe = function(state){ // agent observes the reward of arm when he chooses it
     return state.latentState[state.manifestState.loc];
   };
   
@@ -290,7 +172,8 @@ var makeBandits = function (numArms) {
 };
 
 
-
+// *armToRewards* is the actual rewards for each arm (true latentState)
+// *priorBelief* is agent's belief about rewards, which must have true latentState in support
 var runBandits = function (numArms, armToRewards, priorBelief, discount, perceivedTotalTime){
   
   map( function(n){assert.ok(_.isFinite(armToRewards[n]),'check armTo')}, _.range(numArms) );
@@ -313,8 +196,9 @@ var runBandits = function (numArms, armToRewards, priorBelief, discount, perceiv
   var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, dead:false}, 
                     latentState: armToRewards};
  
-  return simulate(startState, world, agent, actualTotalTime, 'states');
+  return simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states');
 };
+
 
 var testBandits = function () {
 
@@ -327,11 +211,10 @@ var testBandits = function () {
   var discount = 0;
   var perceivedTotalTime = 3;
   var trajectory = runBandits(numArms, armToRewards, priorBelief, discount, perceivedTotalTime);
-  printOut(trajectory);
   map( function(index){assert.ok( trajectory[index].manifestState.loc == 0);}, [1,2] );
 
 
-  //
+  // Discounting agent will explore a risky arm less
   var testDiscount = function(discount){
     var numArms = 2;
     var armToRewards = {'start':0, 0:1, 1:5};
@@ -341,7 +224,7 @@ var testBandits = function () {
       return {'start':0, 0:1, 1:utility1};
     });
     var perceivedTotalTime = 5;
-    return last(runBandits(numArms, armToRewards, priorBelief, discount, perceivedTotalTime).manifestState.loc);
+    return last(runBandits(numArms, armToRewards, priorBelief, discount, perceivedTotalTime)).manifestState.loc;
   };
   assert.ok( testDiscount(0) == 1, 'testdiscount');
   assert.ok( testDiscount(2) == 0, 'testdiscount');
@@ -419,119 +302,26 @@ var testLine = function () {
   console.log('Passed testLine');
 };
 
-testLine();
-ash();
-
-
-var testBandits = function () {
-
-  var smallTest = function () {
-    // fixed params
-    var numArms = 2;
-    var utility = function (world, state, action) {
-      return { 'start':0, 0:10, 1:5 }[state.loc];
-    };
-    var alpha = 100;
-    var discount = 0;
-
-    var noiseProb = 0;
-    var world = makeBandits(numArms, noiseProb);
-    var agent = makeHyperbolicDiscounter(utility, alpha, discount, 'naive', world);
-    var trajectory = mdpSim(world.defaultStart, world, agent, 2, 2).trajectory;
-    assert.ok(trajectory[1].loc == 0, 'testbandits small');
-
-    // with noise, there's .6 chance that you go 'start' and get zero if you go 0, so go 1 instead
-    var noiseProb = 0.6;
-    var world = makeBandits(numArms, noiseProb);
-    var agent = makeHyperbolicDiscounter(utility, alpha, discount, 'naive', world);
-    var trajectory = mdpSim(world.defaultStart, world, agent, 2, 2).trajectory;
-    assert.ok(trajectory[1].loc == 1, 'testbandits small');
-  };
-  smallTest();
-
-  console.log('passed testbandits');
-};
-testBandits();
-
-ash();
-// var t1 = timeit( function () {
-//   var f = agent.agent;
-//   var trajectory = f(start, world, 0);
-// });
 
 
 
 
-var testDonut = function () {
-  var start = {
-    loc : [2, 0],
-    dead : false,
-    digest : 4
-  };
-
-  var donutUtility = makeDonutUtility(4, {
-    'Donut' : [1, 0, 0, 0],
-    'Veg'   : [0, 0, 0, 3.5],
-    'Noodle': [0, 0, 0, 0]
-  });
-
-  var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
-  var agent = makeHyperbolicDiscounter(donutUtility, 500, 1, 'sophisticated', world);
-  var trajectory = simulate(start, world, agent, 12, 12, 'states');
-  assert.ok(gridEqual(last(trajectory).loc, [3, 5]), "sophisticated didn't end up in 3,5");
-  assert.ok(trajectory[5].loc[0] == 4, "sophisticated didn't take right side");
-
-  var world2 = makeDonutWorldExtended({ bottomLeftNook : { name : 'Donut' } });
-  var agent2 = makeHyperbolicDiscounter(donutUtility, 500, 1, 'naive', world2);
-  var trajectory = simulate(start, world2, agent2, 12, 12, 'states');
-  assert.ok(gridEqual(last(trajectory).loc, [1, 3]), "naive didn't end up in 1,3");
-  assert.ok(trajectory[3].loc[0] == 2, "naive didn't take left side");
 
 
-  var state = update(start, { loc : [2, 1], timeLeft : 12 });
-  var naiveExp = agent2.expectedUtility;
-  var naive22utilities = map(function (a) { return naiveExp(state, a); }, world.actions);
 
-  var sophExp = agent.expectedUtility;
-  var soph22utilities = map(function (a) { return sophExp(state, a); }, world.actions);
 
-  assert.ok(
-    naive22utilities[0] != soph22utilities[0] &&
-      naive22utilities[1] != soph22utilities[1] &&
-      naive22utilities[2] != soph22utilities[2] &&
-      naive22utilities[3] != soph22utilities[3]
-    , 'some utilities match!');
-
-  console.log('passed tests donut');
-};
-testDonut();
-ash();
 
 
 
 // version of makeHyperbolic with two expectations
 var makeHyperbolicDiscounterDoubleExpectation = function (utility, alpha, discount, sophisticatedOrNaive, world, priorBelief) {
-  assert.ok(isERP(priorBelief));
-  
-  var stateToActions = world.stateToActions;
-  var transition = world.transition;
-  var observe = world.observe;
-
-  var updateBelief = dp.cache(
-    function(manifestState, currentBelief, observation){
-      return Enumerate( function(){
-        var latentState = sample(currentBelief);
-        factor( observe(buildState(manifestState, latentState)).score([], observation)); // TODO change
-        return latentState;
-      });
-    });
   
   var _agent = dp.cache( 
     function(manifestState, currentBelief, observation, delay){
-      assert.ok(isGreaterZero(manifestState.timeLeft)  && isERP(currentBelief) && _.isFinite(delay), 'agent args')
-      
+
+      var newBelief = updateBelief(manifestState, currentBelief, observation);      
+
       return Enumerate(function(){
-        var newBelief = updateBelief(manifestState, currentBelief, observation);
         var action = uniformDraw( stateToActions(state) );
         var expectedUtility = expectation(
           Enumrate(function(){
@@ -544,15 +334,10 @@ var makeHyperbolicDiscounterDoubleExpectation = function (utility, alpha, discou
         return {action: action, belief:newBelief};
       });      
     });
-  var agent = function(manifestState, currentBelief, observation) { 
-    return _agent(manifestState, currentBelief, observation, 0);
-  };
 
   var _expUtility = dp.cache(
     function(state, action, currentBelief, delay){
       var u = 1.0/(1 + discount*delay) * utility(world, state, action);
-      
-      assert.ok(_.isFinite(u) && isERP(currentBelief) && isState(state), 'expUtility args');
       
       if (state.manifestState.dead){
         return u; 
@@ -566,26 +351,10 @@ var makeHyperbolicDiscounterDoubleExpectation = function (utility, alpha, discou
         }));
       }                      
     });
-  var expUtility = function(state, action, currentBelief) { return _expUtility(state, action, currentBelief, 0); };
-    
-  return {
-    utility : utility,
-    expUtility : expUtility,
-    agent : agent,
-    _expUtility : _expUtility,
-    _agent : _agent,   // TODO why expose this?
-    alpha : alpha, 
-    discount : discount,
-    priorBelief: priorBelief
-  };
+ 
 };
 
 
 
-1;
-
-
-
-
-
+null
 
