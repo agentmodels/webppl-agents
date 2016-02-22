@@ -21,7 +21,7 @@ var buildState = function (manifestState, latentState) {
 
 
 var makeBeliefDelayAgent = function (agentParams, world){
-  map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeAgent args');}, 
+  map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeBeliefDelayAgent args');}, 
       ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief']);
   assert.ok( isWorld(world), 'world argument lacks transition, stateToActions, or observe');
 
@@ -54,7 +54,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
 
   var _agent = dp.cache(
     function (manifestState, currentBelief, observation, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), 'agent args fail');
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), '_agent args fail');
       
       var newBelief = updateBelief(manifestState, currentBelief, observation);
       return Enumerate(function () {
@@ -102,7 +102,15 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
   var priorBelief = agent.agentParams.priorBelief;
   var transition = world.transition;
   var observe = world.observe;
+  var outputTable = function(state, nextAction, currentBelief, observation, outputStatesOrActions){
+    return {states:state, actions:nextAction, both:[state, nextAction], 
+            stateBelief: [state, currentBelief],
+            stateBeliefObservationAction: [{state:state, currentBelief:currentBelief, observation:observation},
+                                           nextAction]
+           }[outputStatesOrActions];
+  };
 
+  
   var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {return actualTimeLeft == 0 || state.dead;} :
       function (actualTimeLeft, state) {return actualTimeLeft == 0;};
 
@@ -111,11 +119,11 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
     if (cutoffCondition(actualTimeLeft, state.manifestState) ) {
       return [];
     } else {
-      var nextAction = sample(agentAction(state.manifestState, currentBelief, observe(state)));
+      var observation = observe(state);
+      var nextAction = sample(agentAction(state.manifestState, currentBelief, observation));
       var nextState = transition(state, nextAction.action);
 
-      var out = {states:state, actions:nextAction, both:[state, nextAction], 
-                 stateBelief: [state, currentBelief]}[outputStatesOrActions]; // return beliefs for *getExpectedUtilities* 
+      var out = outputTable(state, nextAction, currentBelief, observation, outputStatesOrActions);
       
       return [out].concat( sampleSequence(nextState, nextAction.belief, actualTimeLeft - 1));
     }
@@ -197,6 +205,7 @@ var makeBandits = function (numArms) {
   };
 
   var observe = function(state){ // agent observes the reward of arm when he chooses it
+    if (state.manifestState.loc=='start'){return 'noObservation';}
     return state.latentState[state.manifestState.loc];
   };
   
@@ -207,9 +216,9 @@ var makeBandits = function (numArms) {
 // arm 0 outputs 'prize0'. other arms output numbers. agent's utility maps prize0 onto a number.
 // we don't know that number but we (inference system) know the latent state
 
-var runBanditsBelief = function( numArms, armToRewards, priorBelief, perceivedTotalTime, observedTrajectory) {
+var inferBanditsBelief = function(numArms, armToRewards, perceivedTotalTime, priorUtilityPrize0, observedStates) {
 
-  var makeAgent = function( utilityPrize0, priorBelief, world){
+  var makeAgent = function( utilityPrize0, priorBelief, armToRewards, world){
     assert.ok(_.isFinite(utilityPrize0) && _.isFinite(priorBelief.score([],armToRewards)), 'getAgent args');
     
     var utility = function(state,action){
@@ -232,38 +241,78 @@ var runBanditsBelief = function( numArms, armToRewards, priorBelief, perceivedTo
 
   
   // Make world and start
-  var perceivedTotalTime = 3;
   var actualTotalTime = perceivedTotalTime;
-  var numArms = 3;
-  var armToRewards = {1:5, 2:10};
   var world = makeBandits(numArms);
   var armToRewards = update(armToRewards,{0:'prize0'});
   var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, dead:false}, 
                     latentState: armToRewards};
   
   map( function(n){assert.ok(!_.isUndefined(armToRewards[n]),'check armTo')}, _.range(numArms) );
-  //assert.ok( observedTrajectory[0].length == 2, 'contains state, action pairs');
   
-  var priorUtilityPrize = function(){return uniformDraw([0,5,20]);};
   var priorBelief = Enumerate(function(){return armToRewards;});
+
   
-  var inferFromStates = function(observedStates){
+  var inferFromStates = function(observedStates, priorUtilityPrize0){
     return Enumerate(function(){
-      var utilityPrize0 = priorUtilityPrize();
-      var agent = makeAgent(utilityPrize0, priorBelief, world);
+      var utilityPrize0 = priorUtilityPrize0();
+      var agent = makeAgent(utilityPrize0, priorBelief, armToRewards, world);
 
       var trajectoryERP = Rejection( function(){
         var fullStates = simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states');
-        return map( function(s){return s.manifestState.loc;} );
+        return map( function(s){return s.manifestState.loc;}, fullStates );
       }, 100);
 
       factor( trajectoryERP.score( [], observedStates) )
+
+      return {utilityPrize0: utilityPrize0};
     });
   };
+
+  
+  var observationUtilityPrize0 = 1;
+  
+  
+  // *stateAction* has form [  [ {state:, currentBelief:, observation: }, action] ]
+  var inferFromStateBeliefs = function(priorUtilityPrize0, observationUtilityPrize0){
+
+    var getObservationStates = function(observationUtilityPrize0){
+      var agent = makeAgent( observationUtilityPrize0, priorBelief, armToRewards, world);
+      return simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'stateBeliefObservationAction');
+    };
+
+    var observedStateActions = getObservationStates(observationUtilityPrize0);
+    
+    return Enumerate(function(){
+      var utilityPrize0 = priorUtilityPrize0();
+      var _agent = makeAgent(utilityPrize0, priorBelief, armToRewards, world)._agent;
+
+      map( function( stateAction ){
+        var state = stateAction[0];
+        var observedAction = stateAction[1];
+ 
+        var agentERP = _agent(state.state.manifestState, state.currentBelief, state.observation, 0);
+        var actionERP = Enumerate(function(){return sample(agentERP).action;});
+        
+        factor( actionERP.score( [], observedAction ));
+      }, observedStateActions);
       
-  var observedStates = ['start',0,0];   
-  var erp = inferFromStates( observedStates );
-  printERP(erp);
+      return {utilityPrize0: utilityPrize0};
+    });  
+  };
+    
+  console.log( sample(inferFromStateBeliefs( priorUtilityPrize0, 0)));
+  return inferFromStates(observedStates, priorUtilityPrize0);
+};
+
+// world params
+var armToRewards = {1:5, 2:10};
+var numArms = 3;
+var perceivedTotalTime = 3;
+var priorUtilityPrize0 = function(){return uniformDraw([0,5,20]);};
+var observedStates = ['start',2,2];    
+var erp = inferBanditsBelief(numArms, armToRewards, perceivedTotalTime, priorUtilityPrize0, observedStates);
+printERP(erp);
+ash();
 
   // If we know the agent's belief and obervation at each timestep, then
   // we can compute the action distributions efficiently. In simple
@@ -288,10 +337,10 @@ var runBanditsBelief = function( numArms, armToRewards, priorBelief, perceivedTo
   
 //  var inferFromStateObservations = function(stateObservation){
     
-};
 
-// var out = runBanditsBelief();
-// ash();
+
+var out = runBanditsBelief();
+ash();
 
 
 // var f = cache( function(x,y){return x+5;} );
@@ -334,7 +383,7 @@ var runBandits = function (numArms, armToRewards, priorBelief, discount, noDelay
   }
 
   var out = simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states');
-  console.log(agent._agent.cache);
+  //console.log(agent._agent.cache);
   ash();
 };
 
