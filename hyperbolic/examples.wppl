@@ -6,9 +6,9 @@ var start = {
 };
 
 var donutUtility = makeDonutUtility(2, {
-    'Donut N' : [1, -1],
-    'Donut S' : [1, -1],
-    'Veg'   : [-1, 2],
+    'Donut N' : [10, -10],
+    'Donut S' : [10, -10],
+    'Veg'   : [-10, 20],
     'Noodle': [0, 0]
 });
 
