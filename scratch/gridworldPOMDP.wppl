@@ -49,7 +49,7 @@ var makeGridworldPOMDP = function(gridworld) {
   var _mdpTransition = gridworld.transition;
   var mdpTransition = function(state, action) {
     // transition the manifest state as it would be transitioned in the gridworld
-    // mdp.
+    // mdp, leave the latent state alone
     var newManifestState = _mdpTransition(state.manifestState, action);
     return buildState(newManifestState, state.latentState);
   };
@@ -72,7 +72,7 @@ var makeGridworldPOMDP = function(gridworld) {
   var neighbourRestaurants = function(state) {
     var loc = state.manifestState.loc;
     var updateStateLoc = function(state, newLoc) {
-      return update(state, update(manifestState, {loc: newLoc}));
+      return update(state, update(state.manifestState, {loc: newLoc}));
     };
     
     var potentialneighbourStates = [
@@ -95,18 +95,18 @@ var makeGridworldPOMDP = function(gridworld) {
 
   // returns a subobject of latentState that gives the status of adjacent restaurants
   var observe = function(state) {
-    var neighbourRestaurants = neighbourRestaurants(state);
-    if (_.isEmpty(neighbourRestaurants)) {
+    var neighbourRests = neighbourRestaurants(state);
+    if (_.isEmpty(neighbourRests)) {
       return 'noObservation';
     } else {
       var restaurantNames = map(function(state){
-	return feature(state.manifestState).name;}, neighbourRestaurants);
+	return feature(state.manifestState).name;}, neighbourRests);
       return reduce(function(entry, object){
 	return update(object, {entry: state.latentState[entry]});
       }, {}, restaurantNames);
     }
   };
-
+  
   return {manifestStateToActions: manifestStateToActions,
 	  transition: transition,
 	  observe: observe};
@@ -139,7 +139,7 @@ var makeBeliefAgent = function(agentParams, world) {
 
   var agent = dp.cache(
     function(manifestState, currentBelief, observation) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief),
+      assert.ok(_.isFinite(manifestState.timeLeft) && isERP(currentBelief),
 		'agent args fail');
 
       var newBelief = updateBelief(manifestState, currentBelief, observation);
@@ -225,6 +225,7 @@ var printOut = function ( trajectory ) {
 
 var myDonutWorld = makeDonutWorldExtended('#');
 var donutFeature = myDonutWorld.feature;
+var myDonutPOMDP = makeGridworldPOMDP(myDonutWorld);
 
 var utility = function(state, action) {
   var name = donutFeature(state.manifestState).name;
@@ -254,7 +255,7 @@ var priorBelief = Enumerate(function(){
 var myDonutAgent = makeBeliefAgent({utility: utility,
 				    alpha: 500,
 				    priorBelief: priorBelief},
-				   makeGridworldPOMDP(myDonutWorld));
+				   myDonutPOMDP);
 
 var myStart = {manifestState: {loc: [2,1],
 			       dead: false,
@@ -264,5 +265,5 @@ var myStart = {manifestState: {loc: [2,1],
 			     Veg: true,
 			     Noodle: true}};
 
-var trajectory = simulateBeliefAgent(myStart, myDonutWorld, myDonutAgent, 10, 'states');
+var trajectory = simulateBeliefAgent(myStart, myDonutPOMDP, myDonutAgent, 10, 'states');
 console.log(printOut(trajectory));
