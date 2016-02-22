@@ -76,38 +76,39 @@ var makeStateToActions = function(transition, actions) {
 };
 
 var restaurant = {
-  donut : { name : 'Donut'},
+  donutN : { name : 'Donut N'},
+  donutS : { name : 'Donut S'},
   veg   : { name : 'Veg'},
   noodle: { name : 'Noodle'}
 };
 
 var makeDonutWorld2 = function(options) { 
   var _ = ' '; 
-  var D = restaurant.donut;
+  var DN = restaurant.donutN;
+  var DS = restaurant.donutS;
   var V = restaurant.veg;
   var N = restaurant.noodle;
 
   var options = options || {};
-  var X = options.bottomLeftNook || D;
 
   var small = 
     [['#', '#', '#',  V , '#'],
      ['#', '#',  _ ,  _ ,  _ ],  
-     ['#', D  ,  _ , '#',  _ ],
+     ['#', DN ,  _ , '#',  _ ],
      ['#', '#',  _ ,  _ ,  _ ],
      ['#', '#',  _ , '#',  N ],
      [ _ ,  _ ,  _ , '#', '#'],
-     [ X , '#',  _ , '#', '#']];
+     [DS , '#',  _ , '#', '#']];
 
   var big = 
     [['#', '#', '#', '#',  V , '#'],
      ['#', '#', '#',  _ ,  _ ,  _ ],  
-     ['#', '#', D  ,  _ , '#',  _ ],
+     ['#', '#', DN ,  _ , '#',  _ ],
      ['#', '#', '#',  _ , '#',  _ ],
      ['#', '#', '#',  _ ,  _ ,  _ ],
      ['#', '#', '#',  _ , '#',  N ],
      [ _ ,  _ ,  _ ,  _ , '#', '#'],
-     [ X , '#', '#',  _ , '#', '#']];
+     [DS , '#', '#',  _ , '#', '#']];
 
   var features = options.big ? big : small;
   return makeGridWorld(features);

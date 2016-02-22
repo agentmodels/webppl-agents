@@ -6,7 +6,8 @@ var start = {
 };
 
 var donutUtility = makeDonutUtility(2, {
-    'Donut' : [1, -1],
+    'Donut N' : [1, -1],
+    'Donut S' : [1, -1],
     'Veg'   : [-1, 2],
     'Noodle': [0, 0]
 });
