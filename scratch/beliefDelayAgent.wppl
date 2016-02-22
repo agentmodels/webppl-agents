@@ -290,20 +290,12 @@ var runBanditsBelief = function( numArms, armToRewards, priorBelief, perceivedTo
     
 };
 
-var out = runBanditsBelief();
-console.log('traj', out);
-displayTrajectory(out);
-ash();
+// var out = runBanditsBelief();
+// ash();
 
 
 // var f = cache( function(x,y){return x+5;} );
-// var erp = Enumerate(function(){return flip();});
-// f(1,erp); f(2, erp); f(2,3);
 // var c = f.cache;
-// c.
-// ash();
-
-                           
 
 
 
