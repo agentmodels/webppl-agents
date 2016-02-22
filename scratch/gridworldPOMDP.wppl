@@ -30,7 +30,7 @@ var buildState = function (manifestState, latentState) {
 // (a transition function on manifest states), actions, and stateToActions.
 
 // manifest states in this POMDP are objects with loc (an array of two
-// numbers), timeLeft, and dead - the same as states in gridworld MDPs.
+// numbers), timeLeft, dead, and digest - the same as states in gridworld MDPs.
 // latent states are an object listing whether each restaurant type is open.
 // transition acts the same as in gridworld MDPs, not touching the latent state,
 // unless the transition would take the agent into a closed restaurant, in which
@@ -112,3 +112,157 @@ var makeGridworldPOMDP = function(gridworld) {
 	  observe: observe};
 };
 
+// POMDP AGENT WITHOUT DELAYS
+// basically the same as makeBeliefDelayAgent without delays or discounting
+
+var makeBeliefAgent = function(agentParams, world) {
+  map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeBeliefAgent args');}, 
+      ['utility','alpha', 'priorBelief']);
+  assert.ok( isWorld(world),
+	     'world argument lacks transition, stateToActions, or observe');
+
+  var utility = agentParams.utility;
+
+  var manifestStateToActions = world.manifestStateToActions;
+  var transition = world.transition;
+  var observe = world.observe;
+
+  var updateBelief = dp.cache(
+    function(manifestState, currentBelief, observation){
+      return Enumerate(function(){
+	var latentState = sample(currentBelief);
+	var state = buildState(manifestState, latentState);
+	condition(_.isEqual(observe(state), observation));
+	return latentState;
+      });
+    });
+
+  var agent = dp.cache(
+    function(manifestState, currentBelief, observation) {
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief),
+		'agent args fail');
+
+      var newBelief = updateBelief(manifestState, currentBelief, observation);
+
+      return Enumerate(function(){
+	var action = uniformDraw(manifestStateToActions(manifestState));
+	var eu = expectedUtility(manifestState, newBelief, action);
+	factor(agentParams.alpha * eu);
+	return {action: action, belief: newBelief};
+      });
+    });
+
+  var expectedUtility = dp.cache(
+    function(manifestState, currentBelief, action) {
+      return expectation(
+	Enumerate(function(){
+	  var latentState = sample(currentBelief);
+	  var state = buildState(manifestState, latentState);
+	  var u = utility(state, action);
+	  if (state.manifestState.dead) {
+	    return u;
+	  } else {
+	    var nextState = transition(state, action);
+	    var nextAction = sample(agent(nextState.manifestState,
+					  currentBelief,
+					  observe(nextState)));
+	    var futureU = expectedUtility(nextState.manifestState,
+					  nextAction.belief,
+					  nextAction.action);
+	    return u + futureU;
+	  }
+	})
+      );
+    });
+
+  return {agent: agent, expectedUtility: expectedUtility, agentParams: agentParams};
+};
+
+// *simulateBeliefDelayAgent* doesn't actually refer to the delays, so I can copy and
+// paste it here
+var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
+				    outputStatesOrActions) {
+  var perceivedTotalTime = startState.manifestState.timeLeft;
+  assert.ok( actualTotalTime <= perceivedTotalTime && isState(startState),
+	     'simulate args');
+  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
+
+  var agentAction = agent.agent;
+  var priorBelief = agent.agentParams.priorBelief;
+  var transition = world.transition;
+  var observe = world.observe;
+
+  var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {
+    return actualTimeLeft == 0 || state.dead;
+  } :	function (actualTimeLeft, state) {return actualTimeLeft == 0;};
+
+
+  var sampleSequence = function(state, currentBelief, actualTimeLeft) {
+    if (cutoffCondition(actualTimeLeft, state.manifestState) ) {
+      return [];
+    } else {
+      var nextAction = sample(agentAction(state.manifestState, currentBelief,
+					  observe(state)));
+      
+      var nextState = transition(state, nextAction.action);
+      var out = {states:state, actions:nextAction, both:[state, nextAction],
+                 stateBelief: [state, currentBelief]}[outputStatesOrActions];
+      // could return observations
+      
+      return [out].concat( sampleSequence(nextState, nextAction.belief,
+					  actualTimeLeft - 1));
+    }
+  };
+  return sampleSequence(startState, priorBelief, actualTotalTime);
+};
+
+var printOut = function ( trajectory ) {
+  console.log('trajectory', map( function (state) {return state.manifestState.loc;},
+				 trajectory) );
+  //console.log('expUtilities', out.startEU);
+};
+
+
+var myDonutWorld = makeDonutWorldExtended('#');
+var donutFeature = myDonutWorld.feature;
+
+var utility = function(state, action) {
+  var name = donutFeature(state.manifestState).name;
+  if (name === 'Donut') {
+    return 2;
+  } else if (name === 'Noodle') {
+    return 10;
+  } else if (name === 'Veg') {
+    return 5;
+  } else {
+    return -0.01;
+  }
+};
+
+var priorBelief = Enumerate(function(){
+  if (flip(0.5)) {
+    return {Donut: true,
+	    Veg: true,
+	    Noodle: true};
+  } else {
+    return {Donut: true,
+	    Veg: true,
+	    Noodle: false};
+  }
+});
+
+var myDonutAgent = makeBeliefAgent({utility: utility,
+				    alpha: 500,
+				    priorBelief: priorBelief},
+				   makeGridworldPOMDP(myDonutWorld));
+
+var myStart = {manifestState: {loc: [2,1],
+			       dead: false,
+			       timeLeft: 10,
+			       digest: 1},
+	       latentState: {Donut: true,
+			     Veg: true,
+			     Noodle: true}};
+
+var trajectory = simulateBeliefAgent(myStart, myDonutWorld, myDonutAgent, 10, 'states');
+console.log(printOut(trajectory));
