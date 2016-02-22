@@ -1,4 +1,4 @@
-// TODO: test
+// TODO: fix observe function
 
 // Helper functions for testing argument types (warning: heuristics only)
 var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
@@ -58,6 +58,7 @@ var makeGridworldPOMDP = function(gridworld) {
     assert.ok(isState(state), 'transition state arg');
 
     var proposedNewState = mdpTransition(state, action);
+    // console.log(JSON.stringify(feature(proposedNewState.manifestState)));
     var newFeatureName = feature(proposedNewState.manifestState).name;
     // if proposedNewState is a restaurant that is closed, stay put, but increment
     // time. otherwise, change to proposed new state.
@@ -72,7 +73,7 @@ var makeGridworldPOMDP = function(gridworld) {
   var neighbourRestaurants = function(state) {
     var loc = state.manifestState.loc;
     var updateStateLoc = function(state, newLoc) {
-      return update(state, update(state.manifestState, {loc: newLoc}));
+      return buildState(update(state.manifestState, {loc: newLoc}), state.latentState);
     };
     
     var potentialneighbourStates = [
@@ -101,9 +102,8 @@ var makeGridworldPOMDP = function(gridworld) {
     } else {
       var restaurantNames = map(function(state){
 	return feature(state.manifestState).name;}, neighbourRests);
-      return reduce(function(entry, object){
-	return update(object, {entry: state.latentState[entry]});
-      }, {}, restaurantNames);
+      return map(function(name){return [name, state.latentState[name]];},
+		 restaurantNames);
     }
   };
   
@@ -142,6 +142,7 @@ var makeBeliefAgent = function(agentParams, world) {
       assert.ok(_.isFinite(manifestState.timeLeft) && isERP(currentBelief),
 		'agent args fail');
 
+      // console.log(JSON.stringify(observation));
       var newBelief = updateBelief(manifestState, currentBelief, observation);
 
       return Enumerate(function(){
@@ -192,13 +193,13 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   var transition = world.transition;
   var observe = world.observe;
 
-  var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {
-    return actualTimeLeft == 0 || state.dead;
-  } :	function (actualTimeLeft, state) {return actualTimeLeft == 0;};
+  // var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {
+  //   return actualTimeLeft == 0 || state.dead;
+  // } :	function (actualTimeLeft, state) {return actualTimeLeft == 0;};
 
 
   var sampleSequence = function(state, currentBelief, actualTimeLeft) {
-    if (cutoffCondition(actualTimeLeft, state.manifestState) ) {
+    if (actualTimeLeft == 0 || state.manifestState.dead) {
       return [];
     } else {
       var nextAction = sample(agentAction(state.manifestState, currentBelief,
@@ -218,12 +219,14 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
 
 var printOut = function ( trajectory ) {
   console.log('trajectory', map( function (state) {return state.manifestState.loc;},
-				 trajectory) );
+  				 trajectory) );
   //console.log('expUtilities', out.startEU);
+  // console.log('trajectory', map(function(state) {return state.manifestState;},
+  // 				trajectory));
 };
 
 
-var myDonutWorld = makeDonutWorldExtended('#');
+var myDonutWorld = makeDonutWorldExtended({bottomLeftNook: '#'});
 var donutFeature = myDonutWorld.feature;
 var myDonutPOMDP = makeGridworldPOMDP(myDonutWorld);
 
@@ -254,7 +257,8 @@ var priorBelief = Enumerate(function(){
 
 var myDonutAgent = makeBeliefAgent({utility: utility,
 				    alpha: 500,
-				    priorBelief: priorBelief},
+				    priorBelief: priorBelief
+				   },
 				   myDonutPOMDP);
 
 var myStart = {manifestState: {loc: [2,1],
@@ -263,7 +267,18 @@ var myStart = {manifestState: {loc: [2,1],
 			       digest: 1},
 	       latentState: {Donut: true,
 			     Veg: true,
-			     Noodle: true}};
+			     // Noodle: true
+			     Noodle: false}};
 
-var trajectory = simulateBeliefAgent(myStart, myDonutPOMDP, myDonutAgent, 10, 'states');
-console.log(printOut(trajectory));
+var informedPrior = Enumerate(function(){
+  return myStart.latentState;
+});
+
+var myInformedAgent = makeBeliefAgent({utility: utility,
+				       alpha: 500,
+				       priorBelief: informedPrior},
+				      myDonutPOMDP);
+
+// var trajectory = simulateBeliefAgent(myStart, myDonutPOMDP, myDonutAgent, 10, 'states');
+var trajectory = simulateBeliefAgent(myStart, myDonutPOMDP, myInformedAgent, 10, 'states');
+printOut(trajectory);
