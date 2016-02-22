@@ -1,0 +1,114 @@
+// TODO: test
+
+// Helper functions for testing argument types (warning: heuristics only)
+var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
+var isERP = function (x) {return x.hasOwnProperty('score')
+			  && x.hasOwnProperty('sample');};
+var isState = function (x) {x.hasOwnProperty('latentState')
+			    && _.isFinite(x.manifestState.timeLeft);};
+// note: isGridworld is different in this file than how it is in other files
+var isGridworld = function(world){return arraysEqual(world.actions,
+						     ['l', 'r', 'u', 'd'])
+				  && world.hasOwnProperty('feature')
+				  && world.hasOwnProperty('xLim')
+				  && world.hasOwnProperty('yLim')
+				  && world.hasOwnProperty('transition');};
+var isWorld = function (x) { return x.hasOwnProperty('transition')
+			     && x.hasOwnProperty('manifestStateToActions')
+			     && x.hasOwnProperty('observe');};
+
+// Helper function for building state from its components
+var buildState = function (manifestState, latentState) {
+  return { manifestState:manifestState, latentState:latentState };
+};
+
+// function that builds a gridworld POMDP
+
+// arg is a gridworld MDP, which is an object with features (an array of
+// arrays of the features at each point), xLim, yLim, feature (a function of
+// a (manifest) state that returns the features of that state), transition
+// (a transition function on manifest states), actions, and stateToActions.
+
+// manifest states in this POMDP are objects with loc (an array of two
+// numbers), timeLeft, and dead - the same as states in gridworld MDPs.
+// latent states are an object listing whether each restaurant type is open.
+// transition acts the same as in gridworld MDPs, not touching the latent state,
+// unless the transition would take the agent into a closed restaurant, in which
+// case the agent stays put.
+// observe tells the agent which adjacent restaurants are open. If the agent is not
+// adjacent to any restaurants, they get 'noObservation'.
+var makeGridworldPOMDP = function(gridworld) {
+  assert.ok(isGridworld(gridworld), 'makeGridworldPOMDP arg');
+
+  var actions = gridworld.actions;
+  var feature = gridworld.feature;
+  var manifestStateToActions = function(manifestState) {
+    return actions;
+  };
+  
+  var _mdpTransition = gridworld.transition;
+  var mdpTransition = function(state, action) {
+    // transition the manifest state as it would be transitioned in the gridworld
+    // mdp.
+    var newManifestState = _mdpTransition(state.manifestState, action);
+    return buildState(newManifestState, state.latentState);
+  };
+
+  var transition = function(state, action) {
+    assert.ok(isState(state), 'transition state arg');
+
+    var proposedNewState = mdpTransition(state, action);
+    var newFeatureName = feature(proposedNewState.manifestState).name;
+    // if proposedNewState is a restaurant that is closed, stay put, but increment
+    // time. otherwise, change to proposed new state.
+    if (newFeatureName && !proposedNewState.latentState[newFeatureName]) {
+      return buildState(advanceStateTime(state.manifestState), state.latentState);
+    } else {
+      return proposedNewState;
+    }
+  };
+
+  // returns an array of restaurants that neighbour a state
+  var neighbourRestaurants = function(state) {
+    var loc = state.manifestState.loc;
+    var updateStateLoc = function(state, newLoc) {
+      return update(state, update(manifestState, {loc: newLoc}));
+    };
+    
+    var potentialneighbourStates = [
+      updateStateLoc(state, [loc[0] - 1, loc[1]]),
+      updateStateLoc(state, [loc[0] + 1, loc[1]]),
+      updateStateLoc(state, [loc[0], loc[1] + 1]),
+      updateStateLoc(state, [loc[0], loc[1] - 1]),
+    ];
+
+    var neighbourStates = filter(function(state){
+      return inGrid_(gridworld, state.manifestState.loc);
+    }, potentialneighbourStates);
+
+    var isRestaurant = function(state) {
+      return feature(state.manifestState).name;
+    };
+
+    return filter(isRestaurant, neighbourStates);
+  };
+
+  // returns a subobject of latentState that gives the status of adjacent restaurants
+  var observe = function(state) {
+    var neighbourRestaurants = neighbourRestaurants(state);
+    if (_.isEmpty(neighbourRestaurants)) {
+      return 'noObservation';
+    } else {
+      var restaurantNames = map(function(state){
+	return feature(state.manifestState).name;}, neighbourRestaurants);
+      return reduce(function(entry, object){
+	return update(object, {entry: state.latentState[entry]});
+      }, {}, restaurantNames);
+    }
+  };
+
+  return {manifestStateToActions: manifestStateToActions,
+	  transition: transition,
+	  observe: observe};
+};
+
