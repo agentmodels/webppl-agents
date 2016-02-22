@@ -213,6 +213,7 @@ var makeBandits = function (numArms) {
 };
 
 
+
 // arm 0 outputs 'prize0'. other arms output numbers. agent's utility maps prize0 onto a number.
 // we don't know that number but we (inference system) know the latent state
 
@@ -269,9 +270,7 @@ var inferBanditsBelief = function(numArms, armToRewards, perceivedTotalTime, pri
   };
 
   
-  var observationUtilityPrize0 = 1;
-  
-  
+   
   // *stateAction* has form [  [ {state:, currentBelief:, observation: }, action] ]
   var inferFromStateBeliefs = function(priorUtilityPrize0, observationUtilityPrize0){
 
@@ -299,9 +298,12 @@ var inferBanditsBelief = function(numArms, armToRewards, perceivedTotalTime, pri
       return {utilityPrize0: utilityPrize0};
     });  
   };
-    
-  console.log( sample(inferFromStateBeliefs( priorUtilityPrize0, 0)));
-  return inferFromStates(observedStates, priorUtilityPrize0);
+
+  // TODO fix a bug here in inferFromStateBeliefs
+  var observationUtilityPrize0 = 1;
+  var erpBeliefs = inferFromStateBeliefs( priorUtilityPrize0, observationUtilityPrize0);
+  var erpStates = inferFromStates(observedStates, priorUtilityPrize0);
+  return {erpBeliefs: erpBeliefs, erpStates: erpStates};
 };
 
 // world params
@@ -312,34 +314,6 @@ var priorUtilityPrize0 = function(){return uniformDraw([0,5,20]);};
 var observedStates = ['start',2,2];    
 var erp = inferBanditsBelief(numArms, armToRewards, perceivedTotalTime, priorUtilityPrize0, observedStates);
 printERP(erp);
-ash();
-
-  // If we know the agent's belief and obervation at each timestep, then
-  // we can compute the action distributions efficiently. In simple
-  // cases, we can know these things. For restaurants, you only update
-  // when you hit a restaurant, and so if we have an observed trajectory
-  // we can infer the belief changes. If the agent never went near
-  // a restaurant, then you just maintain prior. If they hit a restaurant
-  // then you update their prior on this observation using updateBelief (so need to expose that).
-
-  // If you are trying to infer their prior, then you'd have to compute this
-  // sequence of belief states given their prior, then use that to compute dist
-  // on actions.
-
-  // In bandits, you update their beliefs in the same way.
-
-
-  // PLAN FOR GRIDWORLD
-  // find agent who takes traj you want to condition on. give them observed
-  // agent's prior. condition on the (state,belief,observation) sequence that you
-  // get from the simulation. do the standard fast inference method. (this will
-  // work if you can find the agent yourself and if you know the prior). 
-  
-//  var inferFromStateObservations = function(stateObservation){
-    
-
-
-var out = runBanditsBelief();
 ash();
 
 
