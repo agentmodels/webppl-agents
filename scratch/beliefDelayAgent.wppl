@@ -1,7 +1,5 @@
 
 // TODO for beliefDelay agent
-
-// 2. Get gridworld examples running (to make sure there's no gotchas)
 // 3. Add some inference examples and add agent to /src
 // 4. Add myopia and bound VOI agents. 
 
@@ -169,7 +167,7 @@ var getExpectedUtilitiesBeliefDelayAgent = function (startState, world, agent, a
 // Helper functions to display outputs of *simulate* and *getExpectedUtilities*
 var displayTrajectory = function ( trajectory ) {
   console.log('trajectory (locations only)',
-              map( function (stateBelief) {return stateBelief[0].manifestState.loc;}, trajectory) );
+              map( function (state) {return state.manifestState.loc;}, trajectory) );
 };
 
 var displayExpectedUtilities = function(timeToEUs){
@@ -206,6 +204,64 @@ var makeBandits = function (numArms) {
 };
 
 
+// arm 0 outputs 'prize0'. other arms output numbers. agent's utility maps prize0 onto a number.
+// we don't know that number but we (inference system) know the latent state
+
+var runBanditsBelief = function( numArms, armToRewards, priorBelief, perceivedTotalTime, observedTrajectory) {
+
+  var makeAgent = function( utilityPrize0, priorBelief, world){
+    assert.ok(_.isFinite(utilityPrize0) && _.isFinite(priorBelief.score([],armToRewards)), 'getAgent args');
+    
+    var utility = function(state,action){
+      var loc = state.manifestState.loc;
+      if (loc=='start'){return 0;};
+      return loc==0 ? utilityPrize0 : state.latentState[loc];
+    };
+    
+    var agentParams = {
+      utility: utility,
+      priorBelief: priorBelief,
+      alpha: 100,
+      noDelays: true,
+      discount: 0,
+    sophisticatedOrNaive: 'naive'
+    };
+    
+    return makeBeliefDelayAgent(agentParams, world);
+  };
+
+  
+  // Make world and start
+  var perceivedTotalTime = 3;
+  var numArms = 3;
+  var armToRewards = {1:5, 2:10};
+  var world = makeBandits(numArms);
+  var armToRewards = update(armToRewards,{0:'prize0'});
+  var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, dead:false}, 
+                    latentState: armToRewards};
+  
+  map( function(n){assert.ok(!_.isUndefined(armToRewards[n]),'check armTo')}, _.range(numArms) );
+  assert.ok( observedTrajectory[0].length == 2, 'contains state, action pairs');
+  
+  var priorUtilityPrize0 = uniformDraw([0,5,20]);
+
+  var inferERP = Enumerate(function(){
+    var utilityPrize0 = priorUtilityPrize0();
+    
+    var priorBelief = Enumerate(function(){return armToRewards;});
+    var agent = makeAgent(utilityPrize0, priorBelief, world);
+    // add simulation and conditioning here
+    var trajectory =  simulateBeliefDelayAgent(startState, world, agent, perceivedTotalTime, 'states');
+  });
+  return inferERP;
+  
+};
+    
+var out = runBanditsBelief();
+console.log('traj', out);
+displayTrajectory(out);
+ash();
+
 // *armToRewards* is the actual rewards for each arm (true latentState)
 // *priorBelief* is agent's belief about rewards, which must have true latentState in support
 var runBandits = function (numArms, armToRewards, priorBelief, discount, noDelays, perceivedTotalTime){
@@ -231,10 +287,11 @@ var runBandits = function (numArms, armToRewards, priorBelief, discount, noDelay
   var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, dead:false}, 
                     latentState: armToRewards};
 
+  // Display expected utilities as an informal test
   if (!agentParams.noDelays){
     var out = getExpectedUtilitiesBeliefDelayAgent( startState, world, agent, actualTotalTime);
     console.log('\n\n runBandits: display trajectory');
-    displayTrajectory(out.trajectory);
+    displayTrajectory( map(first,(out.trajectory) ) );
     console.log('\n runBandits: display expected utilities');
     displayExpectedUtilities(out.expectedUtilities);
   }
