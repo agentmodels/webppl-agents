@@ -1,3 +1,5 @@
+// TODO: test simple inference function
+
 // Helper functions for testing argument types (warning: heuristics only)
 var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
 var isERP = function (x) {return x.hasOwnProperty('score')
@@ -44,7 +46,7 @@ var makeBeliefAgent = function(agentParams, world) {
 
   var agent = dp.cache(
     function(manifestState, currentBelief, observation) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief),
+      assert.ok(_.isFinite(manifestState.timeLeft) && isERP(currentBelief),
 		'agent args fail');
 
       var newBelief = updateBelief(manifestState, currentBelief, observation);
@@ -97,9 +99,9 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   var transition = world.transition;
   var observe = world.observe;
 
-  var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {
+  var cutoffCondition = function (actualTimeLeft, state) {
     return actualTimeLeft == 0 || state.dead;
-  } :	function (actualTimeLeft, state) {return actualTimeLeft == 0;};
+  };
 
 
   var sampleSequence = function(state, currentBelief, actualTimeLeft) {
@@ -126,6 +128,51 @@ var printOut = function ( trajectory ) {
 				 trajectory) );
   //console.log('expUtilities', out.startEU);
 };
+
+// ----------------------------------------------
+// inference of an agent's utility and priorBelief based on their trajectory
+// (being the sequence of manifestStates visited). assumed that we see some initial
+// segment of the trajectory: not necessarily the whole trajectory, but without gaps.
+// we also assume that the inference function knows the latent state.
+// ----------------------------------------------
+
+// first inference function: generate an agent, look at the ERP over trajectories
+// that agent generates, get the score of the actual trajectory.
+
+// *observedTrajectory* is the trajectory actually seen, *latentState* is the latent
+// state of the POMDP, *utilityPrior* is an ERP which represents our prior over the
+// agent's utilities, *beliefPrior* is an ERP which represents our prior over the
+// agent's prior over latent states, *alpha* regulates the agent's softmax noise,
+// assumed to be the same as the actual agent, and *world* is the POMDP that the
+// trajectory comes from.
+var inferUtilityBelief1 = function(observedTrajectory, latentState, utilityPrior,
+				   beliefPrior, alpha, world) {
+  var trajectoryLength = observedTrajectory.length;
+  
+  return Enumerate(function(){
+    var agentUtility = sample(utilityPrior);
+    var agentBelief = sample(beliefPrior);
+    var agent = makeBeliefAgent({utility: agentUtility,
+				 alpha: alpha,
+				 priorBelief: agentBelief},
+				world).agent;
+    var newTrajectoryFull = simulateBeliefAgent(observedTrajectory[0],
+						world, agent, trajectoryLength,
+						'states');
+    var newTrajectory = map(function(state){return state.manifestState;},
+			    newTrajectoryFull);
+    condition(_.isEqual(newTrajectory, observedTrajectory));
+    return {utility: agentUtility, prior: agentBelief};
+  });
+};
+
+// second inference function: generate an agent. In the first state of the trajectory,
+// update that agent's beliefs, get the agent's ERP over next states, get the score
+// of the actual next state, then put the agent in the actual next state, and repeat
+// this process for the whole trajectory.
+
+
+
 
 // Multi-arm deterministic bandits.
 // Rewards of arms are fixed by the latent state. 
