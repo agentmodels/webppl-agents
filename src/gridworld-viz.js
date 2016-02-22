@@ -34,10 +34,7 @@ function convertDraw(world, additional) {
     return [state.loc, ''];
   });
 
-  var additional2 = {
-    trajectory : trajectory , expUtilities : additional.expUtilities}
-
-  return draw(world2, additional2);
+  return draw(world2, _.extend(additional, {trajectory : trajectory}));
 }
 
 function draw(world, additional) {
@@ -88,23 +85,29 @@ function draw(world, additional) {
 
   var addUtilities = function (v) {
     var group = new paper.Group();
+    
+    group.addChild(new paper.Path.Rectangle(([-.5, +.5]), ([world.xLim, world.yLim])));
+    var lastCoord; 
     for (var i = 0; i < v.length; i++) { 
       var coord = v[i][0];
       var LRUD = v[i][1];
       var LURD = [LRUD[0], LRUD[2], LRUD[1], LRUD[3]];
+      if (!_.isEqual(lastCoord, coord)) { 
 
-      for (var j = 0; j < 4; j ++) {
-        var tri = triangleSquare(coord, j*90, toHeat(LURD[j]), new paper.Color(.5, .4))
-        group.addChild(tri);
+        for (var j = 0; j < 4; j ++) {
+          var tri = triangleSquare(coord, j*90, toHeat(LURD[j]), new paper.Color(.5, .4))
+          group.addChild(tri);
 
-        var l = makeLabel({ 
-          point : [ coord[0] + .3 * Math.cos(-j * Math.PI/2 + Math.PI) , 
-                    coord[1] + .3 * Math.sin(-j * Math.PI/2 + Math.PI)], 
-          content : LURD[j].toFixed(1), fontSize : 10 
-        });
+          var l = makeLabel({ 
+            point : [ coord[0] + .3 * Math.cos(-j * Math.PI/2 + Math.PI) , 
+                      coord[1] + .3 * Math.sin(-j * Math.PI/2 + Math.PI)], 
+            content : LURD[j].toFixed(1), fontSize : 10 
+          });
 
-        group.addChild(l);
+          group.addChild(l);
+        }
       }
+      lastCoord = coord;
     }
     return group;
   };
@@ -153,7 +156,7 @@ function draw(world, additional) {
     }
   };      
 
-  var addAgentPath = function(trajectory, group) {
+  var addAgentPath = function(trajectory, paths, group) {
     var coords = _.map(trajectory, 0);
 
     var agentPath = new paper.Path();
@@ -165,6 +168,9 @@ function draw(world, additional) {
     var agent = new paper.Path.Circle(position(coords[0]), .3);
     agent.fillColor = color.agent;
     group.addChild(agent);
+    
+    var pathsGroup = new paper.Group();
+    group.addChild(pathsGroup);
 
     var segPerSec = 3;
     var extraAtEnd = 1;
@@ -173,6 +179,7 @@ function draw(world, additional) {
     var scale, offsetx, offsety;
     var active = true;
     var offsett = 0;
+
     paper.view.onFrame = function (event) { 
       //the first time we execute we need to find out how things have been rescaled
       if (scale === undefined) {
@@ -187,7 +194,6 @@ function draw(world, additional) {
 
       if (active) {
         if (event.time - lastTime > .1) {
-          console.log(event.time - lastTime, offsett);
           offsett += event.time - lastTime;
         }
         lastTime = event.time;
@@ -209,7 +215,18 @@ function draw(world, additional) {
         }
 
         var currentPath = _.take(coords, idx+1);
-        currentPath.push(currentLocation)
+        currentPath.push(currentLocation);
+
+        if (paths) {
+          pathsGroup.remove();
+          pathsGroup = addUtilities(paths[idx]);
+          group.addChild(pathsGroup);
+          pathsGroup.scale(scale);
+          pathsGroup.translate(world.xLim/2 * scale, world.yLim/2 * scale );
+          var fudgeFactor = 33;
+          pathsGroup.translate(-pathsGroup.bounds.topLeft.x + fudgeFactor, -pathsGroup.bounds.topLeft.y );
+          console.log()
+        }
 
         agentPath = new paper.Path();
         agentPath.strokeColor = 'black';
@@ -277,7 +294,7 @@ function draw(world, additional) {
       group.addChild(addUtilities(additional.expUtilities));
     }
     if (additional.trajectory) { 
-      addAgentPath(additional.trajectory, group);
+      addAgentPath(additional.trajectory, additional.paths, group);
     }
     if (additional.labels) { 
       group.addChildren(_.map(additional.labels, makeLabel));
