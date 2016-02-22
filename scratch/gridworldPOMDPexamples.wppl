@@ -1,5 +1,3 @@
-// TODO: test
-
 // Helper functions for testing argument types (warning: heuristics only)
 var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
 var isERP = function (x) {return x.hasOwnProperty('score')
@@ -13,104 +11,17 @@ var isGridworld = function(world){return arraysEqual(world.actions,
 				  && world.hasOwnProperty('xLim')
 				  && world.hasOwnProperty('yLim')
 				  && world.hasOwnProperty('transition');};
-var isWorld = function (x) { return x.hasOwnProperty('transition')
+var isPOMDP = function (x) { return x.hasOwnProperty('transition')
 			     && x.hasOwnProperty('manifestStateToActions')
 			     && x.hasOwnProperty('observe');};
+
+// POMDP AGENT AND WORLD
 
 // Helper function for building state from its components
 var buildState = function (manifestState, latentState) {
   return { manifestState:manifestState, latentState:latentState };
 };
 
-// function that builds a gridworld POMDP
-
-// arg is a gridworld MDP, which is an object with features (an array of
-// arrays of the features at each point), xLim, yLim, feature (a function of
-// a (manifest) state that returns the features of that state), transition
-// (a transition function on manifest states), actions, and stateToActions.
-
-// manifest states in this POMDP are objects with loc (an array of two
-// numbers), timeLeft, dead, and digest - the same as states in gridworld MDPs.
-// latent states are an object listing whether each restaurant type is open.
-// transition acts the same as in gridworld MDPs, not touching the latent state,
-// unless the transition would take the agent into a closed restaurant, in which
-// case the agent stays put.
-// observe tells the agent which adjacent restaurants are open. If the agent is not
-// adjacent to any restaurants, they get 'noObservation'.
-var makeGridworldPOMDP = function(gridworld) {
-  assert.ok(isGridworld(gridworld), 'makeGridworldPOMDP arg');
-
-  var actions = gridworld.actions;
-  var feature = gridworld.feature;
-  var manifestStateToActions = function(manifestState) {
-    return actions;
-  };
-  
-  var _mdpTransition = gridworld.transition;
-  var mdpTransition = function(state, action) {
-    // transition the manifest state as it would be transitioned in the gridworld
-    // mdp, leave the latent state alone
-    var newManifestState = _mdpTransition(state.manifestState, action);
-    return buildState(newManifestState, state.latentState);
-  };
-
-  var transition = function(state, action) {
-    assert.ok(isState(state), 'transition state arg');
-
-    var proposedNewState = mdpTransition(state, action);
-    var newFeatureName = feature(proposedNewState.manifestState).name;
-    // if proposedNewState is a restaurant that is closed, stay put, but increment
-    // time. otherwise, change to proposed new state.
-    if (newFeatureName && !proposedNewState.latentState[newFeatureName]) {
-      return buildState(advanceStateTime(state.manifestState), state.latentState);
-    } else {
-      return proposedNewState;
-    }
-  };
-
-  // returns an array of restaurants that neighbour a state
-  var neighbourRestaurants = function(state) {
-    var loc = state.manifestState.loc;
-    var updateStateLoc = function(state, newLoc) {
-      return update(state, update(state.manifestState, {loc: newLoc}));
-    };
-    
-    var potentialneighbourStates = [
-      updateStateLoc(state, [loc[0] - 1, loc[1]]),
-      updateStateLoc(state, [loc[0] + 1, loc[1]]),
-      updateStateLoc(state, [loc[0], loc[1] + 1]),
-      updateStateLoc(state, [loc[0], loc[1] - 1]),
-    ];
-
-    var neighbourStates = filter(function(state){
-      return inGrid_(gridworld, state.manifestState.loc);
-    }, potentialneighbourStates);
-
-    var isRestaurant = function(state) {
-      return feature(state.manifestState).name;
-    };
-
-    return filter(isRestaurant, neighbourStates);
-  };
-
-  // returns a subobject of latentState that gives the status of adjacent restaurants
-  var observe = function(state) {
-    var neighbourRests = neighbourRestaurants(state);
-    if (_.isEmpty(neighbourRests)) {
-      return 'noObservation';
-    } else {
-      var restaurantNames = map(function(state){
-	return feature(state.manifestState).name;}, neighbourRests);
-      return reduce(function(entry, object){
-	return update(object, {entry: state.latentState[entry]});
-      }, {}, restaurantNames);
-    }
-  };
-  
-  return {manifestStateToActions: manifestStateToActions,
-	  transition: transition,
-	  observe: observe};
-};
 
 // POMDP AGENT WITHOUT DELAYS
 // basically the same as makeBeliefDelayAgent without delays or discounting
@@ -118,7 +29,7 @@ var makeGridworldPOMDP = function(gridworld) {
 var makeBeliefAgent = function(agentParams, world) {
   map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeBeliefAgent args');}, 
       ['utility','alpha', 'priorBelief']);
-  assert.ok( isWorld(world),
+  assert.ok( isPOMDP(world),
 	     'world argument lacks transition, stateToActions, or observe');
 
   var utility = agentParams.utility;
@@ -192,9 +103,9 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   var transition = world.transition;
   var observe = world.observe;
 
-  var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {
+  var cutoffCondition = function (actualTimeLeft, state) {
     return actualTimeLeft == 0 || state.dead;
-  } :	function (actualTimeLeft, state) {return actualTimeLeft == 0;};
+  };
 
 
   var sampleSequence = function(state, currentBelief, actualTimeLeft) {
@@ -222,48 +133,79 @@ var printOut = function ( trajectory ) {
   //console.log('expUtilities', out.startEU);
 };
 
-
-var myDonutWorld = makeDonutWorldExtended('#');
+var myDonutWorld = makeDonutWorldExtended({bottomLeftNook: {name: 'DonutSouth'}});
 var donutFeature = myDonutWorld.feature;
 var myDonutPOMDP = makeGridworldPOMDP(myDonutWorld);
 
-var utility = function(state, action) {
+var donutLikingUtility = function(state, action) {
   var name = donutFeature(state.manifestState).name;
-  if (name === 'Donut') {
-    return 2;
-  } else if (name === 'Noodle') {
-    return 10;
-  } else if (name === 'Veg') {
+  if (name === 'Donut' || name === 'DonutSouth') {
     return 5;
+  } else if (name === 'Noodle') {
+    return 1;
+  } else if (name === 'Veg') {
+    return 2;
   } else {
-    return -0.01;
+    return -0.1;
+  }
+};
+
+var noodleLikingUtility = function(state, action) {
+  var name = donutFeature(state.manifestState).name;
+  if (name === 'Donut' || name === 'DonutSouth') {
+    return 1;
+  } else if (name === 'Noodle') {
+    return 5;
+  } else if (name === 'Veg') {
+    return 2;
+  } else {
+    return -0.1;
   }
 };
 
 var priorBelief = Enumerate(function(){
-  if (flip(0.5)) {
+  if (flip(0.9)) {
     return {Donut: true,
+	    DonutSouth: false,
 	    Veg: true,
 	    Noodle: true};
   } else {
     return {Donut: true,
+	    DonutSouth: true,
 	    Veg: true,
 	    Noodle: false};
   }
 });
 
-var myDonutAgent = makeBeliefAgent({utility: utility,
-				    alpha: 500,
-				    priorBelief: priorBelief},
-				   myDonutPOMDP);
+var donutAgent = makeBeliefAgent({utility: donutLikingUtility,
+				  alpha: 500,
+				  priorBelief: priorBelief},
+				 myDonutPOMDP);
+
+var noodleAgent = makeBeliefAgent({utility: noodleLikingUtility,
+				   alpha: 500,
+				   priorBelief: priorBelief},
+				  myDonutPOMDP);
 
 var myStart = {manifestState: {loc: [2,1],
 			       dead: false,
 			       timeLeft: 10,
 			       digest: 1},
 	       latentState: {Donut: true,
+			     DonutSouth: true,
 			     Veg: true,
-			     Noodle: true}};
+			     // Noodle: true
+			     Noodle: false}};
 
-var trajectory = simulateBeliefAgent(myStart, myDonutPOMDP, myDonutAgent, 10, 'states');
-console.log(printOut(trajectory));
+// agent likes donuts. they could go to donutSouth and get donuts, but they won't,
+// because they don't think that donutSouth is open.
+var donutTrajectory = simulateBeliefAgent(myStart, myDonutPOMDP, donutAgent, 10,
+					  'states');
+console.log('donutTrajectory');
+printOut(donutTrajectory);
+// agent likes noodles. they go to the noodle shop, see that it's closed, then go
+// to veg instead.
+var noodleTrajectory = simulateBeliefAgent(myStart, myDonutPOMDP, noodleAgent,
+					   10, 'states');
+console.log('noodleTrajectory');
+printOut(noodleTrajectory);
