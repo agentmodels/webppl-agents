@@ -1,0 +1,65 @@
+var printOut = function ( trajectory ) {
+  console.log('trajectory', map( function (state) {return state.manifestState.loc;},
+  				 trajectory) );
+  //console.log('expUtilities', out.startEU);
+  // console.log('trajectory', map(function(state) {return state.manifestState;},
+  // 				trajectory));
+};
+
+
+var myDonutWorld = makeDonutWorldExtended({bottomLeftNook: '#'});
+var donutFeature = myDonutWorld.feature;
+var myDonutPOMDP = makeGridworldPOMDP(myDonutWorld);
+
+var utility = function(state, action) {
+  var name = donutFeature(state.manifestState).name;
+  if (name === 'Donut') {
+    return 2;
+  } else if (name === 'Noodle') {
+    return 10;
+  } else if (name === 'Veg') {
+    return 5;
+  } else {
+    return -0.01;
+  }
+};
+
+var priorBelief = Enumerate(function(){
+  if (flip(0.5)) {
+    return {Donut: true,
+	    Veg: true,
+	    Noodle: true};
+  } else {
+    return {Donut: true,
+	    Veg: true,
+	    Noodle: false};
+  }
+});
+
+var myDonutAgent = makeBeliefAgent({utility: utility,
+				    alpha: 500,
+				    priorBelief: priorBelief
+				   },
+				   myDonutPOMDP);
+
+var myStart = {manifestState: {loc: [2,1],
+			       dead: false,
+			       timeLeft: 10,
+			       digest: 1},
+	       latentState: {Donut: true,
+			     Veg: true,
+			     // Noodle: true
+			     Noodle: false}};
+
+var informedPrior = Enumerate(function(){
+  return myStart.latentState;
+});
+
+var myInformedAgent = makeBeliefAgent({utility: utility,
+				       alpha: 500,
+				       priorBelief: informedPrior},
+				      myDonutPOMDP);
+
+// var trajectory = simulateBeliefAgent(myStart, myDonutPOMDP, myDonutAgent, 10, 'states');
+var trajectory = simulateBeliefAgent(myStart, myDonutPOMDP, myInformedAgent, 10, 'states');
+printOut(trajectory);
