@@ -9,6 +9,9 @@ This clones webppl into the directory above yours and links it to the global nod
 
 ```
 git clone git@github.com:probmods/webppl.git ../webppl
+git clone git@github.com:stuhlmueller/webppl-timeit.git ../webppl-timeit
+git clone git@github.com:stuhlmueller/webppl-dp.git ../webppl-dp
+git clone git@github.com:erindb/webppl-viz.git ../webppl-viz
 npm link ../webppl
 ```
 
