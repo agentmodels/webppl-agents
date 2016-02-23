@@ -60,21 +60,6 @@ var makeGridMap = function(rfeatures)  {
   };
 };
 
-var makeStateToActions = function(transition, actions) { 
-  return function (state) { 
-    var possibleActions = filter(function (action) { 
-      var newState = transition(state, action);
-      return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
-    }, actions);
-
-    if (possibleActions.length > 0) {
-      return possibleActions;
-    } else { 
-      return [actions[0]];
-    }
-  };
-};
-
 var restaurant = {
   donutN : { name : 'Donut N'},
   donutS : { name : 'Donut S'},
