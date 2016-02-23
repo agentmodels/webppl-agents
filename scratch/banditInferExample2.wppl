@@ -1,0 +1,47 @@
+var numArms = 2;
+var bandit = makeDeterministicBandit(numArms);
+var trueLatent = {start: 0, 0: 10, 1: 1};
+
+var agentBelief = Enumerate(function(){
+  if (flip(0.8)) {
+    return {start: 0, 0: 10, 1: 20};
+  } else {
+    return trueLatent;
+  }
+});
+
+var informedBelief = Enumerate(function(){
+  return trueLatent;
+});
+
+var observedTrajectory = runBandit(numArms, trueLatent, agentBelief, 3);
+
+console.log('observed trajectory', map( function (state) {
+  return state.manifestState.loc;
+}, observedTrajectory) );
+
+// infer what the agent knows and whether they like rewards
+var inferredAgent = Enumerate(function(){
+  var priorBelief = uniformDraw([agentBelief, informedBelief]);
+  var utilitySign = uniformDraw([-1, 1]);
+
+  var agentUtility = function(state, action) {
+    return utilitySign * state.latentState[state.manifestState.loc];
+  };
+  
+  var alpha = 100;
+  
+  var agent = makeBeliefAgent({utility: agentUtility,
+			       alpha: alpha,
+			       priorBelief: priorBelief},
+			      bandit);
+  var newTrajectory = simulateBeliefAgent(observedTrajectory[0], bandit, agent,
+					  observedTrajectory.length, 'states');
+  condition(_.isEqual(newTrajectory, observedTrajectory));
+
+  return {utilitySign: utilitySign, priorBelief: priorBelief};
+});
+
+
+printERP(inferredAgent);
+

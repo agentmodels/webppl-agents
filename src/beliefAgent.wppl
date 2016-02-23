@@ -4,7 +4,7 @@
 var makeBeliefAgent = function(agentParams, world) {
   map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeBeliefAgent args');}, 
       ['utility','alpha', 'priorBelief']);
-  assert.ok( isWorld(world),
+  assert.ok( isPOMDP(world),
 	     'world argument lacks transition, stateToActions, or observe');
 
   var utility = agentParams.utility;
