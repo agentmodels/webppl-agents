@@ -15,8 +15,12 @@ var isAllowedState_ = function(gridMap, loc) {
 
 var advanceStateTime = function(state) { 
   var dead = state.timeLeft > 0 ? state.dead : true;
-  return update(state, { timeLeft : state.timeLeft - 1, dead : dead});
-}
+  return update(state, { timeLeft : state.timeLeft - 1, dead : dead, previousLoc : state.loc});
+};
+
+var addPrevious = function(state) { 
+  return update(state, { previousLoc : state.loc });
+};
 
 var moveState = function(gridMap, state, action) { 
     var loc = state.loc; 
@@ -32,10 +36,12 @@ var moveState = function(gridMap, state, action) {
     return update(state, { loc : nextLoc });
 }
 
-var makeGridTransition_ = function(gridMap) {
+var makeGridTransition_ = function(gridMap, options) {
   return function(state,action){    
     var getFeature = gridMap.feature;
-    var state2 = advanceStateTime(state)
+    var state1_5 = options.noReverse ? addPrevious(state) : state;
+    var state2 = advanceStateTime(state1_5);
+
 
     if ( getFeature(state2).name ) { // there's a restaurant here
       var state3 =  update(state2, { digest : state2.digest -1}); 
@@ -56,21 +62,6 @@ var makeGridMap = function(rfeatures)  {
     yLim : features.length,
     feature : function (state) { 
       return features[state.loc[1]][state.loc[0]];
-    }
-  };
-};
-
-var makeStateToActions = function(transition, actions) { 
-  return function (state) { 
-    var possibleActions = filter(function (action) { 
-      var newState = transition(state, action);
-      return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
-    }, actions);
-
-    if (possibleActions.length > 0) {
-      return possibleActions;
-    } else { 
-      return [actions[0]];
     }
   };
 };
@@ -111,20 +102,24 @@ var makeDonutWorld2 = function(options) {
      [DS , '#', '#',  _ , '#', '#']];
 
   var features = options.big ? big : small;
-  return makeGridWorld(features);
+  return makeGridWorld(features, options);
 }
 
 
-var makeGridWorld = function(features) {
+var makeGridWorld = function(features, options) {
+  var options = options || {};
   var gridMap = makeGridMap(features); 
 
-  var transition = makeGridTransition_(gridMap);
+  var transition = makeGridTransition_(gridMap, options);
   var actions = ['l', 'r', 'u', 'd'];
 
   var stateToActions = function (state) { 
 
     var possibleActions = filter(function (action) { 
       var newState = transition(state, action);
+      if (options.noReverse && 
+          state.previousLoc && 
+          state.previousLoc[0] === newState.loc[0] && state.previousLoc[1] === newState.loc[1]) { return false; }
       return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
     }, actions);
 

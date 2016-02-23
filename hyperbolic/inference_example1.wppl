@@ -1,8 +1,8 @@
 var start = { 
-  loc : [3,1],
+  loc : [3,0],
   dead : false,
   digest : 2, 
-  timeLeft : 12
+  timeLeft : 13
 };
 
 var donutUtility = makeDonutUtility(2, {
@@ -12,7 +12,7 @@ var donutUtility = makeDonutUtility(2, {
     'Noodle': [0, 0]
 });
 
-var world = makeDonutWorld2({ big : true});
+var world = makeDonutWorld2({ big : true, noReverse : true});
 var actual_agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
@@ -38,16 +38,16 @@ var posterior = Enumerate(function () {
   });
 
   var agent = makeHyperbolicDiscounter(
-      { utility : donutUtility,
-        alpha : alpha, 
-        discount : discount, 
+      { utility   : donutUtility,
+        alpha     : alpha, 
+        discount  : discount, 
         sophisticatedOrNaive  : type,
       }, world);
   var agentAction = agent.agent;
 
   map(function (stateAction) {
-    var state = stateAction[0];
-    var action = stateAction[1];
+    var state   = stateAction[0];
+    var action  = stateAction[1];
 
     factor(agentAction(state, 0).score([], action)) ; 
   }, observed);
