@@ -11,6 +11,7 @@ var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', '
 var isWorld = function (x) { return x.hasOwnProperty('transition') && x.hasOwnProperty('manifestStateToActions') &&
                              x.hasOwnProperty('observe');};
 
+                    
 
 // POMDP AGENT AND WORLD
 
@@ -103,10 +104,10 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
   var transition = world.transition;
   var observe = world.observe;
   var outputTable = function(state, nextAction, currentBelief, observation, outputStatesOrActions){
-    return {states:state, actions:nextAction, both:[state, nextAction], 
+    return {states:state, actions:nextAction.action, both:[state, nextAction.action], 
             stateBelief: [state, currentBelief],
             stateBeliefObservationAction: [{state:state, currentBelief:currentBelief, observation:observation},
-                                           nextAction]
+                                           nextAction.action]
            }[outputStatesOrActions];
   };
 
@@ -215,10 +216,12 @@ var makeBandits = function (numArms) {
 
 
 // arm 0 outputs 'prize0'. other arms output numbers. agent's utility maps prize0 onto a number.
-// we don't know that number but we (inference system) know the latent state
+// we don't know that number but when doing inference we always know the latent state. 
 
-var inferBanditsBelief = function(numArms, armToRewards, perceivedTotalTime, priorUtilityPrize0, observedStates) {
+var inferBanditsBelief = function(numArms, armToRewards, perceivedTotalTime, priorUtilityPrize0, observationUtilityPrize0) {
 
+  // Construct agent for this problem. Utilities are latent state values
+  // expect for arm 0. Agent does NOT discount. 
   var makeAgent = function( utilityPrize0, priorBelief, armToRewards, world){
     assert.ok(_.isFinite(utilityPrize0) && _.isFinite(priorBelief.score([],armToRewards)), 'getAgent args');
     
@@ -234,33 +237,39 @@ var inferBanditsBelief = function(numArms, armToRewards, perceivedTotalTime, pri
       alpha: 100,
       noDelays: true,
       discount: 0,
-    sophisticatedOrNaive: 'naive'
+      sophisticatedOrNaive: 'naive'
     };
     
     return makeBeliefDelayAgent(agentParams, world);
   };
 
   
-  // Make world and start
+  // Construct *world*, adding the special reward of prize0 for arm 0. 
   var actualTotalTime = perceivedTotalTime;
   var world = makeBandits(numArms);
   var armToRewards = update(armToRewards,{0:'prize0'});
   var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, dead:false}, 
                     latentState: armToRewards};
   
-  map( function(n){assert.ok(!_.isUndefined(armToRewards[n]),'check armTo')}, _.range(numArms) );
-  
+  map( function(n){assert.ok(!_.isUndefined(armToRewards[n]),'check armToRewards')}, _.range(numArms) );
+
+  // Agent knows the rewards of all states
   var priorBelief = Enumerate(function(){return armToRewards;});
 
+  // Compute [state,action] trajectory for agent who has the observed trajectory
+  var observedAgent = makeAgent( observationUtilityPrize0, priorBelief, armToRewards, world);
+  var observedStateAction = simulateBeliefDelayAgent(startState, world, observedAgent, actualTotalTime, 'both');
   
+  
+  // Simple and slow inference. Generate trajectory ERP with rejection sampling
+  // and condition on state sequence. 
   var inferFromStates = function(observedStates, priorUtilityPrize0){
     return Enumerate(function(){
       var utilityPrize0 = priorUtilityPrize0();
       var agent = makeAgent(utilityPrize0, priorBelief, armToRewards, world);
 
       var trajectoryERP = Rejection( function(){
-        var fullStates = simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states');
-        return map( function(s){return s.manifestState.loc;}, fullStates );
+        return simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states');
       }, 100);
 
       factor( trajectoryERP.score( [], observedStates) )
@@ -268,17 +277,56 @@ var inferBanditsBelief = function(numArms, armToRewards, perceivedTotalTime, pri
       return {utilityPrize0: utilityPrize0};
     });
   };
-
   
-   
+  var erpInferFromStates = inferFromStates( map(first, observedStateAction), priorUtilityPrize0);
+
+
+  // Fast inference. Given trajectory of [state,action], run hypothetical
+  // agent on each state, condition on action and then continue on to
+  // next state in trajectory. Need to pass through agent's belief and
+  // feed the agent a new observation at each iteration.
+
+  // Input needs to have full states (not just .loc). 
+  
+  var inferOffPolicy = function(observedStateAction, priorUtilityPrize0){
+    return Enumerate(function(){
+      var utilityPrize0 = priorUtilityPrize0();
+      var agent = makeAgent(utilityPrize0, priorBelief, armToRewards, world);
+      var agentAction = agent.agent;
+      
+      var observe = world.observe;
+
+      var factorSequence = function(currentBelief, index){
+        if (index >= observedStateAction.length){ 
+          return []; // no-op
+        } else {
+          var state = observedStateAction[index][0];
+          var observedAction = observedStateAction[index][1];
+          var agentERP = agentAction(state.manifestState, currentBelief, observe(state));
+
+          condition( _.isEqual( sample(agentERP).action, observedAction ) );
+          
+          factorSequence( sample(agentERP).belief, index + 1);
+        }
+      };
+
+      factorSequence(priorBelief, 0);
+      return {utilityPrize0: utilityPrize0};
+    });
+  };
+  
+  var erpInferOffPolicy = inferOffPolicy( observedStateAction, priorUtilityPrize0 );
+
+
+  // Fast inference by sampling an action given the state, belief, observation.
+  // WARNING: not working. 
+  
   // *stateAction* has form [  [ {state:, currentBelief:, observation: }, action] ]
   var inferFromStateBeliefs = function(priorUtilityPrize0, observationUtilityPrize0){
-
-    var getObservationStates = function(observationUtilityPrize0){
-      var agent = makeAgent( observationUtilityPrize0, priorBelief, armToRewards, world);
-      return simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'stateBeliefObservationAction');
-    };
-
+    
+    var agent = makeAgent( observationUtilityPrize0, priorBelief, armToRewards, world);
+    var observedStateActions = simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 
+                                                        'stateBeliefObservationAction');
     var observedStateActions = getObservationStates(observationUtilityPrize0);
     
     return Enumerate(function(){
@@ -299,22 +347,26 @@ var inferBanditsBelief = function(numArms, armToRewards, perceivedTotalTime, pri
     });  
   };
 
-  // TODO fix a bug here in inferFromStateBeliefs
-  var observationUtilityPrize0 = 1;
-  var erpBeliefs = inferFromStateBeliefs( priorUtilityPrize0, observationUtilityPrize0);
-  var erpStates = inferFromStates(observedStates, priorUtilityPrize0);
-  return {erpBeliefs: erpBeliefs, erpStates: erpStates};
+  return {erpInferOffPolicy:erpInferOffPolicy, erpInferFromStates: erpInferFromStates};
 };
 
 // world params
 var armToRewards = {1:5, 2:10};
 var numArms = 3;
 var perceivedTotalTime = 3;
+
+// Prior on the agent's utility for prize0
 var priorUtilityPrize0 = function(){return uniformDraw([0,5,20]);};
-var observedStates = ['start',2,2];    
-var erp = inferBanditsBelief(numArms, armToRewards, perceivedTotalTime, priorUtilityPrize0, observedStates);
-printERP(erp);
+
+// Condition agent on a trajectory generated by assuming prize0 utility is 1
+// (So agent will go to arm 2, which has reward 10)
+var observationUtilityPrize0 = 20;
+
+var out = inferBanditsBelief(numArms, armToRewards, perceivedTotalTime, priorUtilityPrize0, observationUtilityPrize0);
+printERP(out.erpInferOffPolicy);
+printERP(out.erpInferFromStates);
 ash();
+
 
 
 // var f = cache( function(x,y){return x+5;} );
