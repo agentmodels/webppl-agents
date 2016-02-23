@@ -392,6 +392,76 @@ ash();
 // var c = f.cache;
 
 
+// IRL-bandits
+
+// We have a set of prizes ['a','b','c']. The agent is unsure of the prize
+// for some of the arms. We (doing inference) are unsure of some of the
+// utilities for prizes. 
+
+// prizeToUtility = {a: 0, b: 5, ... }
+// the true mapping from arms to prizes must be in agent's prior
+// (for convenience, we can often let the true mapping be 0:a, 1:b, ...
+// i.e. zip( _.range(numArms), ['a','b','c', ...].slice(...))
+
+// form of latentState: {arm:prize}, usually, {0:'a', ....}
+
+// we could implement stochastic version with stochastic utilities
+// (where the utility is then baked into the observation). 
+
+var makeBanditAgent = function(prizeToUtility, agentParams, armToPrizes, world){
+  var priorBelief = agentParams.priorBelief;
+  assert.ok( _.isFinite(priorBelief.score([],armToPrizes)), 'makeBanditAgent has true latent in support');
+  
+  var utility = function(state,action){
+    var loc = state.manifestState.loc;
+    if (loc=='start'){return 0;};
+    return prizeToUtility( state.latentState[loc] );
+  };
+  
+  return makeBeliefDelayAgent( update(agentParams, {utility:utility}), world);
+};
+
+var makeBanditWorldAndStart = function(numArms, armToPrizes, perceivedTotalTime){
+  map( function(i){assert.ok( _.isString(armToPrizes(i)), 'makeBanditWorld args' );}, _.range(numArms));
+  
+  var actualTotalTime = perceivedTotalTime;
+  var world = makeBandits(numArms);
+
+  var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, dead:false}, 
+                    latentState: armToPrizes};
+
+  return {world:world, startState: startState, actualTotalTime:actualTotalTime};
+};
+
+var runIRLBandit = function(){
+  var numArms = 2;
+  var armToPrizes = {0:'a', 1:'b'};
+  var perceivedTotalTime = 3;
+  var worldAndStart = makeBanditWorldAndStart(numArms, armToPrizes, perceivedTotalTime);
+  var world = worldAndStart.world;
+
+  var prizeToUtility = {a:10, b:5};
+  var priorBelief = Enumerate(function(){return armToPrizes;});
+  var agentParams = {
+    priorBelief: priorBelief,
+    alpha: 100,
+    noDelays: true,
+    discount: 0,
+    sophisticatedOrNaive: 'naive'
+  };
+   
+  var agent = makeBanditAgent(prizeToUtility, agentParams, armToPrizes, world);
+
+  var trajectory = simulateBeliefDelayAgent(worldAndStart.startState, 
+                                            world, agent, worldAndStart.actualTotalTime, 'states');
+
+  return trajectory;
+};
+
+console.log(runIRLBandit());
+
+
+
 
 // *armToRewards* is the actual rewards for each arm (true latentState)
 // *priorBelief* is agent's belief about rewards, which must have true latentState in support
