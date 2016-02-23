@@ -128,66 +128,6 @@ var printOut = function ( trajectory ) {
   //console.log('expUtilities', out.startEU);
 };
 
-// ----------------------------------------------
-// inference of an agent's utility and/or priorBelief based on their trajectory.
-// assumed that we see some initial
-// segment of the trajectory: not necessarily the whole trajectory, but without gaps.
-// we also assume that the inference function knows the latent state.
-// ----------------------------------------------
-
-// first inference function: generate an agent, look at the ERP over trajectories
-// that agent generates, get the score of the actual trajectory. Only works for
-// bandits.
-
-// *observedTrajectory* is the trajectory actually seen, *latentState* is the latent
-// state of the POMDP, *utilitySignPrior* is an ERP which represents our prior over the
-// agent's utilities, *beliefPrior* is an ERP which represents our prior over the
-// agent's prior over latent states, *alpha* regulates the agent's softmax noise,
-// assumed to be the same as the actual agent, and *world* is the POMDP that the
-// trajectory comes from.
-var inferUtilityBeliefBandits1 = function(observedTrajectory, utilitySignPrior,
-					  beliefPrior, alpha, world) {
-  var trajectoryLength = observedTrajectory.length;
-  
-  var rewardUtility = function(state, action) {
-    return state.latentState[state.manifestState.loc];
-  };
-  
-  return Enumerate(function(){
-    var agentUtilitySign = sample(utilitySignPrior);
-    var agentUtility = function(state, action) {
-      return agentUtilitySign * rewardUtility(state, action);
-    };
-    var priorBelief = sample(beliefPrior);
-    var agent = makeBeliefAgent({utility: agentUtility,
-				 alpha: alpha,
-				 priorBelief: priorBelief},
-				world);
-    var newTrajectory = simulateBeliefAgent(observedTrajectory[0], world, agent,
-					    trajectoryLength,'states');
-    condition(_.isEqual(newTrajectory, observedTrajectory));
-    return {utilitySign: agentUtilitySign, prior: priorBelief};
-  });
-};
-
-
-// second inference function: generate an agent. In the first state of the trajectory,
-// update that agent's beliefs, get the agent's ERP over next states, get the score
-// of the actual next state, then put the agent in the actual next state, and repeat
-// this process for the whole trajectory.
-
-// same args as before
-var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
-					  beliefPrior, alpha, world) {
-  var trajectoryLength = observedTrajectory.length;
-
-  var rewardUtility = function(state, action) {
-    return state.latentState[state.manifestState.loc];
-  };
-
-  // how to do this...
-};
-
 // Multi-arm deterministic bandits.
 // Rewards of arms are fixed by the latent state. 
 var makeBandits = function (numArms) {
@@ -246,6 +186,105 @@ var runBandits = function(numArms, armToRewards, priorBelief,
   return simulateBeliefAgent(startState, world, agent, actualTotalTime, 'states');
 };
 
+// ----------------------------------------------
+// inference of an agent's utility and/or priorBelief based on their trajectory.
+// assumed that we see some initial
+// segment of the trajectory: not necessarily the whole trajectory, but without gaps.
+// we also assume that the inference function knows the latent state.
+// ----------------------------------------------
+
+// first inference function: generate an agent, look at the ERP over trajectories
+// that agent generates, get the score of the actual trajectory. Only works for
+// bandits.
+
+// *observedTrajectory* is the trajectory actually seen, *latentState* is the latent
+// state of the POMDP, *utilitySignPrior* is an ERP which represents our prior over the
+// agent's utilities, *beliefPrior* is an ERP which represents our prior over the
+// agent's prior over latent states, *alpha* regulates the agent's softmax noise,
+// assumed to be the same as the actual agent, and *world* is the POMDP that the
+// trajectory comes from.
+var inferUtilityBeliefBandits1 = function(observedTrajectory, utilitySignPrior,
+					  beliefPrior, alpha, world) {
+  var trajectoryLength = observedTrajectory.length;
+  
+  var rewardUtility = function(state, action) {
+    return state.latentState[state.manifestState.loc];
+  };
+  
+  return Enumerate(function(){
+    var agentUtilitySign = sample(utilitySignPrior);
+    var agentUtility = function(state, action) {
+      return agentUtilitySign * rewardUtility(state, action);
+    };
+    var priorBelief = sample(beliefPrior);
+    var agent = makeBeliefAgent({utility: agentUtility,
+				 alpha: alpha,
+				 priorBelief: priorBelief},
+				world);
+    var newTrajectory = simulateBeliefAgent(observedTrajectory[0], world, agent,
+					    trajectoryLength,'states');
+    condition(_.isEqual(newTrajectory, observedTrajectory));
+    return {utilitySign: agentUtilitySign, prior: priorBelief};
+  });
+};
+
+
+// second inference function: generate an agent. In the first state of the trajectory,
+// update that agent's beliefs, get the agent's ERP over next states, get the score
+// of the actual next state, then put the agent in the actual next state, and repeat
+// this process for the whole trajectory.
+
+// same args as before
+var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
+					  beliefPrior, alpha, world) {
+  var trajectoryLength = observedTrajectory.length;
+  var perceivedTotalTime = observedTrajectory[0].manifestState.timeLeft;
+  
+  var rewardUtility = function(state, action) {
+    return state.latentState[state.manifestState.loc];
+  };
+
+  return Enumerate(function(){
+    var agentUtilitySign = sample(utilitySignPrior);
+    var agentUtility = function(state, action){
+      return agentUtilitySign * rewardUtility(state, action);
+    };
+    var agentPrior = sample(beliefPrior);
+    var agent = makeBeliefAgent({utility: agentUtility,
+				 alpha: alpha,
+				 priorBelief: agentPrior},
+				world);
+    
+    var agentActionBelief = agent.agent;
+    var transition = world.transition;
+    var observe = world.observe;
+
+    var sampleAlongTrajectory = function(state, currentBelief, actionsSampled) {
+      if (actionsSampled === trajectoryLength - 1) {
+	return [];
+      } else {
+	var actionERP = Enumerate(function(){
+	  return sample(agentActionBelief(state.manifestState, currentBelief,
+					  observe(state))).action;
+	});
+
+	var newBelief = sample(agentActionBelief(state.manifestState, currentBelief,
+						 observe(state))).belief;
+
+	var nextState = observedTrajectory[actionsSampled + 1];
+	
+	factor(actionERP.score([], nextState.manifestState.loc));
+	
+	return sampleAlongTrajectory(nextState, newBelief, actionsSampled + 1);
+      }
+    };
+
+    sampleAlongTrajectory(observedTrajectory[0], agentPrior, 0);
+
+    return {utilitySign: agentUtilitySign, prior: agentPrior};
+  });
+};
+
 // testing inference for bandits.
 
 
@@ -295,9 +334,13 @@ var inferredAgent = inferUtilityBeliefBandits1(observedTrajectory, utilitySignPr
 					       agentBeliefPrior, 100,
 					       makeBandits(numArms));
 
+var inferredAgent2 = inferUtilityBeliefBandits2(observedTrajectory, utilitySignPrior,
+					       agentBeliefPrior, 100,
+					       makeBandits(numArms));
+
 // tells you whether utility is rewardUtility or negRewardUtility
 var sampleUtilitySign = function(){
-  var utilitySign = sample(inferredAgent).utilitySign;
+  var utilitySign = sample(inferredAgent2).utilitySign;
   console.log(utilitySign);
 };
 
@@ -305,7 +348,7 @@ repeat(4, sampleUtilitySign);
 
 // samples an agent prior over latent states, samples from that prior
 var sampleAgentPrior = function(){
-  var agentLatentState = sample(sample(inferredAgent).prior);
+  var agentLatentState = sample(sample(inferredAgent2).prior);
   console.log(JSON.stringify(agentLatentState));
 };
 
