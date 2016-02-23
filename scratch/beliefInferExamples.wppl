@@ -34,7 +34,6 @@ var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
 				world);
     
     var agentActionBelief = agent.agent;
-    var transition = world.transition;
     var observe = world.observe;
 
     var sampleAlongTrajectory = function(state, currentBelief, actionsSampled) {
@@ -63,20 +62,62 @@ var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
   });
 };
 
-// third inference function: doing inference on an agent's utilities and beliefs
-// in a gridworld. Inference works the same way as in *inferUtilityBeliefBandits2*.
+// third inference function: doing inference on an agent's utilities, beliefs,
+// and softmax noise in any pomdp. Inference works the same way as in
+// *inferUtilityBeliefBandits2*.
 
 // arguments: [fill in later]
 
-// var inferGridworld = function(observedTrajectory, utilityTablePrior, beliefPrior,
-// 			      alpha, world) {
-//   var trajectoryLength = observedTrajectory.length;
-//   var perceivedTotalTime = observedTrajectory[0].manifestState.timeLeft;
+var inferBeliefAgent = function(observedTrajectories, utilityParamsPrior, beliefPrior,
+				alphaPrior, paramsToUtilityFunction, world) {
+  var numTrajectories = observedTrajectories.length;
+  var transition = world.transition;
+  var observe = world.observe;
 
-//   return Enumerate(function(){
-//     var utilityTable = sample(utilityTablePrior);
-//     var utility = function(state, action) {
+  var sampleAlongTrajectory = function(state, currentBelief, actionsSampled,
+				       trajectory, agentActionBelief) {
+    assert.ok(isERP(agentActionBelief(state.manifestState, currentBelief,
+				      observe(state))),
+	      'agentActionBelief not correct in sampleAlongTrajectory');
+    
+    if (actionsSampled === trajectory.length - 1) {
+      return [];
+    } else {
+      var actionBeliefERP = agentActionBelief(state.manifestState, currentBelief,
+					      observe(state));
+      var nextStateERP = Enumerate(function(){
+	return transition(state, sample(actionBeliefERP).action);
+      });
+      var newBelief = sample(actionBeliefERP).belief;
 
-//     };
-//   });
-// }
+      var trajectoryNextState = trajectory[actionsSampled + 1];
+      
+      factor(nextStateERP.score([], trajectoryNextState));
+      
+      return sampleAlongTrajectory(trajectoryNextState, newBelief, actionsSampled + 1,
+				   trajectory, agentActionBelief);
+    }
+  };
+
+  return Enumerate(function(){
+    var utilityParams = sample(utilityParamsPrior);
+    var utility = paramsToUtilityFunction(utilityParams);
+    var agentPrior = sample(beliefPrior);
+    var alpha = sample(alphaPrior);
+    var agent = makeBeliefAgent({utility: utility,
+				 alpha: alpha,
+				 priorBelief: agentPrior});
+    var agentActionBelief = agent.agent;
+
+    var factorTrajectory = function(trajectory) {
+      return sampleAlongTrajectory(trajectory[0], agentPrior, 0, trajectory,
+				   agentActionBelief);
+    };
+
+    map(factorTrajectory, observedTrajectories);
+
+    return {utilityParams: utilityParams,
+	    prior: agentPrior,
+	    alpha: alpha};
+  });
+};
