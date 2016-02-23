@@ -74,6 +74,8 @@ var inferBeliefAgent = function(observedTrajectories, utilityParamsPrior, belief
   var transition = world.transition;
   var observe = world.observe;
 
+  // don't bother updating with noObservation
+
   var sampleAlongTrajectory = function(state, currentBelief, actionsSampled,
 				       trajectory, agentActionBelief) {
     assert.ok(isERP(agentActionBelief(state.manifestState, currentBelief,

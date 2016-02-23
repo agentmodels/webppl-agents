@@ -1,6 +1,6 @@
-
 // Multi-arm deterministic bandits.
-// Rewards of arms are fixed by the latent state. 
+// Rewards of arms are fixed by the latent state.
+// latent state is of form {start: 0, rewards: [3,8,17]}
 var makeDeterministicBandit = function (numArms) {
   var actions = _.range(numArms);
   
@@ -18,7 +18,8 @@ var makeDeterministicBandit = function (numArms) {
 
   var observe = function(state){
     // agent observes the reward of arm when he chooses it
-    return state.latentState[state.manifestState.loc];
+    return state.manifestState.loc === 'start' ? 0 :
+      state.latentState.rewards[state.manifestState.loc];
   };
   
   return {manifestStateToActions: manifestStateToActions, transition:transition,

@@ -1,10 +1,11 @@
 var numArms = 2;
 var bandit = makeDeterministicBandit(numArms);
-var trueLatent = {start: 0, 0: 10, 1: 1};
+var trueLatent = {start: 0, rewards: [10, 1]};
+var falseLatent = {start: 0, rewards: [10, 20]};
 
 var agentBelief = Enumerate(function(){
   if (flip(0.8)) {
-    return {start: 0, 0: 10, 1: 20};
+    return falseLatent;
   } else {
     return trueLatent;
   }
@@ -16,6 +17,7 @@ var informedBelief = Enumerate(function(){
 
 var observedTrajectory = runBandit(numArms, trueLatent, agentBelief, 3);
 
+// note: change console.log to print in codeboxes
 console.log('observed trajectory', map( function (state) {
   return state.manifestState.loc;
 }, observedTrajectory) );
@@ -25,8 +27,9 @@ var inferredAgent = Enumerate(function(){
   var priorBelief = uniformDraw([agentBelief, informedBelief]);
   var utilitySign = uniformDraw([-1, 1]);
 
-  var agentUtility = function(state, action) {
-    return utilitySign * state.latentState[state.manifestState.loc];
+  var agentUtility = function (state,action) {
+    return state.manifestState.loc === 'start' ? 0 :
+      utilitySign * state.latentState.rewards[state.manifestState.loc];
   };
   
   var alpha = 100;
