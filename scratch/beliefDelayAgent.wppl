@@ -214,12 +214,26 @@ var makeBandits = function (numArms) {
 };
 
 
+// Bandits where arm 0 has a string reward "prize0", which the agent assigns an unknown utility. 
+// Other arms output numerical rewards as before. The latent state is the numerical reward
+// of arms other than 0.
 
-// arm 0 outputs 'prize0'. other arms output numbers. agent's utility maps prize0 onto a number.
-// we don't know that number but when doing inference we always know the latent state. 
+// Agent actions are in [0,1,...,numArms] and states are [0,1,...,numArms].
+// Agent observes 'prize0' or the numerical reward for each state.
+// For inference, we condition on a sequence of states or pairs of form [state,action].
 
+// Example below:
+// For inference, we don't know utility('prize0') for agent. Given a prior
+// on this variable, we want to infer this from agent's actions. We know
+// agent's prior on reward of arm 1. If the agent goes for arm 0 on first trial, then
+// prize0 must have high utility, otherwise it has low utility. 
+
+// We show simple+slow and complex+fast inference methods. 
 var inferBanditsBelief = function(numArms, armToRewards, perceivedTotalTime, priorUtilityPrize0, observationUtilityPrize0) {
 
+
+// BUILD AGENT AND BANDITS
+  
   // Construct agent for this problem. Utilities are latent state values
   // expect for arm 0. Agent does NOT discount. 
   var makeAgent = function( utilityPrize0, priorBelief, armToRewards, world){
@@ -256,10 +270,15 @@ var inferBanditsBelief = function(numArms, armToRewards, perceivedTotalTime, pri
   // Agent knows the rewards of all states
   var priorBelief = Enumerate(function(){return armToRewards;});
 
+  
+// BUILD OBSERVATIONS
+  
   // Compute [state,action] trajectory for agent who has the observed trajectory
   var observedAgent = makeAgent( observationUtilityPrize0, priorBelief, armToRewards, world);
   var observedStateAction = simulateBeliefDelayAgent(startState, world, observedAgent, actualTotalTime, 'both');
   
+
+// INFERENCE IN THIS MODEL
   
   // Simple and slow inference. Generate trajectory ERP with rejection sampling
   // and condition on state sequence. 
