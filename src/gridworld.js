@@ -33,10 +33,6 @@ var zipToObject = function(zipAr) {
   return obj;
 };
 
-
-
-
-
 var zipToGridTable = function(zip_state_cell){
   var table = {}
   zip_state_cell.map( function(state_cell){
@@ -110,6 +106,7 @@ var displayExpUtility = function(stateLRUD, xLim, yLim){
 
 
 module.exports = {
+  has : _.has,
   getGridStates: getGridStates,
   zipToObject: zipToObject,
   gridTransform: gridTransform,

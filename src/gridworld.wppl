@@ -49,7 +49,10 @@ var update = function(base, ext){
   return _.extend({}, base, ext);
 };
 
-
+//for checking the parameter object has all require params
+var assertHas = function(object, params, message) { 
+  assert.ok(_.has(object, params), message + JSON.stringify(object) + ' required ' + JSON.stringify(params));
+};
 
 
 // GRIDWORLD LIBRARY
