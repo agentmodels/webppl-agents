@@ -1,5 +1,3 @@
-// TODO: test simple inference function
-
 // Helper functions for testing argument types (warning: heuristics only)
 var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
 var isERP = function (x) {return x.hasOwnProperty('score')
@@ -285,9 +283,27 @@ var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
   });
 };
 
+// third inference function: doing inference on an agent's utilities and beliefs
+// in a gridworld. Inference works the same way as in *inferUtilityBeliefBandits2*.
+
+// arguments: [fill in later]
+
+var inferGridworld = function(observedTrajectory, utilityTablePrior, beliefPrior,
+			      alpha, world) {
+  var trajectoryLength = observedTrajectory.length;
+  var perceivedTotalTime = observedTrajectory[0].manifestState.timeLeft;
+
+  return Enumerate(function(){
+    var utilityTable = sample(utilityTablePrior);
+    var utility = function(state, action) {
+
+    };
+  });
+  
+}
+
+
 // testing inference for bandits.
-
-
 
 var numArms = 2;
 var trueLatent = {start: 0, 0: 10, 1: 1};
