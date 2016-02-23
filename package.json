@@ -17,7 +17,8 @@
       "src/hyperbolic.wppl",
       "src/newGridworld.wppl",
       "src/gridworldPOMDP.wppl",
-      "src/beliefAgent.wppl"
+      "src/beliefAgent.wppl",
+      "src/deterministicBandits.wppl"
     ]
   },
   "repository": {

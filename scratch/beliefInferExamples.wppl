@@ -4,64 +4,6 @@ var printOut = function ( trajectory ) {
   //console.log('expUtilities', out.startEU);
 };
 
-// Multi-arm deterministic bandits.
-// Rewards of arms are fixed by the latent state. 
-var makeBandits = function (numArms) {
-  var actions = _.range(numArms);
-  
-  var mdpTransition = function (state, action) {
-    var dead = state.timeLeft - 1 == 0 ? true : false;
-    return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
-  };
-  
-  var manifestStateToActions = function (manifestState) {return actions;};
-
-  var transition = function(state, action){
-    return buildState( mdpTransition(state.manifestState, action),
-		       state.latentState);
-  };
-
-  var observe = function(state){
-    // agent observes the reward of arm when he chooses it
-    return state.latentState[state.manifestState.loc];
-  };
-  
-  return {manifestStateToActions: manifestStateToActions, transition:transition,
-	  observe:observe};
-};
-
-// *armToRewards* is the actual rewards for each arm (true latentState)
-// *priorBelief* is agent's belief about rewards,
-// which must have true latentState in support
-var runBandits = function(numArms, armToRewards, priorBelief,
-			  perceivedTotalTime) {
-  map( function(n){assert.ok(_.isFinite(armToRewards[n]),'check armTo');},
-       _.range(numArms) );
-  var world = makeBandits(numArms);
-  
-  // agent params 
-  assert.ok( _.isFinite(priorBelief.score([],armToRewards)),
-	     "actual latent not in prior's support" );
-
-  var agentParams = { 
-    utility: function (state,action) {
-      return state.latentState[state.manifestState.loc];
-    }, // utility == reward
-    alpha: 100,
-    priorBelief: priorBelief
-  };
-
-  var agent = makeBeliefAgent(agentParams, world);
-
-  var actualTotalTime = perceivedTotalTime;
-  var startState = {manifestState: {loc: 'start',
-				    timeLeft: perceivedTotalTime,
-				    dead: false},
-		    latentState: armToRewards};
-
-  return simulateBeliefAgent(startState, world, agent, actualTotalTime, 'states');
-};
-
 // ----------------------------------------------
 // inference of an agent's utility and/or priorBelief based on their trajectory.
 // assumed that we see some initial

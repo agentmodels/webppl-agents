@@ -1,0 +1,26 @@
+
+// Multi-arm deterministic bandits.
+// Rewards of arms are fixed by the latent state. 
+var makeDeterministicBandit = function (numArms) {
+  var actions = _.range(numArms);
+  
+  var mdpTransition = function (state, action) {
+    var dead = state.timeLeft - 1 == 0 ? true : false;
+    return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
+  };
+  
+  var manifestStateToActions = function (manifestState) {return actions;};
+
+  var transition = function(state, action){
+    return buildState( mdpTransition(state.manifestState, action),
+		       state.latentState);
+  };
+
+  var observe = function(state){
+    // agent observes the reward of arm when he chooses it
+    return state.latentState[state.manifestState.loc];
+  };
+  
+  return {manifestStateToActions: manifestStateToActions, transition:transition,
+	  observe:observe};
+};
