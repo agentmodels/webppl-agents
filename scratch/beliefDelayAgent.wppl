@@ -1,6 +1,4 @@
-
-// TODO for beliefDelay agent
-// 3. Add some inference examples and add agent to /src
+// TODO
 // 4. Add myopia and bound VOI agents. 
 
 // Helper functions for testing argument types (warning: heuristics only)
@@ -387,6 +385,8 @@ var observationUtilityPrize0 = 20;
 
 
 
+
+
 // IRL-bandits
 
 // We have a set of prizes ['a','b','c']. The agent is unsure of the prize
@@ -403,7 +403,7 @@ var observationUtilityPrize0 = 20;
 // we could implement stochastic version with stochastic utilities
 // (where the utility is then baked into the observation). 
 
-var makeBanditAgent = function(prizeToUtility, agentParams, armToPrizes, world){
+var makeIRLBanditAgent = function(prizeToUtility, agentParams, armToPrizes, world){
   var priorBelief = agentParams.priorBelief;
   assert.ok( _.isFinite(priorBelief.score([],armToPrizes)), 'makeBanditAgent does not have true latent in support');
   
@@ -416,7 +416,7 @@ var makeBanditAgent = function(prizeToUtility, agentParams, armToPrizes, world){
   return makeBeliefDelayAgent( update(agentParams, {utility:utility}), world);
 };
 
-var makeBanditWorldAndStart = function(numArms, armToPrizes, perceivedTotalTime){
+var makeIRLBanditWorldAndStart = function(numArms, armToPrizes, perceivedTotalTime){
   map( function(i){assert.ok( _.isString(armToPrizes[i]), 'makeBanditWorld args' );}, _.range(numArms));
   
   var actualTotalTime = perceivedTotalTime;
@@ -435,7 +435,7 @@ var runIRLBanditExamples = function(){
   var numArms = 2;
   var armToPrizes = {0:'a', 1:'b'};
   var perceivedTotalTime = 3;
-  var worldAndStart = makeBanditWorldAndStart(numArms, armToPrizes, perceivedTotalTime);
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrizes, perceivedTotalTime);
   var world = worldAndStart.world;
   var startState = worldAndStart.startState;
 
@@ -451,7 +451,7 @@ var runIRLBanditExamples = function(){
 
   var getTrajectory = function(priorBelief){
     var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
-    var agent = makeBanditAgent(prizeToUtility, agentParams, armToPrizes, world);
+    var agent = makeIRLBanditAgent(prizeToUtility, agentParams, armToPrizes, world);
     return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
   };
   // Agent knows armToPrizes, picks arm with best prize
@@ -474,7 +474,7 @@ var runIRLBanditExamples = function(){
   var numArms = 4;
   var armToPrizes = {0:'a', 1:'a', 2:'a', 3:'a'};
   var perceivedTotalTime = 6;
-  var worldAndStart = makeBanditWorldAndStart(numArms, armToPrizes, perceivedTotalTime);
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrizes, perceivedTotalTime);
   var world = worldAndStart.world;
   var startState = worldAndStart.startState;
 
@@ -496,7 +496,7 @@ var runIRLBanditExamples = function(){
     });
   
   var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
-  var agent = makeBanditAgent(prizeToUtility, agentParams, armToPrizes, world);
+  var agent = makeIRLBanditAgent(prizeToUtility, agentParams, armToPrizes, world);
   var trajectory = simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
 
   var getLocs = function(trajectory){
@@ -518,7 +518,7 @@ var runIRLBanditExamples = function(){
   
   // No discounting
   var agentParams = update(baseAgentParams, {priorBelief:priorBelief});
-  var agent = makeBanditAgent(prizeToUtility, agentParams, armToPrizes, world);
+  var agent = makeIRLBanditAgent(prizeToUtility, agentParams, armToPrizes, world);
   var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
   var out = timeit(thunk);
   var locs = getLocs(out.value).slice(1,4);
@@ -529,7 +529,7 @@ var runIRLBanditExamples = function(){
   // Discounting
   var replaceParams = {discount:4, noDelays:false, priorBelief:priorBelief};
   var agentParams = update(baseAgentParams, replaceParams);
-  var agent = makeBanditAgent(prizeToUtility, agentParams, armToPrizes, world);
+  var agent = makeIRLBanditAgent(prizeToUtility, agentParams, armToPrizes, world);
   var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
   var out = timeit(thunk);
   var locs = getLocs(out.value).slice(1,4);
