@@ -19,44 +19,40 @@ var makeHyperbolicDiscounter = function (agentParams, world) {
   var utility = agentParams.utility;
  
     
-  var _agent = dp.cache( 
+  var agent = dp.cache( 
     function(state, delay){
       return Enumerate(function(){
         var possibleActions = stateToActions(state);
         var action = uniformDraw(possibleActions);
-        var eu = _expectedUtility(state, action, delay);    
+        var eu = expectedUtility(state, action, delay);    
         factor(agentParams.alpha * eu);
         return action;
       });      
     });
-  var agent = function(state) { return _agent(state, 0); };
 
   
-  var _expectedUtility = dp.cache(
+  var expectedUtility = dp.cache(
     function(state, action, delay){
       var u = 1.0/(1 + agentParams.discount*delay) * utility(world, state, action);
       
-      assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state));
+      assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state) + " " + action + " " + delay + ' ' + utility(world, state, action));
       if (state.dead){
         return u; 
       } else {                     
         return u + expectation( Enumerate(function(){
           var nextState = transition(state, action); 
           var perceivedDelay = { naive : delay + 1, sophisticated : 0}[agentParams.sophisticatedOrNaive]; 
-          var nextAction = sample(_agent(nextState, perceivedDelay));
-          return _expectedUtility(nextState, nextAction, delay+1);  
+          var nextAction = sample(agent(nextState, perceivedDelay));
+          return expectedUtility(nextState, nextAction, delay+1);  
         }));
       }                      
     });
-  var expectedUtility = function(state, action) { return _expectedUtility(state, action, 0); };
 
 
   return {
     agentParams : agentParams,
     expectedUtility : expectedUtility,
     agent : agent,
-    _expectedUtility : _expectedUtility,
-    _agent : _agent,
   };
 };
 
@@ -73,7 +69,7 @@ var simulate = function(state, world, agent, actualTotalTime, statesOrActions) {
     if (actualTimeLeft==0 | state.dead){
       return [];
     } else {
-      var action = sample(agentAction(state));
+      var action = sample(agentAction(state, 0));
       var nextState = transition(state, action); 
       var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
       return [ out ].concat( sampleSequence(nextState, actualTimeLeft-1));
@@ -83,16 +79,43 @@ var simulate = function(state, world, agent, actualTotalTime, statesOrActions) {
   return sampleSequence(state, actualTotalTime);
 };
 
+var likelyPath = function(state, world, agent, actualTotalTime, statesOrActions) { 
+  var perceivedTotalTime = state.timeLeft;
+  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work' + JSON.stringify(state));
 
-var mdpSim = function(start, world, agent, actualTotalTime) { 
-  var agentAgent = agent.agent;
+  var agentAction = agent.agent;
+  var expectedUtility = agent.expectedUtility;
+  var transition = world.transition;
+
+  var sampleSequence = function (state, actualTimeLeft) {
+    if (actualTimeLeft==0 | state.dead){
+      return [];
+    } else {
+      var action = agentAction(state, actualTotalTime-actualTimeLeft).MAP().val;
+      var nextState = transition(state, action); 
+      var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
+      return [ out ].concat( sampleSequence(nextState, actualTimeLeft-1));
+    }
+  };
+  return sampleSequence(state, actualTotalTime);
+};
+
+var getExpectedUtilities = function(trajectory, agent, actions) { 
   var expectedUtility = agent.expectedUtility;
 
+  var v = mapIndexed(function(i, state) {
+    return [state.loc, map(function (a) { return  expectedUtility(state, a, i); }, actions)];
+  }, trajectory)
+  return v;
+};
+
+var mdpSim = function(start, world, agent, actualTotalTime) { 
   var trajectory = simulate(start, world, agent, actualTotalTime, 'states');
 
-  var expectedUtilities = map(function(state) {
-    return [state.loc, map(function (a) { return  expectedUtility(state, a); }, world.actions)];
+  var trajectoryPlans = map(function (state) {
+    var currentPlan = likelyPath(state, world, agent, state.timeLeft, 'states');
+    return getExpectedUtilities(currentPlan, agent, world.actions);
   }, trajectory);
 
-  GridWorld.draw(world, {trajectory : trajectory, expUtilities : expectedUtilities });
+  GridWorld.draw(world, {trajectory : trajectory, paths : trajectoryPlans });
 }

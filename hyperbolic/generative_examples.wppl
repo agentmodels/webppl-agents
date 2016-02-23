@@ -6,8 +6,9 @@ var start = {
 };
 
 var donutUtility = makeDonutUtility(2, {
-    'Donut' : [1, -1],
-    'Veg'   : [-1, 2],
+    'Donut N' : [10, -10],
+    'Donut S' : [10, -10],
+    'Veg'   : [-10, 20],
     'Noodle': [0, 0]
 });
 
@@ -18,10 +19,7 @@ var agent = makeHyperbolicDiscounter(
       discount : 1, 
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
-var sophisticated = function () { 
-  var f = agent.agent;
-  var trajectory = f(start);
-};
+mdpSim(start, world, agent, 13);
 
 var agent2 = makeHyperbolicDiscounter(
     { utility : donutUtility,
@@ -29,11 +27,4 @@ var agent2 = makeHyperbolicDiscounter(
       discount : 1, 
       sophisticatedOrNaive  : 'naive' 
     }, world);
-
-var naive = function () { 
-  var f = agent2.agent;
-  var r = simulate(start, world, agent2, 9, 'states');
-};
-
-print("sophisticated " + timeit(sophisticated).runtimeInMilliseconds);
-print("naive         " + timeit(naive).runtimeInMilliseconds);
+mdpSim(start, world, agent2, 13);

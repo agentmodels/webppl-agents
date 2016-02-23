@@ -1,17 +1,17 @@
 var start = { 
-  loc : [2,0],
+  loc : [3,0],
   dead : false,
-  digest : 4,
-  timeLeft : 12
+  digest : 2, 
+  timeLeft : 13
 };
 
-var donutUtility = makeDonutUtility(4, {
-    'Donut' : [1, 0, 0, 0],
-    'Veg'   : [0, 0, 0, 3.5],
-    'Noodle': [0, 0, 0, 0]
+var donutUtility = makeDonutUtility(2, {
+    'Donut' : [1, -1],
+    'Veg'   : [-1, 2],
+    'Noodle': [0, 0]
 });
 
-var world = makeDonutWorldExtended({ bottomLeftNook : '#' });
+var world = makeDonutWorld2({ big : true });
 var actual_agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
