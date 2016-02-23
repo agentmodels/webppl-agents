@@ -110,7 +110,6 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
     } else {
       var nextAction = sample(agentAction(state.manifestState, currentBelief,
 					  observe(state)));
-      
       var nextState = transition(state, nextAction.action);
       var out = {states:state, actions:nextAction, both:[state, nextAction],
                  stateBelief: [state, currentBelief]}[outputStatesOrActions];
@@ -130,49 +129,64 @@ var printOut = function ( trajectory ) {
 };
 
 // ----------------------------------------------
-// inference of an agent's utility and priorBelief based on their trajectory
-// (being the sequence of manifestStates visited). assumed that we see some initial
+// inference of an agent's utility and/or priorBelief based on their trajectory.
+// assumed that we see some initial
 // segment of the trajectory: not necessarily the whole trajectory, but without gaps.
 // we also assume that the inference function knows the latent state.
 // ----------------------------------------------
 
 // first inference function: generate an agent, look at the ERP over trajectories
-// that agent generates, get the score of the actual trajectory.
+// that agent generates, get the score of the actual trajectory. Only works for
+// bandits.
 
 // *observedTrajectory* is the trajectory actually seen, *latentState* is the latent
-// state of the POMDP, *utilityPrior* is an ERP which represents our prior over the
+// state of the POMDP, *utilitySignPrior* is an ERP which represents our prior over the
 // agent's utilities, *beliefPrior* is an ERP which represents our prior over the
 // agent's prior over latent states, *alpha* regulates the agent's softmax noise,
 // assumed to be the same as the actual agent, and *world* is the POMDP that the
 // trajectory comes from.
-var inferUtilityBelief1 = function(observedTrajectory, latentState, utilityPrior,
-				   beliefPrior, alpha, world) {
+var inferUtilityBeliefBandits1 = function(observedTrajectory, utilitySignPrior,
+					  beliefPrior, alpha, world) {
   var trajectoryLength = observedTrajectory.length;
   
+  var rewardUtility = function(state, action) {
+    return state.latentState[state.manifestState.loc];
+  };
+  
   return Enumerate(function(){
-    var agentUtility = sample(utilityPrior);
-    var agentBelief = sample(beliefPrior);
+    var agentUtilitySign = sample(utilitySignPrior);
+    var agentUtility = function(state, action) {
+      return agentUtilitySign * rewardUtility(state, action);
+    };
+    var priorBelief = sample(beliefPrior);
     var agent = makeBeliefAgent({utility: agentUtility,
 				 alpha: alpha,
-				 priorBelief: agentBelief},
-				world).agent;
-    var newTrajectoryFull = simulateBeliefAgent(observedTrajectory[0],
-						world, agent, trajectoryLength,
-						'states');
-    var newTrajectory = map(function(state){return state.manifestState;},
-			    newTrajectoryFull);
+				 priorBelief: priorBelief},
+				world);
+    var newTrajectory = simulateBeliefAgent(observedTrajectory[0], world, agent,
+					    trajectoryLength,'states');
     condition(_.isEqual(newTrajectory, observedTrajectory));
-    return {utility: agentUtility, prior: agentBelief};
+    return {utilitySign: agentUtilitySign, prior: priorBelief};
   });
 };
+
 
 // second inference function: generate an agent. In the first state of the trajectory,
 // update that agent's beliefs, get the agent's ERP over next states, get the score
 // of the actual next state, then put the agent in the actual next state, and repeat
 // this process for the whole trajectory.
 
+// same args as before
+var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
+					  beliefPrior, alpha, world) {
+  var trajectoryLength = observedTrajectory.length;
 
+  var rewardUtility = function(state, action) {
+    return state.latentState[state.manifestState.loc];
+  };
 
+  // how to do this...
+};
 
 // Multi-arm deterministic bandits.
 // Rewards of arms are fixed by the latent state. 
@@ -180,7 +194,7 @@ var makeBandits = function (numArms) {
   var actions = _.range(numArms);
   
   var mdpTransition = function (state, action) {
-    var dead = state.timeLeft - 1 == 1 ? true : false;
+    var dead = state.timeLeft - 1 == 0 ? true : false;
     return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
   };
   
@@ -208,7 +222,7 @@ var runBandits = function(numArms, armToRewards, priorBelief,
   map( function(n){assert.ok(_.isFinite(armToRewards[n]),'check armTo');},
        _.range(numArms) );
   var world = makeBandits(numArms);
-
+  
   // agent params 
   assert.ok( _.isFinite(priorBelief.score([],armToRewards)),
 	     "actual latent not in prior's support" );
@@ -231,6 +245,74 @@ var runBandits = function(numArms, armToRewards, priorBelief,
 
   return simulateBeliefAgent(startState, world, agent, actualTotalTime, 'states');
 };
+
+// testing inference for bandits.
+
+
+
+var numArms = 2;
+var trueLatent = {start: 0, 0: 10, 1: 1};
+
+var rewardUtility = function(state, action) {
+  return state.latentState[state.manifestState.loc];
+};
+
+var negRewardUtility = function(state, action) {
+  return -rewardUtility(state, action);
+};
+var agentBelief = Enumerate(function(){
+  if (flip(0.8)) {
+    return {start: 0, 0: 10, 1: 20};
+  } else {
+    return trueLatent;
+  }
+});
+
+var informedBelief = Enumerate(function(){
+  return trueLatent;
+});
+
+var observedTrajectory = runBandits(numArms, trueLatent, agentBelief, 5);
+
+var utilitySignPrior = Enumerate(function(){
+  if (flip(0.5)) {
+    return 1;
+  } else {
+    return -1;
+  }
+});
+
+var agentBeliefPrior = Enumerate(function(){
+  if (flip(0.5)) {
+    return agentBelief;
+  } else {
+    return informedBelief;
+  }
+});
+
+// infer whether the agent likes reward and what it knows
+var inferredAgent = inferUtilityBeliefBandits1(observedTrajectory, utilitySignPrior,
+					       agentBeliefPrior, 100,
+					       makeBandits(numArms));
+
+// tells you whether utility is rewardUtility or negRewardUtility
+var sampleUtilitySign = function(){
+  var utilitySign = sample(inferredAgent).utilitySign;
+  console.log(utilitySign);
+};
+
+repeat(4, sampleUtilitySign);
+
+// samples an agent prior over latent states, samples from that prior
+var sampleAgentPrior = function(){
+  var agentLatentState = sample(sample(inferredAgent).prior);
+  console.log(JSON.stringify(agentLatentState));
+};
+
+repeat(20, sampleAgentPrior);
+
+ash();
+
 
 // testing bandits for *beliefAgent*. Basically the same as the tests for
 // *beliefDelayAgent* on the pomdpBanditTests branch, but without the ones that
