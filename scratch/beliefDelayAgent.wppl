@@ -547,9 +547,19 @@ var testBanditInferBeliefOnly = function(){
   var observedStates = ['start',0,0,0,0];
   var erp = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 10);
   var out = sample(erp);
-  
   assert.ok( out.prizeToUtility.a==10  && _.isFinite( out.priorBelief.score([], armToPrize)),
              'testbandit inferbelief example 4' );
+
+  // Infer that he prefers a less or that he has the 'falseAgentPrior'
+  var observedStates = ['start',1,0,0,0];
+  var erp = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 30);
+  var out = sample(erp);
+  var prior = out.priorBelief;
+  console.log('check', prior.score( [], {0:'a', 1:'c'} ) == prior.score( [], {0:'a', 1:'c'} ) );
+  
+  assert.ok( out.prizeToUtility.a != 0  && prior.score( [], {0:'a', 1:'c'} ) == prior.score( [], {0:'a', 1:'c'} ),
+             'testbandit inferbelief example 4' );
+
 
 };
 testBanditInferBeliefOnly();
