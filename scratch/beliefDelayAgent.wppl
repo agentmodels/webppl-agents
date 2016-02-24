@@ -589,9 +589,11 @@ var testBanditInferBeliefOnly = function(){
   assert.ok( sample(erp1).prizeToUtility.a == 1 && sample(erp2).prizeToUtility.a == 1, 'testbandit infer 2');
 
   console.log('passed easy testBanditInferBeliefOnly tests');
-  ash();
+  
 
 
+  
+  // EXAMPLE 3 - INFER PRIOR AND UTILITY
   
   // Two arms: {0:a, 1:c}. Agent stays at 0. 
 
@@ -630,19 +632,36 @@ var testBanditInferBeliefOnly = function(){
   });
   
   var prior = {priorPrizeToUtility: priorPrizeToUtility, priorAgentPrior: priorAgentPrior};
+
+  var latentState = armToPrize;
+  var observedStateAction = [['start',0], [0,0], [0,0], [0,0], [0,0]]; 
+  var observedStates = map(first, observedStateAction);
+  var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
   
-  var observedStates = ['start',0,0,0,0];
-  var erp = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 10);
-  var out = sample(erp);
-  assert.ok( out.prizeToUtility.a==10  && _.isFinite( out.priorBelief.score([], armToPrize)),
-             'testbandit inferbelief example 4' );
+  var out1 = timeit( function(){return banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 10)});
+  var out2 = timeit( function(){return banditInferOffPolicy( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 10)});
+  console.log('Time for Example 3, 2 arms and time 5: [from states, offpolicy]', out1.runtimeInMilliseconds, out2.runtimeInMilliseconds);
+  var testERP = function(erp){
+    var out = sample(erp);
+    assert.ok( out.prizeToUtility.a==10  && _.isFinite( out.priorBelief.score([], armToPrize)),
+               'testbandit inferbelief example 4' );
+  };
+  map(testERP,[out1.value,out2.value]);
 
-  // He goes to 1 every time => u(a)==0
-  var observedStates = ['start',1,1,1,1];
-  var erp = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 30);
-  var out = sample(erp);
-  assert.ok( out.prizeToUtility.a == 0, 'testbandit inferbelief example 5' );
 
+  // He goes to 1 every time => u(a)==0=
+  var observedStateAction = [['start',1], [1,1], [1,1], [1,1], [1,1]]; 
+  var observedStates = map(first, observedStateAction);
+  var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
+  var erp1 = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 30);
+  var erp2 = banditInferOffPolicy( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 10);
+
+  var testERP = function(erp){
+    var out = sample(erp);
+    assert.ok( out.prizeToUtility.a == 0, 'testbandit inferbelief example 5' );
+  };
+  map(testERP,[erp1,erp2]);
+ 
   console.log('passed ALL testBanditInferBeliefOnly tests');
 };
 testBanditInferBeliefOnly();
