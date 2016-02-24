@@ -8,6 +8,8 @@ var isState = function (x) {x.hasOwnProperty('latentState') && _.isFinite(x.mani
 var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
 var isWorld = function (x) { return x.hasOwnProperty('transition') && x.hasOwnProperty('manifestStateToActions') &&
                              x.hasOwnProperty('observe');};
+
+var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
 var getLocs = function(trajectory){
   assert.ok(_.isArray(trajectory) && isState(trajectory[0]), 'getLocs args');
   return _.pluck( _.pluck(trajectory,'manifestState'), 'loc' );
@@ -409,6 +411,14 @@ var runInferBanditsBelief = function(){
 // we could implement stochastic version with stochastic utilities
 // (where the utility is then baked into the observation). 
 
+var noDiscountBaseAgentParams = { 
+  alpha: 100,
+  noDelays: true,
+  discount: 0,
+  sophisticatedOrNaive: 'naive'
+};
+
+
 var makeIRLBanditAgent = function(prizeToUtility, agentParams, worldAndStart){
   var priorBelief = agentParams.priorBelief;
   assert.ok( _.isFinite(priorBelief.score([],worldAndStart.startState.latentState)), 'makeBanditAgent does not have true latent in support');
@@ -435,8 +445,6 @@ var makeIRLBanditWorldAndStart = function(numArms, armToPrize, perceivedTotalTim
 };
 
 
-
-
 var banditInferFromStates = function( worldAndStart, baseAgentParams, prior, observedStates, numRejectionSamples){
   var world = worldAndStart.world;
   var startState = worldAndStart.startState;
@@ -447,6 +455,7 @@ var banditInferFromStates = function( worldAndStart, baseAgentParams, prior, obs
 
   assert.ok( isWorld(world) && isState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior) &&
              _.isArray(observedStates) && _.isNumber(numRejectionSamples), 'banditInferFromStates args');
+  assert.ok(actualTotalTime == observedStates.length, 'actualTotalTime is not observed trajectory length');
   
   return Enumerate(function(){
     var prizeToUtility = sample(priorPrizeToUtility);
@@ -466,7 +475,8 @@ var banditInferFromStates = function( worldAndStart, baseAgentParams, prior, obs
   });
 };
 
-var testBanditInfer = function(){
+
+var testBanditInferBeliefOnly = function(){
   // Prizes are [a,b]. If agent chooses 0, then they prefer 'a'. 
   
   // world params
@@ -476,13 +486,8 @@ var testBanditInfer = function(){
   var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
   
   // agent params
-  var baseAgentParams = {
-    priorBelief: null,
-    alpha: 100,
-    noDelays: true,
-    discount: 0,
-    sophisticatedOrNaive: 'naive'
-  };
+  var baseAgentParams = noDiscountBaseAgentParams;
+
   var prior = {
     priorPrizeToUtility: Enumerate(function(){
       return categorical( [.5, .5], [{a:0, b:1}, {a:1, b:0} ] );
@@ -492,12 +497,62 @@ var testBanditInfer = function(){
   };
 
   var observedStates = ['start',1,1];
-  var numRejectionSamples = 10;
-  var erp = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, numRejectionSamples);
-  console.log('print erp test bandit infer');
-  printERP(erp);
+  var erp = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 10);
+  assert.ok( sample(erp).prizeToUtility.a == 0, 'testbandit infer 1');
+
+  var observedStates = ['start',0,0];
+  var erp = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 10);
+  assert.ok( sample(erp).prizeToUtility.a == 1, 'testbandit infer 2');
+  console.log('passed easy testBanditInferBeliefOnly tests');
+
+  
+  // Two arms: {0:a, 1:c}. Agent stays at 0. 
+
+  // Explanation: u(a) high and prior that 1:b is low.
+
+  // True armToPrize: 0:a, 1:c
+  // True priorBelief:  0:a, 1:categorical([.05,.95],[b,c])
+  // True utilities: {a:10, b:20, c:1}
+  
+  // world params
+  var numArms = 2;
+  var armToPrize = {0:'a', 1:'c'};
+  var perceivedTotalTime = 5;
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
+  
+  // agent params
+  var baseAgentParams = noDiscountBaseAgentParams;
+
+  // Prior on agent's prizeToUtility
+  var truePrizeToUtility = {a:10, b:20, c:1};
+  var priorPrizeToUtility = Enumerate(function(){
+    return {a: uniformDraw([0,3,10]), b:20, c:1};
+  });
+  
+  
+  // Prior on agent's prior
+  var trueAgentPrior = Enumerate(function(){
+    return {0:'a', 1: categorical([.05, .95], ['b','c']) };
+  });
+  var falseAgentPrior = Enumerate(function(){
+    return {0:'a', 1: categorical([.5, .5], ['b','c']) };
+  });
+
+  var priorAgentPrior = Enumerate(function(){
+    return flip() ? trueAgentPrior : falseAgentPrior;
+  });
+  
+  var prior = {priorPrizeToUtility: priorPrizeToUtility, priorAgentPrior: priorAgentPrior};
+  
+  var observedStates = ['start',0,0,0,0];
+  var erp = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 10);
+  var out = sample(erp);
+  
+  assert.ok( out.prizeToUtility.a==10  && _.isFinite( out.priorBelief.score([], armToPrize)),
+             'testbandit inferbelief example 4' );
+
 };
-testBanditInfer();
+testBanditInferBeliefOnly();
 ash();
 
 
