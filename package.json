@@ -18,7 +18,9 @@
       "src/newGridworld.wppl",
       "src/gridworldPOMDP.wppl",
       "src/beliefAgent.wppl",
-      "src/deterministicBandits.wppl"
+      "src/deterministicBandits.wppl",
+      "src/beliefDelayAgent.wppl",
+      "src/irlBandits.wppl"
     ]
   },
   "repository": {

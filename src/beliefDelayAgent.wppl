@@ -1,0 +1,214 @@
+// Helper functions for testing argument types (warning: heuristics only)
+var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
+var isERP = function (x) {return x.hasOwnProperty('score') && x.hasOwnProperty('sample');};
+var isState = function (x) {x.hasOwnProperty('latentState') && _.isFinite(x.manifestState.timeLeft);};
+var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
+var isWorld = function (x) { return x.hasOwnProperty('transition') && x.hasOwnProperty('manifestStateToActions') &&
+                             x.hasOwnProperty('observe');};
+
+var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
+
+
+                    
+
+// POMDP AGENT AND WORLD
+
+
+// Helper function for building state from its components
+var buildState = function (manifestState, latentState) {
+  return { manifestState:manifestState, latentState:latentState };
+};
+
+var downToOne = function(n){
+  if (n==0){return [];}
+  else {return [n].concat(downToOne(n-1));}
+};
+
+var getLocs = function(trajectory){
+  assert.ok(_.isArray(trajectory) && isState(trajectory[0]), 'getLocs args');
+  return _.pluck( _.pluck(trajectory,'manifestState'), 'loc' );
+};
+
+var locsToManifestStates = function(locs){
+  return map( function(locTime){ 
+    var dead = locTime[1]==1;
+    return {loc: locTime[0], timeLeft:locTime[1], dead: dead};
+  }, zip( locs, downToOne(locs.length) ) );
+};
+
+var stateActionToFullStates = function(locAction, latentState){
+  var locs = map(first,locAction);
+  var manifestStates = locsToManifestStates(locs);
+  var fullStates = map( function(manifest){
+    return buildState(manifest,latentState);
+    }, manifestStates);
+  
+  return zip( fullStates, map(second,locAction) );
+};
+
+
+
+var makeBeliefDelayAgent = function (agentParams, world){
+  map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeBeliefDelayAgent args');}, 
+      ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief']);
+  assert.ok( isWorld(world), 'world argument lacks transition, stateToActions, or observe');
+
+  var utility = agentParams.utility;
+  
+  var manifestStateToActions = world.manifestStateToActions;
+  var transition = world.transition;
+  var observe = world.observe;
+
+  // Set all delays to zero to speed up runtime
+  var getPerceivedDelay = function(currentDelay){
+    return agentParams.noDelays ? 0 :
+      {naive: currentDelay + 1, sophisticated: 0 }[agentParams.sophisticatedOrNaive];
+  };
+  
+  var incrementDelay = function(currentDelay){
+    return agentParams.noDelays ? 0 : currentDelay + 1;
+  };
+
+  // *currentBelief* is ERP on latent states, returns posterior ERP on latent states
+  var updateBelief = dp.cache(
+    function (manifestState, currentBelief, observation) {
+      return Enumerate(function () {
+        var latentState = sample(currentBelief);
+        var state = buildState(manifestState, latentState);
+        condition(_.isEqual(observe(state), observation));
+        return latentState;
+      });
+    });
+
+  var _agent = dp.cache(
+    function (manifestState, currentBelief, observation, delay) {
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), '_agent args fail');
+      
+      var newBelief = updateBelief(manifestState, currentBelief, observation);
+      return Enumerate(function () {
+        var action = uniformDraw(manifestStateToActions(manifestState));
+        var eu = expectedUtility(manifestState, newBelief, action, delay);
+        factor(agentParams.alpha * eu);
+        return { action: action, belief: newBelief };
+      });
+    });
+  
+  var agent = function (manifestState, currentBelief, observation) {
+    return _agent(manifestState, currentBelief, observation, 0);
+  };
+
+  var expectedUtility = dp.cache(
+    function (manifestState, currentBelief, action, delay) {
+      return expectation(
+        Enumerate(function () {
+          var latentState = sample(currentBelief);
+          var state = buildState(manifestState, latentState);
+          var u = 1.0 / (1 + agentParams.discount * delay) * utility(state, action);
+          if (state.manifestState.dead) {
+            return u;
+          } else {
+            var nextState = transition(state, action);
+            var perceivedDelay = getPerceivedDelay(delay);
+            var nextAction = sample(_agent(nextState.manifestState, currentBelief, observe(nextState), perceivedDelay));
+            var futureU = expectedUtility(nextState.manifestState, nextAction.belief, nextAction.action, incrementDelay(delay));                                                                                                                
+            return u + futureU;
+          }
+        }));
+    });
+
+  return { agent : agent, _agent:_agent, expectedUtility : expectedUtility, agentParams: agentParams};
+};
+
+
+
+var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTime, outputStatesOrActions) {
+  var perceivedTotalTime = startState.manifestState.timeLeft;
+  assert.ok( actualTotalTime <= perceivedTotalTime && isState(startState), 'simulate args');
+  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
+
+  var agentAction = agent.agent;
+  var priorBelief = agent.agentParams.priorBelief;
+  var transition = world.transition;
+  var observe = world.observe;
+  var outputTable = function(state, nextAction, currentBelief, observation, outputStatesOrActions){
+    return {states:state, actions:nextAction.action, both:[state, nextAction.action], 
+            stateBelief: [state, currentBelief],
+            stateBeliefObservationAction: [{state:state, currentBelief:currentBelief, observation:observation},
+                                           nextAction.action]
+           }[outputStatesOrActions];
+  };
+
+  
+  var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {return actualTimeLeft == 0 || state.dead;} :
+      function (actualTimeLeft, state) {return actualTimeLeft == 0;};
+
+
+  var sampleSequence = function(state, currentBelief, actualTimeLeft) {
+    if (cutoffCondition(actualTimeLeft, state.manifestState) ) {
+      return [];
+    } else {
+      var observation = observe(state);
+      var nextAction = sample(agentAction(state.manifestState, currentBelief, observation));
+      var nextState = transition(state, nextAction.action);
+
+      var out = outputTable(state, nextAction, currentBelief, observation, outputStatesOrActions);
+      
+      return [out].concat( sampleSequence(nextState, nextAction.belief, actualTimeLeft - 1));
+    }
+  };
+  return sampleSequence(startState, priorBelief, actualTotalTime);
+};
+
+
+// Run *simulate*. Then use *expectedUtility* to compute the expected
+// utilities of each state along the trajectory. Do this from the
+// perspective of each timestep. For discounting agents, the expected
+// utilities for the same state/timeLeft will change depending on how
+// close the agent is to the state (as measured by *delay*).
+
+var getExpectedUtilitiesBeliefDelayAgent = function (startState, world, agent, actualTotalTime){
+  assert.ok( !agent.agentParams.noDelays, 'Delays switched off. This function uses variation in delays.');
+  
+  var trajectory = simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'stateBelief');
+  
+  var expectedUtility = agent.expectedUtility;
+  var stateToActions = world.manifestStateToActions;
+
+  
+  var getExpectedUtilityFromTimestep = function(t){
+    var trajectoryAfterT = trajectory.slice(t, trajectory.length);
+    var len = trajectoryAfterT.length;
+    
+    return map(function(stateBelief){
+      var manifestState = stateBelief[0].manifestState;
+      var belief = stateBelief[1];
+      var timeLeft = manifestState.timeLeft;
+      var delay = len - timeLeft;
+      
+      return [stateBelief[0], 
+              map(function(a){
+                return expectedUtility(manifestState, belief, a, delay);
+              }, stateToActions(manifestState))
+             ];
+    }, trajectoryAfterT);
+  };
+
+  var expectedUtilities = map(getExpectedUtilityFromTimestep, _.range(trajectory.length));
+
+  return {trajectory: trajectory, expectedUtilities: expectedUtilities};
+  
+};
+
+
+// Helper functions to display outputs of *simulate* and *getExpectedUtilities*
+var displayTrajectory = function ( trajectory ) {
+  console.log('trajectory (locations only)',
+              map( function (state) {return state.manifestState.loc;}, trajectory) );
+};
+
+var displayExpectedUtilities = function(timeToEUs){
+  map( function(EUs){
+    console.log('\n\n Next timestep: ');
+    map(function(s){console.log(s[0].manifestState.loc, s[1]);}, EUs);
+  }, timeToEUs);
+};

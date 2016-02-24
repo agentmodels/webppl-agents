@@ -1,0 +1,234 @@
+
+
+var testInferIRLBandit = function(){
+  // Prizes are [a,b]. If agent chooses 0, then they prefer 'a'. 
+  
+  // world params
+  var numArms = 2;
+  var armToPrize = {0:'a', 1:'b'};
+  var perceivedTotalTime = 3;
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
+  
+  // agent params
+  var baseAgentParams = noDiscountBaseAgentParams;
+
+  var prior = {
+    priorPrizeToUtility: Enumerate(function(){
+      return categorical( [.5, .5], [{a:0, b:1}, {a:1, b:0} ] );
+    }),
+    
+    priorAgentPrior: Enumerate(function(){return deltaERP({0:'a', 1:'b'});})
+  };
+
+  // EXAMPLE 1
+  var observedStateAction = [['start',1], [1,1], [1,1]]; 
+  var latentState = armToPrize;
+  var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
+  
+  // Test on two different inference functions
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
+  assert.ok( sample(erp1).prizeToUtility.a == 0 && sample(erp2).prizeToUtility.a == 0, 'testbandit infer 1');
+
+  
+  // EXAMPLE 2
+  var observedStateAction = [['start',0], [0,0], [0,0]]; 
+  var observedStates = map(first, observedStateAction);
+  var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
+
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
+  assert.ok( sample(erp1).prizeToUtility.a == 1 && sample(erp2).prizeToUtility.a == 1, 'testbandit infer 2');
+
+  console.log('passed easy testBanditInferBeliefOnly tests');
+  
+  
+  // EXAMPLE 3 - INFER PRIOR AND UTILITY
+  
+  // Two arms: {0:a, 1:c}. Agent stays at 0. 
+  // Explanation: u(a) high and prior that 1:b is low.
+
+  // True armToPrize: 0:a, 1:c
+  // True priorBelief:  0:a, 1:categorical([.05,.95],[b,c])
+  // True utilities: {a:10, b:20, c:1}
+  
+  // world params
+  var numArms = 2;
+  var armToPrize = {0:'a', 1:'c'};
+  var perceivedTotalTime = 5;
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
+  
+  // agent params
+  var baseAgentParams = noDiscountBaseAgentParams;
+
+  // Prior on agent's prizeToUtility
+  var truePrizeToUtility = {a:10, b:20, c:1};
+  var priorPrizeToUtility = Enumerate(function(){
+    return {a: uniformDraw([0,3,10]), b:20, c:1};
+  });
+  
+  // Prior on agent's prior
+  var trueAgentPrior = Enumerate(function(){
+    return {0:'a', 1: categorical([.05, .95], ['b','c']) };
+  });
+  var falseAgentPrior = Enumerate(function(){
+    return {0:'a', 1: categorical([.5, .5], ['b','c']) };
+  });
+
+  var priorAgentPrior = Enumerate(function(){
+    return flip() ? trueAgentPrior : falseAgentPrior;
+  });
+  
+  var prior = {priorPrizeToUtility: priorPrizeToUtility, priorAgentPrior: priorAgentPrior};
+
+  var latentState = armToPrize;
+  var observedStateAction = [['start',0], [0,0], [0,0], [0,0], [0,0]]; 
+  var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
+
+  
+  var out1 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10)});
+  var out2 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'offPolicy', 10)});
+  console.log('Time for Example 3, 2 arms and time 5: [from states, offpolicy]', out1.runtimeInMilliseconds, out2.runtimeInMilliseconds);
+  var testERP = function(erp){
+    var out = sample(erp);
+    assert.ok( out.prizeToUtility.a==10  && _.isFinite( out.priorBelief.score([], armToPrize)),
+               'testbandit inferbelief example 4' );
+  };
+  map(testERP,[out1.value,out2.value]);
+
+
+  // He goes to 1 every time => u(a)==0=
+  var observedStateAction = [['start',1], [1,1], [1,1], [1,1], [1,1]]; 
+  var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
+
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
+
+  var testERP = function(erp){
+    var out = sample(erp);
+    assert.ok( out.prizeToUtility.a == 0, 'testbandit inferbelief example 5' );
+  };
+  map(testERP,[erp1,erp2]);
+ 
+  console.log('passed ALL testBanditInferBeliefOnly tests');
+};
+testInferIRLBandit();
+
+
+
+
+var runIRLBanditExamples = function(){
+
+  // Prizes are [a,b] and agent prefers c > a > b
+  
+  // world params
+  var numArms = 2;
+  var armToPrize = {0:'a', 1:'b'};
+  var perceivedTotalTime = 3;
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
+  var world = worldAndStart.world;
+  var startState = worldAndStart.startState;
+
+  // agent params
+  var prizeToUtility = {a:10, b:5, c:100};
+  var baseAgentParams = {
+    priorBelief: null,
+    alpha: 100,
+    noDelays: true,
+    discount: 0,
+    sophisticatedOrNaive: 'naive'
+  };
+
+  var getTrajectory = function(priorBelief){
+    var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
+    var agent = makeIRLBanditAgent(prizeToUtility, agentParams, worldAndStart);
+    return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
+  };
+
+  // Agent knows armToPrize, picks arm with best prize
+  var trajectory = getTrajectory( Enumerate(function(){return armToPrize;}));
+  assert.ok( trajectory[1].manifestState.loc == 0, 'fail banditexample 1');
+
+  // Agent has .5 chance on arm 1 having best prize c, and so tries 1 before switching to 0. 
+  var trajectory = getTrajectory(Enumerate(
+    function(){
+      return categorical( [.5, .5], [armToPrize, {0:'a', 1:'c'}]);
+    }));
+  assert.ok( trajectory[1].manifestState.loc == 1 && trajectory[2].manifestState.loc == 0, 'fail banditexample 2');
+  
+
+  
+  // --------------------------------
+  // Example: Each arm independently either gives a or b. Since b is better, agent keeps exploring to try
+  // to get it.
+  
+  // world params
+  var numArms = 4;
+  var armToPrize = {0:'a', 1:'a', 2:'a', 3:'a'};
+  var perceivedTotalTime = 6;
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
+  var world = worldAndStart.world;
+  var startState = worldAndStart.startState;
+
+  // agent params
+  var prizeToUtility = {a:5, b:10, c:-8};
+  var baseAgentParams = {
+    priorBelief: null,
+    alpha: 100,
+    noDelays: true,
+    discount: 0,
+    sophisticatedOrNaive: 'naive'
+  };
+  
+  // Agent thinks each arm might offer c, and so tries them all (as c is so good -- and b is not that bad)  
+  var priorBelief = Enumerate(
+    function(){
+      var dist = function(){return categorical([0.5, 0.5], ['a','b']);};
+      return {0:dist(), 1:dist(), 2:dist(), 3:dist()};
+    });
+  
+  var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
+  var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
+  var trajectory = simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
+
+  var locs = getLocs(trajectory).slice(1,5);
+  assert.ok( _.difference(_.range(4),locs).length == 0, 'fail bandit example 3');
+
+  // ----------
+  // Discounting example: agent thinks arms other than 0 could have b, with u=10, or
+  // c, with u=-8. Not discounter will explore but discounter will just take 0, which
+  // is known to have utility 5. (All arms still yield prize a). 
+
+  var priorBelief = Enumerate(
+    function(){
+      var dist = function(){return categorical([.02, 0.49, 0.49], ['a', 'b','c']);};
+      return {0:'a', 1:dist(), 2:dist(), 3:dist()};
+    });
+  
+  // No discounting
+  var agentParams = update(baseAgentParams, {priorBelief:priorBelief});
+  var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
+  var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
+  var out = timeit(thunk);
+  var locs = getLocs(out.value).slice(1,4);
+  assert.ok(  _.difference([1,2,3],locs).length == 0, 'fail bandit example 4');
+  
+  console.log('\n No discounting: (locs, timeit) ', getLocs(out.value), out.runtimeInMilliseconds);
+
+  // Discounting
+  var replaceParams = {discount:4, noDelays:false, priorBelief:priorBelief};
+  var agentParams = update(baseAgentParams, replaceParams);
+  var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
+  var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
+  var out = timeit(thunk);
+  var locs = getLocs(out.value).slice(1,4);
+  assert.ok(  _.difference([0,0,0],locs).length == 0, 'fail bandit example 5');
+  console.log( '\n Discounting: (locs, timeit) ', getLocs(out.value), out.runtimeInMilliseconds);
+  console.log('runIRLBanditExamples passed');
+};
+
+runIRLBanditExamples();
+ash();
+
+
+
