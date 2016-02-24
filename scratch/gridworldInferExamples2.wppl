@@ -1,6 +1,12 @@
+// see an agent go to donuts instead of noodles. is this because they like donuts,
+// or do they like noodles but think that the noodle shop is closed?
+// what if we see the agent pass by the noodle shop?
+
 var gridworldMDP = makeDonutWorld2({big: true});
 var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
 var feature = gridworldMDP.feature;
+var transition = gridworldPOMDP.transition;
+var observe = gridworldPOMDP.observe;
 
 var donutUtilityTable = {'Donut N': 5,
 			 'Donut S': 5,
@@ -60,8 +66,8 @@ var agent = makeBeliefAgent({utility: tableToUtilityFunction(noodleUtilityTable)
 var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 6,
 					     'states');
 
-// in a second trajectory, we let the agent know that noodle is open, and see where
-// it goes
+// // in a second trajectory, we let the agent know that noodle is open, and see where
+// // it goes
 // var startState2 = {manifestState: {loc: [5,4],
 // 				   dead: false,
 // 				   timeLeft: 10,
@@ -76,7 +82,7 @@ var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 
 // var observedTrajectories = [observedTrajectory, observedTrajectory2];
 var observedTrajectories = [observedTrajectory];
 
-var utilityParamsPrior = Enumerate(function(){
+var utilityTablePrior = Enumerate(function(){
   if (flip(0.5)) {
     return donutUtilityTable;
   } else {
@@ -92,66 +98,52 @@ var beliefPrior = Enumerate(function(){
   }
 });
 
-var alphaPrior = deltaERP(100);
+var numTrajectories = observedTrajectories.length;
 
-var inferBeliefAgent = function(observedTrajectories, utilityParamsPrior, beliefPrior,
-				alphaPrior, paramsToUtilityFunction, world) {
+var sampleAlongTrajectory = function(state, currentBelief, actionsSampled,
+				     trajectory, agentActionBelief) {
+  assert.ok(isERP(agentActionBelief(state.manifestState, currentBelief,
+				    observe(state))),
+	    'agentActionBelief not correct in sampleAlongTrajectory');
+  
+  if (actionsSampled === trajectory.length - 1) {
+    return [];
+  } else {
+    var actionBeliefERP = agentActionBelief(state.manifestState, currentBelief,
+					    observe(state));
+    var nextStateERP = Enumerate(function(){
+      return transition(state, sample(actionBeliefERP).action);
+    });
+    var newBelief = sample(actionBeliefERP).belief;
 
-  var numTrajectories = observedTrajectories.length;
-  var transition = world.transition;
-  var observe = world.observe;
-
-  var sampleAlongTrajectory = function(state, currentBelief, actionsSampled,
-				       trajectory, agentActionBelief) {
-    assert.ok(isERP(agentActionBelief(state.manifestState, currentBelief,
-				      observe(state))),
-	      'agentActionBelief not correct in sampleAlongTrajectory');
+    var trajectoryNextState = trajectory[actionsSampled + 1];
     
-    if (actionsSampled === trajectory.length - 1) {
-      return [];
-    } else {
-      var actionBeliefERP = agentActionBelief(state.manifestState, currentBelief,
-					      observe(state));
-      var nextStateERP = Enumerate(function(){
-	return transition(state, sample(actionBeliefERP).action);
-      });
-      var newBelief = sample(actionBeliefERP).belief;
-
-      var trajectoryNextState = trajectory[actionsSampled + 1];
-      
-      factor(nextStateERP.score([], trajectoryNextState));
-      
-      return sampleAlongTrajectory(trajectoryNextState, newBelief, actionsSampled + 1,
-				   trajectory, agentActionBelief);
-    }
-  };
-
-  return Enumerate(function(){
-    var utilityParams = sample(utilityParamsPrior);
-    var utility = paramsToUtilityFunction(utilityParams);
-    var agentPrior = sample(beliefPrior);
-    var alpha = sample(alphaPrior);
-    var agent = makeBeliefAgent({utility: utility,
-				 alpha: alpha,
-				 priorBelief: agentPrior},
-			       world);
-    var agentActionBelief = agent.agent;
-
-    var factorTrajectory = function(trajectory) {
-      return sampleAlongTrajectory(trajectory[0], agentPrior, 0, trajectory,
-				   agentActionBelief);
-    };
-
-    map(factorTrajectory, observedTrajectories);
-
-    return {utilityParams: utilityParams,
-	    prior: agentPrior,
-	    alpha: alpha};
-  });
+    factor(nextStateERP.score([], trajectoryNextState));
+    
+    return sampleAlongTrajectory(trajectoryNextState, newBelief, actionsSampled + 1,
+				 trajectory, agentActionBelief);
+  }
 };
 
-var agentPosterior = inferBeliefAgent(observedTrajectories, utilityParamsPrior,
-				      beliefPrior, alphaPrior, tableToUtilityFunction,
-				      gridworldPOMDP);
+var agentPosterior = Enumerate(function(){
+  var utilityTable = sample(utilityTablePrior);
+  var utility = tableToUtilityFunction(utilityTable);
+  var agentPrior = sample(beliefPrior);
+  var agent = makeBeliefAgent({utility: utility,
+			       alpha: 100,
+			       priorBelief: agentPrior},
+			      gridworldPOMDP);
+  var agentActionBelief = agent.agent;
+
+  var factorTrajectory = function(trajectory) {
+    return sampleAlongTrajectory(trajectory[0], agentPrior, 0, trajectory,
+				 agentActionBelief);
+  };
+
+  map(factorTrajectory, observedTrajectories);
+
+  return {utilityTable: utilityTable,
+	  prior: agentPrior};
+});
 
 printERP(agentPosterior);
