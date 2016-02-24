@@ -470,37 +470,9 @@ var makeIRLBanditWorldAndStart = function(numArms, armToPrize, perceivedTotalTim
 };
 
 
-var banditInferFromStates = function( worldAndStart, baseAgentParams, prior, observedStates, numRejectionSamples){
-  var world = worldAndStart.world;
-  var startState = worldAndStart.startState;
-  var actualTotalTime = worldAndStart.actualTotalTime;
+// Inference by sampling full trajectories or by doing 'off policy' inference
 
-  var priorPrizeToUtility = prior.priorPrizeToUtility;
-  var priorAgentPrior = prior.priorAgentPrior;
-
-  assert.ok( isWorld(world) && isState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior) &&
-             _.isArray(observedStates) && _.isNumber(numRejectionSamples), 'banditInferFromStates args');
-  assert.ok(actualTotalTime == observedStates.length, 'actualTotalTime is not observed trajectory length');
-  
-  return Enumerate(function(){
-    var prizeToUtility = sample(priorPrizeToUtility);
-    var priorBelief = sample(priorAgentPrior);
-    var agentParams = update(baseAgentParams, {priorBelief:priorBelief});
-    
-    var agent = makeIRLBanditAgent(prizeToUtility, agentParams, worldAndStart);
-    
-    var trajectoryERP = Rejection( function(){
-      return getLocs(simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states'));
-    }, numRejectionSamples);
-    
-    factor( trajectoryERP.score( [], observedStates) )
-    
-    return {prizeToUtility: prizeToUtility, priorBelief:priorBelief};
-  });
-};
-
-
-var banditInferOffPolicy = function(worldAndStart, baseAgentParams, prior, observedStateAction, numRejectionSamples){
+var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedStateAction, trajectoryOrOffPolicy, numRejectionSamples){
   var world = worldAndStart.world;
   var startState = worldAndStart.startState;
   var actualTotalTime = worldAndStart.actualTotalTime;
@@ -509,18 +481,28 @@ var banditInferOffPolicy = function(worldAndStart, baseAgentParams, prior, obser
   var priorPrizeToUtility = prior.priorPrizeToUtility;
   var priorAgentPrior = prior.priorAgentPrior;
 
-  assert.ok(isWorld(world) && isState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior) &&
-             _.isArray(observedStateAction), 'banditInferFromStates args');
-  assert.ok(actualTotalTime == observedStateAction.length, 'actualTotalTime is not observed trajectory length');
-  assert.ok( isState(observedStateAction[0][0]), 'fullstate in traj');
+  assert.ok(isWorld(world) && isState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args');
+  assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 'trajectoryOrOffPolicy bad');
+  if (actualTotalTime != observedStateAction.length){console.log( 'Warning: actualTotalTime is not observed trajectory length');}
+  assert.ok( isState(observedStateAction[0][0]), 'fullstate in trajectory for inferirlbandit');
+
   
   return Enumerate(function(){
+    // priors and makeAgent are specific to IRL Bandits
     var prizeToUtility = sample(priorPrizeToUtility);
     var priorBelief = sample(priorAgentPrior);
     
     var agent = makeIRLBanditAgent(prizeToUtility, update(baseAgentParams, {priorBelief:priorBelief}), worldAndStart);
     var agentAction = agent.agent;
 
+    // Factor on whole sampled trajectory (SLOW IF NOT DETERMINISTIC AND NUM SAMPLES HIGH)
+    var factorOnTrajectory = function(){
+      var trajectoryERP = Rejection( function(){
+        return simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states')}, numRejectionSamples);
+      factor( trajectoryERP.score( [], map(first, observedStateAction)) );
+    };
+
+    // Move agent through observed sequence 
     var conditionSequence = function(currentBelief, index){
       if (index >= observedStateAction.length){ 
         return []; // no-op
@@ -534,8 +516,8 @@ var banditInferOffPolicy = function(worldAndStart, baseAgentParams, prior, obser
         conditionSequence( sample(agentERP).belief, index + 1);
       }
     };
-    
-    conditionSequence(priorBelief, 0);
+
+    var doInfer = (trajectoryOrOffPolicy=='trajectory') ? factorOnTrajectory() : conditionSequence(priorBelief, 0);
     
     return {prizeToUtility: prizeToUtility, priorBelief:priorBelief};
   });
@@ -568,24 +550,21 @@ var testBanditInferBeliefOnly = function(){
   // EXAMPLE 1
   var observedStateAction = [['start',1], [1,1], [1,1]]; 
   var latentState = armToPrize;
-  var observedStates = map(first, observedStateAction);
-
-  // Test on two different inference functions
-  var erp1 = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 10);
-  
   var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
-
-  var erp2 = banditInferOffPolicy( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 10);
+  
+  // Test on two different inference functions
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
   assert.ok( sample(erp1).prizeToUtility.a == 0 && sample(erp2).prizeToUtility.a == 0, 'testbandit infer 1');
 
+  
   // EXAMPLE 2
   var observedStateAction = [['start',0], [0,0], [0,0]]; 
   var observedStates = map(first, observedStateAction);
   var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
 
-  var erp1 = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 10);
-  var erp2 = banditInferOffPolicy( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 10);
-
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
   assert.ok( sample(erp1).prizeToUtility.a == 1 && sample(erp2).prizeToUtility.a == 1, 'testbandit infer 2');
 
   console.log('passed easy testBanditInferBeliefOnly tests');
@@ -635,11 +614,11 @@ var testBanditInferBeliefOnly = function(){
 
   var latentState = armToPrize;
   var observedStateAction = [['start',0], [0,0], [0,0], [0,0], [0,0]]; 
-  var observedStates = map(first, observedStateAction);
   var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
+
   
-  var out1 = timeit( function(){return banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 10)});
-  var out2 = timeit( function(){return banditInferOffPolicy( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 10)});
+  var out1 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10)});
+  var out2 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'offPolicy', 10)});
   console.log('Time for Example 3, 2 arms and time 5: [from states, offpolicy]', out1.runtimeInMilliseconds, out2.runtimeInMilliseconds);
   var testERP = function(erp){
     var out = sample(erp);
@@ -651,10 +630,10 @@ var testBanditInferBeliefOnly = function(){
 
   // He goes to 1 every time => u(a)==0=
   var observedStateAction = [['start',1], [1,1], [1,1], [1,1], [1,1]]; 
-  var observedStates = map(first, observedStateAction);
   var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
-  var erp1 = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, 30);
-  var erp2 = banditInferOffPolicy( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 10);
+
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
 
   var testERP = function(erp){
     var out = sample(erp);
