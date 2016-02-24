@@ -6,32 +6,38 @@ var start = {
 };
 
 var donutUtility = makeDonutUtility(2, {
-    'Donut' : [1, -1],
-    'Veg'   : [-1, 2],
+    'Donut N' : [10, -10],
+    'Donut S' : [10, -10],
+    'Veg'   : [-10, 20],
     'Noodle': [0, 0]
 });
 
-var world = makeDonutWorld2({ big : true });
+var world = makeDonutWorld2({ big : true, noReverse : true});
 var actual_agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
       discount : 1, 
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
-var observed = simulate(start, world, actual_agent, 12, 'both');
 
-var posterior = timeit( function () {
-MH(function () {
-  var discount = randomInteger(3); 
+var observed1 = simulate(start, world, actual_agent, 12, 'both');
+var startRight = update(start, { loc : [ 4,3] }); 
+var observed2 = simulate(startRight, world, actual_agent, 12, 'both');
+
+var posterior = Enumerate(function () {
+  var discount = uniformDraw([0,1,2]);
   var type = uniformDraw(['sophisticated', 'naive']);
-  var alpha = uniformDraw([1, 10, 100, 500]);
-  var dU = randomInteger(4) - 1;
-  var vU = randomInteger(4) - .5;
+  var alpha = 500;
+  var Udonut1 = uniformDraw([-10,  10, 20]);
+  var Udonut2 = uniformDraw([-10,  10, 20]);
+  var Uveg1   = uniformDraw([-10,  10, 20]);
+  var Uveg2   = uniformDraw([-10,  10, 20]);
 
-  var donutUtility = makeDonutUtility(4, {
-      'Donut' : [dU, 0, 0, 0],
-      'Veg'   : [0, 0, 0, vU],
-      'Noodle': [0, 0, 0, 0]
+  var donutUtility = makeDonutUtility(2, {
+      'Donut N' : [Udonut1, Udonut2],
+      'Donut S' : [Udonut1, Udonut2],
+      'Veg'     : [Uveg1, Uveg2],
+      'Noodle'  : [0, 0]
   });
 
   var agent = makeHyperbolicDiscounter(
@@ -49,8 +55,13 @@ MH(function () {
     factor(agentAction(state).score([], action)) ; 
   }, observed);
 
-  return { type:type, discount:discount, alpha:alpha, dU:dU, vU:vU };
-})
-
+  return { 
+      type : type, 
+      discount : discount,
+      Udonut1 : Udonut1, 
+      Udonut2 : Udonut2, 
+      Uveg1 : Uveg1, 
+      Uveg2 : Uveg2
+    };
 });
 viz.print(posterior.value)
