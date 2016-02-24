@@ -15,19 +15,19 @@ var makeBeliefAgent = function(agentParams, world) {
 
   var updateBelief = dp.cache(
     function(manifestState, currentBelief, observation){
-      return Enumerate(function(){
-	var latentState = sample(currentBelief);
-	var state = buildState(manifestState, latentState);
-	condition(_.isEqual(observe(state), observation));
-	return latentState;
-      });
+      return observation === 'noObservation' ? currentBelief :
+	Enumerate(function(){
+	  var latentState = sample(currentBelief);
+	  var state = buildState(manifestState, latentState);
+	  condition(_.isEqual(observe(state), observation));
+	  return latentState;
+	});
     });
 
   var agent = dp.cache(
     function(manifestState, currentBelief, observation) {
       assert.ok(_.isFinite(manifestState.timeLeft) && isERP(currentBelief),
 		'agent args fail');
-
       var newBelief = updateBelief(manifestState, currentBelief, observation);
 
       return Enumerate(function(){
@@ -81,7 +81,6 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   var cutoffCondition = function (actualTimeLeft, state) {
     return actualTimeLeft == 0 || state.dead;
   };
-
 
   var sampleSequence = function(state, currentBelief, actualTimeLeft) {
     if (cutoffCondition(actualTimeLeft, state.manifestState) ) {

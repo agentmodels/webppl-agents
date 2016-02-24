@@ -62,19 +62,21 @@ var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
   });
 };
 
-// third inference function: doing inference on an agent's utilities, beliefs,
-// and softmax noise in any pomdp. Inference works the same way as in
-// *inferUtilityBeliefBandits2*.
+// arguments: *observedTrajectories* an array of trajectories,
+// *utilityParamsPrior* an ERP over parameters for a utility function,
+// *beliefPrior* an ERP over the agent's prior over the latent state,
+// *alphaPrior an ERP over the agent's softmax noise,
+// *paramsToUtilityFunction* a function which takes parameters for a utility function
+// and returns the associated utility function, and *world* the POMDP that the
+// trajectories were generated in.
 
-// arguments: [fill in later]
-
+// infers the agent's prior over latent state, the parameters for their utility
+// function, and their softmax noise.
 var inferBeliefAgent = function(observedTrajectories, utilityParamsPrior, beliefPrior,
 				alphaPrior, paramsToUtilityFunction, world) {
   var numTrajectories = observedTrajectories.length;
   var transition = world.transition;
   var observe = world.observe;
-
-  // don't bother updating with noObservation
 
   var sampleAlongTrajectory = function(state, currentBelief, actionsSampled,
 				       trajectory, agentActionBelief) {
@@ -108,7 +110,8 @@ var inferBeliefAgent = function(observedTrajectories, utilityParamsPrior, belief
     var alpha = sample(alphaPrior);
     var agent = makeBeliefAgent({utility: utility,
 				 alpha: alpha,
-				 priorBelief: agentPrior});
+				 priorBelief: agentPrior},
+			       world);
     var agentActionBelief = agent.agent;
 
     var factorTrajectory = function(trajectory) {
