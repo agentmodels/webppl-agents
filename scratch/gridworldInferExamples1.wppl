@@ -106,6 +106,26 @@ var sampleAlongTrajectory = function(state, currentBelief, actionsSampled,
   }
 };
 
+
+// Slightly simpler version that uses [state,action] and *condition* rather than states,factor. 
+var conditionOnSequence = function(currentBelief, index, observedStateAction, agentActionBelief){
+  if (index >= observedStateAction.length){ 
+    return []; // no-op
+  } else {
+    var state = observedStateAction[index][0];
+    var observedAction = observedStateAction[index][1];
+    var agentERP = agentActionBelief(state.manifestState, currentBelief, observe(state));
+    
+    condition( _.isEqual( sample(agentERP).action, observedAction ) );
+    
+    conditionOnSequence( sample(agentERP).belief, index + 1, observedStateAction, agentActionBelief);
+  }
+};
+//var observedStateAction = simulateBeliefAgent(startState, gridworldPOMDP, agent, 6, 'both');
+//conditionOnSequence(observedTrajectory[0], agentPrior, 0, observedStateAction, agentActionBelief)
+
+
+
 var agentPosterior = Enumerate(function(){
   var utilityTable = sample(utilityTablePrior);
   var utility = tableToUtilityFunction(utilityTable);
