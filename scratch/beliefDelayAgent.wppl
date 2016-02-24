@@ -8,6 +8,10 @@ var isState = function (x) {x.hasOwnProperty('latentState') && _.isFinite(x.mani
 var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
 var isWorld = function (x) { return x.hasOwnProperty('transition') && x.hasOwnProperty('manifestStateToActions') &&
                              x.hasOwnProperty('observe');};
+var getLocs = function(trajectory){
+  assert.ok(_.isArray(trajectory) && isState(trajectory[0]), 'getLocs args');
+  return _.pluck( _.pluck(trajectory,'manifestState'), 'loc' );
+};
 
                     
 
@@ -418,38 +422,84 @@ var makeIRLBanditAgent = function(prizeToUtility, agentParams, worldAndStart){
   return makeBeliefDelayAgent( update(agentParams, {utility:utility}), worldAndStart.world);
 };
 
-var makeIRLBanditWorldAndStart = function(numArms, armToPrizes, perceivedTotalTime){
-  map( function(i){assert.ok( _.isString(armToPrizes[i]), 'makeBanditWorld args' );}, _.range(numArms));
+var makeIRLBanditWorldAndStart = function(numArms, armToPrize, perceivedTotalTime){
+  map( function(i){assert.ok( _.isString(armToPrize[i]), 'makeBanditWorld args' );}, _.range(numArms));
   
   var actualTotalTime = perceivedTotalTime;
   var world = makeBandits(numArms);
 
   var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, dead:false}, 
-                    latentState: armToPrizes};
+                    latentState: armToPrize};
 
   return {world:world, startState: startState, actualTotalTime:actualTotalTime};
 };
 
 
 
-var banditInferFromStates = function(observedStates, priorPrizesToUtility, baseAgentParams, worldAndStart){
-    return Enumerate(function(){
-      var prizesToUtility = sample(priorPrizesToUtility);
-      var agent = makeIRLBanditAgent(prizeToUtility);
 
-      var trajectoryERP = Rejection( function(){
-        return simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states');
-      }, 100);
+var banditInferFromStates = function( worldAndStart, baseAgentParams, prior, observedStates, numRejectionSamples){
+  var world = worldAndStart.world;
+  var startState = worldAndStart.startState;
+  var actualTotalTime = worldAndStart.actualTotalTime;
 
-      factor( trajectoryERP.score( [], observedStates) )
+  var priorPrizeToUtility = prior.priorPrizeToUtility;
+  var priorAgentPrior = prior.priorAgentPrior;
 
-      return {utilityPrize0: utilityPrize0};
-    });
+  assert.ok( isWorld(world) && isState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior) &&
+             _.isArray(observedStates) && _.isNumber(numRejectionSamples), 'banditInferFromStates args');
+  
+  return Enumerate(function(){
+    var prizeToUtility = sample(priorPrizeToUtility);
+    var priorBelief = sample(priorAgentPrior);
+    var agentParams = update(baseAgentParams, {priorBelief:priorBelief});
+
+    
+    var agent = makeIRLBanditAgent(prizeToUtility, agentParams, worldAndStart);
+    
+    var trajectoryERP = Rejection( function(){
+      return getLocs(simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states'));
+    }, numRejectionSamples);
+    
+    factor( trajectoryERP.score( [], observedStates) )
+    
+    return {prizeToUtility: prizeToUtility, priorBelief:priorBelief};
+  });
 };
-  
-//  var erpInferFromStates = inferFromStates( map(first, observedStateAction), priorUtilityPrize0);
 
+var testBanditInfer = function(){
+  // Prizes are [a,b]. If agent chooses 0, then they prefer 'a'. 
   
+  // world params
+  var numArms = 2;
+  var armToPrize = {0:'a', 1:'b'};
+  var perceivedTotalTime = 3;
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
+  
+  // agent params
+  var baseAgentParams = {
+    priorBelief: null,
+    alpha: 100,
+    noDelays: true,
+    discount: 0,
+    sophisticatedOrNaive: 'naive'
+  };
+  var prior = {
+    priorPrizeToUtility: Enumerate(function(){
+      return categorical( [.5, .5], [{a:0, b:1}, {a:1, b:0} ] );
+    }),
+    
+    priorAgentPrior: Enumerate(function(){return deltaERP({0:'a', 1:'b'});})
+  };
+
+  var observedStates = ['start',1,1];
+  var numRejectionSamples = 10;
+  var erp = banditInferFromStates( worldAndStart, baseAgentParams, prior, observedStates, numRejectionSamples);
+  console.log('print erp test bandit infer');
+  printERP(erp);
+};
+testBanditInfer();
+ash();
+
 
 
 var runIRLBanditExamples = function(){
@@ -458,9 +508,9 @@ var runIRLBanditExamples = function(){
   
   // world params
   var numArms = 2;
-  var armToPrizes = {0:'a', 1:'b'};
+  var armToPrize = {0:'a', 1:'b'};
   var perceivedTotalTime = 3;
-  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrizes, perceivedTotalTime);
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
   var world = worldAndStart.world;
   var startState = worldAndStart.startState;
 
@@ -480,14 +530,14 @@ var runIRLBanditExamples = function(){
     return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
   };
 
-  // Agent knows armToPrizes, picks arm with best prize
-  var trajectory = getTrajectory( Enumerate(function(){return armToPrizes;}));
+  // Agent knows armToPrize, picks arm with best prize
+  var trajectory = getTrajectory( Enumerate(function(){return armToPrize;}));
   assert.ok( trajectory[1].manifestState.loc == 0, 'fail banditexample 1');
 
   // Agent has .5 chance on arm 1 having best prize c, and so tries 1 before switching to 0. 
   var trajectory = getTrajectory(Enumerate(
     function(){
-      return categorical( [.5, .5], [armToPrizes, {0:'a', 1:'c'}]);
+      return categorical( [.5, .5], [armToPrize, {0:'a', 1:'c'}]);
     }));
   assert.ok( trajectory[1].manifestState.loc == 1 && trajectory[2].manifestState.loc == 0, 'fail banditexample 2');
   
@@ -499,9 +549,9 @@ var runIRLBanditExamples = function(){
   
   // world params
   var numArms = 4;
-  var armToPrizes = {0:'a', 1:'a', 2:'a', 3:'a'};
+  var armToPrize = {0:'a', 1:'a', 2:'a', 3:'a'};
   var perceivedTotalTime = 6;
-  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrizes, perceivedTotalTime);
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
   var world = worldAndStart.world;
   var startState = worldAndStart.startState;
 
@@ -526,9 +576,6 @@ var runIRLBanditExamples = function(){
   var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
   var trajectory = simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
 
-  var getLocs = function(trajectory){
-    return _.pluck( _.pluck(trajectory,'manifestState'), 'loc' );
-  };
   var locs = getLocs(trajectory).slice(1,5);
   assert.ok( _.difference(_.range(4),locs).length == 0, 'fail bandit example 3');
 
