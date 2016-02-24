@@ -1,3 +1,9 @@
+// BELIEF DELAY AGENT
+
+// Test script by running:
+//webppl beliefDelayAgent/irlBanditTests.wppl --require webppl-timeit --require webppl-dp --require .
+
+
 // Helper functions for testing argument types (warning: heuristics only)
 var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
 var isERP = function (x) {return x.hasOwnProperty('score') && x.hasOwnProperty('sample');};
@@ -11,10 +17,8 @@ var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
 
                     
 
-// POMDP AGENT AND WORLD
+// Helper functions
 
-
-// Helper function for building state from its components
 var buildState = function (manifestState, latentState) {
   return { manifestState:manifestState, latentState:latentState };
 };
@@ -24,11 +28,13 @@ var downToOne = function(n){
   else {return [n].concat(downToOne(n-1));}
 };
 
+// From array of POMDP states, extract locations array
 var getLocs = function(trajectory){
   assert.ok(_.isArray(trajectory) && isState(trajectory[0]), 'getLocs args');
   return _.pluck( _.pluck(trajectory,'manifestState'), 'loc' );
 };
 
+// From array of locs, add *timeLeft* and *dead*
 var locsToManifestStates = function(locs){
   return map( function(locTime){ 
     var dead = locTime[1]==1;
@@ -36,6 +42,8 @@ var locsToManifestStates = function(locs){
   }, zip( locs, downToOne(locs.length) ) );
 };
 
+// From array of form [ [loc, action] ], output array of form:
+// [  [{manifestState:{loc:, timeLeft:, dead:}, latentState:latentState}, action ]  ]
 var stateActionToFullStates = function(locAction, latentState){
   var locs = map(first,locAction);
   var manifestStates = locsToManifestStates(locs);
@@ -45,6 +53,7 @@ var stateActionToFullStates = function(locAction, latentState){
   
   return zip( fullStates, map(second,locAction) );
 };
+
 
 
 
@@ -59,7 +68,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
   var transition = world.transition;
   var observe = world.observe;
 
-  // Set all delays to zero to speed up runtime
+  // Set all delay arguments to zero to speed up runtime (use for POMDP agent)
   var getPerceivedDelay = function(currentDelay){
     return agentParams.noDelays ? 0 :
       {naive: currentDelay + 1, sophisticated: 0 }[agentParams.sophisticatedOrNaive];
@@ -69,6 +78,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
     return agentParams.noDelays ? 0 : currentDelay + 1;
   };
 
+  
   // *currentBelief* is ERP on latent states, returns posterior ERP on latent states
   var updateBelief = dp.cache(
     function (manifestState, currentBelief, observation) {
@@ -130,12 +140,10 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
   var priorBelief = agent.agentParams.priorBelief;
   var transition = world.transition;
   var observe = world.observe;
+  
   var outputTable = function(state, nextAction, currentBelief, observation, outputStatesOrActions){
     return {states:state, actions:nextAction.action, both:[state, nextAction.action], 
-            stateBelief: [state, currentBelief],
-            stateBeliefObservationAction: [{state:state, currentBelief:currentBelief, observation:observation},
-                                           nextAction.action]
-           }[outputStatesOrActions];
+            stateBelief: [state, currentBelief]}[outputStatesOrActions];
   };
 
   
