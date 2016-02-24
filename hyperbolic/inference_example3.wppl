@@ -17,12 +17,12 @@ var actual_agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
       discount : 1, 
-      sophisticatedOrNaive  : 'sophisticated' 
+      sophisticatedOrNaive  : 'naive' 
     }, world);
 var observed1 = simulate(start, world, actual_agent, start.timeLeft, 'both');
 var observed2 = simulate(update(start, { loc : [5,3] }), world, actual_agent, start.timeLeft, 'both');
 
-var posterior = timeit( function () { Enumerate(function () {
+var posterior = Enumerate(function () {
   var discount = uniformDraw([0,1,2]);
   var type = uniformDraw(['sophisticated', 'naive']);
   var alpha = uniformDraw([1, 10, 100]);
@@ -67,8 +67,6 @@ var posterior = timeit( function () { Enumerate(function () {
     Udonut1 : Udonut1, 
     Udonut2 : Udonut2
          };
-})
 });
 
-viz.print(posterior.value);
-console.log(posterior);
+viz.print(posterior);

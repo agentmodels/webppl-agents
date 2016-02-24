@@ -20,9 +20,7 @@ var actual_agent = makeHyperbolicDiscounter(
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
 
-var observed1 = simulate(start, world, actual_agent, 12, 'both');
-var startRight = update(start, { loc : [ 4,3] }); 
-var observed2 = simulate(startRight, world, actual_agent, 12, 'both');
+var observed = simulate(start, world, actual_agent, 12, 'both');
 
 var posterior = Enumerate(function () {
   var discount = uniformDraw([0,1,2]);
@@ -52,7 +50,7 @@ var posterior = Enumerate(function () {
     var state = stateAction[0];
     var action = stateAction[1];
 
-    factor(agentAction(state).score([], action)) ; 
+    factor(agentAction(state, 0).score([], action)) ; 
   }, observed);
 
   return { 
