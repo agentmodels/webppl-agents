@@ -63,7 +63,7 @@ var agent = makeBeliefAgent({utility: tableToUtilityFunction(donutUtilityTable),
 			     priorBelief: uninformedPrior}, gridworldPOMDP);
 
 var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 6,
-					     'both');
+					     'states');
 
 var utilityTablePrior = Enumerate(function(){
   if (flip(0.5)) {
@@ -81,20 +81,28 @@ var beliefPrior = Enumerate(function(){
   }
 });
 
-var conditionOnSequence = function(currentBelief, index, observedStateAction,
-				   agentActionBelief){
-  if (index >= observedStateAction.length){ 
-    return []; // no-op
+var sampleAlongTrajectory = function(state, currentBelief, actionsSampled,
+				     trajectory, agentActionBelief) {
+  assert.ok(isERP(agentActionBelief(state.manifestState, currentBelief,
+				    observe(state))),
+	    'agentActionBelief not correct in sampleAlongTrajectory');
+  
+  if (actionsSampled === trajectory.length - 1) {
+    return [];
   } else {
-    var state = observedStateAction[index][0];
-    var observedAction = observedStateAction[index][1];
-    var agentERP = agentActionBelief(state.manifestState, currentBelief,
-				     observe(state));
+    var actionBeliefERP = agentActionBelief(state.manifestState, currentBelief,
+					    observe(state));
+    var nextStateERP = Enumerate(function(){
+      return transition(state, sample(actionBeliefERP).action);
+    });
+    var newBelief = sample(actionBeliefERP).belief;
+
+    var trajectoryNextState = trajectory[actionsSampled + 1];
     
-    condition( _.isEqual( sample(agentERP).action, observedAction ) );
+    factor(nextStateERP.score([], trajectoryNextState));
     
-    return conditionOnSequence( sample(agentERP).belief, index + 1, observedStateAction,
-				agentActionBelief);
+    return sampleAlongTrajectory(trajectoryNextState, newBelief, actionsSampled + 1,
+				 trajectory, agentActionBelief);
   }
 };
 
@@ -108,8 +116,8 @@ var agentPosterior = Enumerate(function(){
 			      gridworldPOMDP);
   var agentActionBelief = agent.agent;
 
-  conditionOnSequence(agentPrior, 0, observedTrajectory,
-		      agentActionBelief);
+  sampleAlongTrajectory(observedTrajectory[0], agentPrior, 0, observedTrajectory,
+			agentActionBelief);
   
   return {utilityTable: utilityTable,
 	  prior: agentPrior};

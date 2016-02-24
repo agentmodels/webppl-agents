@@ -89,7 +89,8 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
       var nextAction = sample(agentAction(state.manifestState, currentBelief,
 					  observe(state)));
       var nextState = transition(state, nextAction.action);
-      var out = {states:state, actions:nextAction, both:[state, nextAction],
+      var out = {states:state, actions:nextAction.action,
+		 both:[state, nextAction.action],
                  stateBelief: [state, currentBelief]}[outputStatesOrActions];
       // could return observations
       
