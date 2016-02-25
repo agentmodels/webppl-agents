@@ -80,7 +80,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
   };
 
   var myopiaCutoff = function(delay){
-    return _.isNumber(agentParams.myopiaCutoff) ? myopiaCutoff >= delay : false;
+    return _.isNumber(agentParams.myopiaCutoff) ? delay >= agentParams.myopiaCutoff : false;
   };
   
   // *currentBelief* is ERP on latent states, returns posterior ERP on latent states
@@ -97,6 +97,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
   var _agent = dp.cache(
     function (manifestState, currentBelief, observation, delay) {
       assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), '_agent args fail');
+      
       
       var newBelief = updateBelief(manifestState, currentBelief, observation);
       return Enumerate(function () {
