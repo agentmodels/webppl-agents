@@ -112,8 +112,6 @@ var testInferIRLBandit = function(){
  
   console.log('passed ALL testBanditInferBeliefOnly tests');
 };
-testInferIRLBandit();
-
 
 
 
@@ -177,7 +175,8 @@ var runIRLBanditExamples = function(){
     alpha: 100,
     noDelays: true,
     discount: 0,
-    sophisticatedOrNaive: 'naive'
+    sophisticatedOrNaive: 'naive',
+    myopiaCutoff: 1
   };
   
   // Agent thinks each arm might offer c, and so tries them all (as c is so good -- and b is not that bad)  
@@ -190,13 +189,19 @@ var runIRLBanditExamples = function(){
   var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
   var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
   var trajectory = simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
-
+  console.log('agent cache', agent._agent.cache);
+  
   var locs = getLocs(trajectory).slice(1,5);
+  console.log('traj, locs: ', trajectory, '\n', locs);
+
   assert.ok( _.difference(_.range(4),locs).length == 0, 'fail bandit example 3');
 
+  
+  ash();
+  
   // ----------
   // Discounting example: agent thinks arms other than 0 could have b, with u=10, or
-  // c, with u=-8. Not discounter will explore but discounter will just take 0, which
+  // c, with u=-8. Non discounter will explore but discounter will just take 0, which
   // is known to have utility 5. (All arms still yield prize a). 
 
   var priorBelief = Enumerate(
@@ -227,6 +232,12 @@ var runIRLBanditExamples = function(){
   console.log('runIRLBanditExamples passed');
 };
 
+
+runIRLBanditExamples();
+ash();
+
+
+testInferIRLBandit();
 runIRLBanditExamples();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null

@@ -61,6 +61,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
   map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeBeliefDelayAgent args');}, 
       ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief']);
   assert.ok( isWorld(world), 'world argument lacks transition, stateToActions, or observe');
+  
 
   var utility = agentParams.utility;
   
@@ -78,6 +79,9 @@ var makeBeliefDelayAgent = function (agentParams, world){
     return agentParams.noDelays ? 0 : currentDelay + 1;
   };
 
+  var myopiaCutoff = function(delay){
+    return _.isNumber(agentParams.myopiaCutoff) ? myopiaCutoff >= delay : false;
+  };
   
   // *currentBelief* is ERP on latent states, returns posterior ERP on latent states
   var updateBelief = dp.cache(
@@ -114,7 +118,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
           var latentState = sample(currentBelief);
           var state = buildState(manifestState, latentState);
           var u = 1.0 / (1 + agentParams.discount * delay) * utility(state, action);
-          if (state.manifestState.dead) {
+          if (state.manifestState.dead || myopiaCutoff(delay)) {
             return u;
           } else {
             var nextState = transition(state, action);

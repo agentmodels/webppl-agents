@@ -1,3 +1,10 @@
+
+// Hyperbolic Inference example 1: Naive Trajectory
+// -- Goes from bottom to Donut North
+// Inference should infer that Donut has [high,low] utility
+// and Veg the opposite.
+
+// Start at bottom. 
 var start = { 
   loc : [3,0],
   dead : false,
@@ -5,12 +12,19 @@ var start = {
   timeLeft : 13
 };
 
+
+// Create trajectory that we'll use to condition on
+
+// TODO: have *options* argument for makeDonutUtility
+// so that *max_digest* is a property of options. Could
+// also use this to have a default value for max_digest. 
 var donutUtility = makeDonutUtility(2, {
     'Donut N' : [10, -10],
     'Donut S' : [10, -10],
     'Veg'   : [-10, 20],
     'Noodle': [0, 0]
 });
+
 
 var world = makeDonutWorld2({ big : true, noReverse : true});
 var actual_agent = makeHyperbolicDiscounter(
@@ -20,6 +34,14 @@ var actual_agent = makeHyperbolicDiscounter(
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
 var observed = simulate(start, world, actual_agent, start.timeLeft, 'both');
+
+
+// Inference only on utilities of Donut and Veg
+
+// TODO: pull out the constants. Have a function
+// *makeHyperbolicAgent(Udonut1, Udonut2, uveg1, uveg2)*
+// So the function inside enumerate is mainly just the
+// sampling from the prior and the factor. 
 
 var posterior = Enumerate(function () {
   var discount = 1;

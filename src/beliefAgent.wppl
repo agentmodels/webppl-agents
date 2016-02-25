@@ -79,7 +79,7 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   var observe = world.observe;
 
   var cutoffCondition = function (actualTimeLeft, state) {
-    return actualTimeLeft == 0 || state.dead;
+    return actualTimeLeft === 0 || state.dead;
   };
 
   var sampleSequence = function(state, currentBelief, actualTimeLeft) {
@@ -92,7 +92,6 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
       var out = {states:state, actions:nextAction.action,
 		 both:[state, nextAction.action],
                  stateBelief: [state, currentBelief]}[outputStatesOrActions];
-      // could return observations
       
       return [out].concat( sampleSequence(nextState, nextAction.belief,
 					  actualTimeLeft - 1));
@@ -100,6 +99,10 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   };
   return sampleSequence(startState, priorBelief, actualTotalTime);
 };
+
+
+// TODO Can this be removed?
+
 
 // *armToRewards* is the actual rewards for each arm (true latentState)
 // *priorBelief* is agent's belief about rewards,
