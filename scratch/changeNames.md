@@ -24,7 +24,10 @@ https://github.com/agentmodels/webppl-gridworld/blob/master/src/beliefDelayAgent
 - extension: consider agent doing approximate inference for updateBelief. then infer what kind of approximate inference agent is performing. 
 (good project for cocosci / cocolab)
 
-- allow observations as part of trajectory (so you are doing inference for the agent, conditional on the observations that were in fact observed to take place). 
+- allow observations as part of trajectory (so you are doing inference for the agent, conditional on the observations that were in fact observed to take place).
+
+- current version of expectedUtility takes a manifest state, then takes an expectation that integrates over the latent states given the currentBelief. the expectations returns by recursively calling expectedUtility on the manifest state of the latent state. i wonder if this is inefficient. in the old style (with an expectation in agent over the posterior and one in expectedUtility for transitions and actions), the latent state is fixed in agent and then expectedUtility uses this same latent state repeatedly. does caching in the new style achieve the same complexity? (we could try this out). i'm concerned that we computed needless expectations and wasting time in doing so.  
+
 
 ### Future changes (don't change for now)
 
