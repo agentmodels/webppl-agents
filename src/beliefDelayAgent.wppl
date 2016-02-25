@@ -5,6 +5,8 @@
 
 
 // Helper functions for testing argument types (warning: heuristics only)
+
+
 var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
 var isERP = function (x) {return x.hasOwnProperty('score') && x.hasOwnProperty('sample');};
 var isState = function (x) {x.hasOwnProperty('latentState') && _.isFinite(x.manifestState.timeLeft);};
@@ -13,9 +15,7 @@ var isWorld = function (x) { return x.hasOwnProperty('transition') && x.hasOwnPr
                              x.hasOwnProperty('observe');};
 
 var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
-
-
-                    
+                   
 
 // Helper functions
 
@@ -62,6 +62,9 @@ var makeBeliefDelayAgent = function (agentParams, world){
       ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief']);
   assert.ok( isWorld(world), 'world argument lacks transition, stateToActions, or observe');
   
+  var noDelays = agentParams.noDelays || (agentParams.discount==0 && !agentParams.myopiaCutoff);
+  if (agentParams.myopiaCutoff){assert.ok(!noDelays && agentParams.sophisticatedOrNaive==='naive',
+                                          'Myopia needs delays and naive');}
 
   var utility = agentParams.utility;
   
@@ -71,12 +74,12 @@ var makeBeliefDelayAgent = function (agentParams, world){
 
   // Set all delay arguments to zero to speed up runtime (use for POMDP agent)
   var getPerceivedDelay = function(currentDelay){
-    return agentParams.noDelays ? 0 :
+    return noDelays ? 0 :
       {naive: currentDelay + 1, sophisticated: 0 }[agentParams.sophisticatedOrNaive];
   };
   
   var incrementDelay = function(currentDelay){
-    return agentParams.noDelays ? 0 : currentDelay + 1;
+    return noDelays ? 0 : currentDelay + 1;
   };
 
   var myopiaCutoff = function(delay){

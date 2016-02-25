@@ -54,6 +54,14 @@ var assertHas = function(object, params, message) {
   assert.ok(_.has(object, params), message + JSON.stringify(object) + ' required ' + JSON.stringify(params));
 };
 
+var assertHasList = function(object, listProperties, message) { 
+  var message = message || ' ';
+  map( function(property){
+    assert.ok(_.has(object, property), 
+              'assertHasList: ' + message + JSON.stringify(object) + ' required ' + JSON.stringify(property));
+  }, listProperties);
+};
+
 
 // GRIDWORLD LIBRARY
 
