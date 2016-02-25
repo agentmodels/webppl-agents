@@ -117,6 +117,7 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
       } else {
         var state = observedStateAction[index][0];
         var observedAction = observedStateAction[index][1];
+        // TODO do the belief update here when agent -> act
         var agentERP = agentAction(state.manifestState, currentBelief, observe(state));
         
         condition( _.isEqual( sample(agentERP).action, observedAction ) );
