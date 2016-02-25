@@ -30,4 +30,6 @@ https://github.com/agentmodels/webppl-gridworld/blob/master/src/beliefDelayAgent
 
 - _agent -> _act
 
+- .loc to .location
+
 - observeStateActionPairs (and make the pairs objects)
