@@ -29,6 +29,9 @@ var makeBeliefAgent = function(agentParams, world) {
       assert.ok(_.isFinite(manifestState.timeLeft) && isERP(currentBelief),
 		'agent args fail');
       var newBelief = updateBelief(manifestState, currentBelief, observation);
+      console.log("called agent", JSON.stringify(manifestState), JSON.stringify(manifestStateToActions(manifestState)) );
+      //console.log("called agent");
+
       
       return Enumerate(function(){
 	var action = uniformDraw(manifestStateToActions(manifestState));
