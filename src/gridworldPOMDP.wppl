@@ -1,17 +1,19 @@
 // Helper functions for testing argument types (warning: heuristics only)
-var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
-var isERP = function (x) {return x.hasOwnProperty('score')
+var isGreaterZero = function (x) {return x && _.isFinite(x) && x > 0;};
+var isERP = function (x) {return x && x.hasOwnProperty('score')
 			  && x.hasOwnProperty('sample');};
-var isState = function (x) {x.hasOwnProperty('latentState')
+var isState = function (x) {return x && x.hasOwnProperty('latentState')
 			    && _.isFinite(x.manifestState.timeLeft);};
 // note: isGridworld is different in this file than how it is in other files
-var isGridworld = function(world){return arraysEqual(world.actions,
+var isGridworld = function(world){return world
+				  && arraysEqual(world.actions,
 						     ['l', 'r', 'u', 'd'])
 				  && world.hasOwnProperty('feature')
 				  && world.hasOwnProperty('xLim')
 				  && world.hasOwnProperty('yLim')
 				  && world.hasOwnProperty('transition');};
-var isPOMDP = function (x) { return x.hasOwnProperty('transition')
+var isPOMDP = function (x) { return x
+			     && x.hasOwnProperty('transition')
 			     && x.hasOwnProperty('manifestStateToActions')
 			     && x.hasOwnProperty('observe');};
 
@@ -26,6 +28,7 @@ var buildState = function (manifestState, latentState) {
 // arrays of the features at each point), xLim, yLim, feature (a function of
 // a (manifest) state that returns the features of that state), transition
 // (a transition function on manifest states), actions, and stateToActions.
+// noReverse must be false in the MDP.
 
 // manifest states in this POMDP are objects with loc (an array of two
 // numbers), timeLeft, dead, and digest - the same as states in gridworld MDPs.
@@ -40,9 +43,45 @@ var makeGridworldPOMDP = function(gridworld) {
 
   var actions = gridworld.actions;
   var feature = gridworld.feature;
-  var manifestStateToActions = function(manifestState) {
-    return actions;
+
+  // returns an array of restaurants that neighbour a state
+  var neighbourRestaurants = function(manifestState) {
+    var loc = manifestState.loc;
+    var updateStateLoc = function(manifestState, newLoc) {
+      return update(manifestState, {loc: newLoc});
+    };
+    
+    var potentialneighbourStates = [
+      updateStateLoc(manifestState, [loc[0] - 1, loc[1]]),
+      updateStateLoc(manifestState, [loc[0] + 1, loc[1]]),
+      updateStateLoc(manifestState, [loc[0], loc[1] + 1]),
+      updateStateLoc(manifestState, [loc[0], loc[1] - 1]),
+    ];
+
+    var neighbourStates = filter(function(manifestState){
+      return inGrid_(gridworld, manifestState.loc);
+    }, potentialneighbourStates);
+
+    var isRestaurant = function(manifestState) {
+      return feature(manifestState).name;
+    };
+
+    return filter(isRestaurant, neighbourStates);
   };
+
+  // returns a subobject of latentState that gives the status of adjacent restaurants
+  var observe = function(state) {
+    var neighbourRests = neighbourRestaurants(state.manifestState);
+    if (_.isEmpty(neighbourRests)) {
+      return 'noObservation';
+    } else {
+      var restaurantNames = map(function(manifestState){
+	return feature(manifestState).name;}, neighbourRests);
+      return map(function(name){return [name, state.latentState[name]];},
+		 restaurantNames);
+    }
+  };
+
   
   var _mdpTransition = gridworld.transition;
   var mdpTransition = function(state, action) {
@@ -67,41 +106,14 @@ var makeGridworldPOMDP = function(gridworld) {
     }
   };
 
-  // returns an array of restaurants that neighbour a state
-  var neighbourRestaurants = function(state) {
-    var loc = state.manifestState.loc;
-    var updateStateLoc = function(state, newLoc) {
-      return buildState(update(state.manifestState, {loc: newLoc}), state.latentState);
-    };
-    
-    var potentialneighbourStates = [
-      updateStateLoc(state, [loc[0] - 1, loc[1]]),
-      updateStateLoc(state, [loc[0] + 1, loc[1]]),
-      updateStateLoc(state, [loc[0], loc[1] + 1]),
-      updateStateLoc(state, [loc[0], loc[1] - 1]),
-    ];
 
-    var neighbourStates = filter(function(state){
-      return inGrid_(gridworld, state.manifestState.loc);
-    }, potentialneighbourStates);
-
-    var isRestaurant = function(state) {
-      return feature(state.manifestState).name;
-    };
-
-    return filter(isRestaurant, neighbourStates);
-  };
-
-  // returns a subobject of latentState that gives the status of adjacent restaurants
-  var observe = function(state) {
-    var neighbourRests = neighbourRestaurants(state);
-    if (_.isEmpty(neighbourRests)) {
-      return 'noObservation';
+  var manifestStateToActions = function(manifestState){
+    var neighbourRestaurantArray = neighbourRestaurants(manifestState);
+    if (neighbourRestaurantArray.length == 0) {
+      var manifestStateToActions_ = gridworld.stateToActions;
+      return manifestStateToActions_(manifestState);
     } else {
-      var restaurantNames = map(function(state){
-	return feature(state.manifestState).name;}, neighbourRests);
-      return map(function(name){return [name, state.latentState[name]];},
-		 restaurantNames);
+      return gridworld.actions;
     }
   };
   

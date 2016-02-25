@@ -1,0 +1,144 @@
+// like gridworldInferExamples2, but with a prior with broader support, so we need MCMC
+
+var gridworldMDP = makeDonutWorld2({big: true});
+var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
+var feature = gridworldMDP.feature;
+var transition = gridworldPOMDP.transition;
+var observe = gridworldPOMDP.observe;
+
+var noodleUtilityTable = {'Donut N': 1,
+			  'Donut S': 1,
+			  'Veg': 0,
+			  'Noodle': 2,
+			  timeCost: -0.1};
+
+var donutUtilityTable = { 'Donut N': 2, 'Donut S': 2, Veg: 1, Noodle: 0,
+			  timeCost: -0.1 };
+
+var tableToUtilityFunction = function(table) {
+  return function(state, action) {
+    var stateFeatureName = feature(state.manifestState).name;
+    if (stateFeatureName) {
+      return table[stateFeatureName];
+    } else {
+      return table.timeCost;
+    }
+  };
+};
+
+var makeUninformedPrior = function(p){
+  return Enumerate(function(){
+    if (flip(p)) {
+      return {'Donut N': true,
+	      'Donut S': true,
+	      'Veg': true,
+	      'Noodle': false};
+    } else {
+      return {'Donut N': true,
+	      'Donut S': true,
+	      'Veg': true,
+	      'Noodle': true};
+    }
+  });
+};
+
+var informedPrior = deltaERP({'Donut N': true,
+			      'Donut S': true,
+			      'Veg': true,
+			      'Noodle': true});
+
+var startState = {manifestState: {loc: [3,1],
+				  dead: false,
+				  timeLeft: 10,
+				  digest: 1},
+		  latentState: {'Donut N': true,
+				'Donut S': true,
+				'Veg': true,
+				'Noodle': true}};
+
+var agent = makeBeliefAgent({utility: tableToUtilityFunction(noodleUtilityTable),
+			     alpha: 100,
+			     priorBelief: makeUninformedPrior(0.8)}, gridworldPOMDP);
+
+var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 10,
+    					     'both');
+
+// var obsFunc = function(){return JSON.stringify(simulateBeliefAgent(startState,
+// 								   gridworldPOMDP,
+// 								   agent,
+// 								   10, 'both'));};
+
+// console.log(timeit(obsFunc));
+// ash();
+
+// in a second trajectory, we let the agent know that noodle is open, and see where
+// it goes
+var startState2 = {manifestState: {loc: [5,4],
+				   dead: false,
+				   timeLeft: 10,
+				   digest: 1},
+		   latentState: {'Donut N': true,
+				 'Donut S': true,
+				 'Veg': true,
+				 'Noodle': true}};
+var observedTrajectory2 = simulateBeliefAgent(startState2, gridworldPOMDP, agent, 10,
+					      'both');
+
+// var observedTrajectories = [observedTrajectory, observedTrajectory2];
+var observedTrajectories = [observedTrajectory];
+
+var utilityTablePrior = Enumerate(function(){
+  var donutUtility = uniformDraw(range(3));
+  return {'Donut N': donutUtility,
+	  'Donut S': donutUtility,
+	  'Veg': uniformDraw(range(3)),
+	  'Noodle': uniformDraw(range(3)),
+	  'timeCost': -0.1};
+});
+
+var factorOnSequence = function(currentBelief, index, observedStateAction,
+				agentActionBelief){
+  if (index >= observedStateAction.length){ 
+    return []; // no-op
+  } else {
+    var state = observedStateAction[index][0];
+    var observedAction = observedStateAction[index][1];
+    var agentERP = agentActionBelief(state.manifestState, currentBelief,
+				     observe(state));
+    var actionERP = Enumerate(function(){return sample(agentERP).action;});
+    // console.log(actionERP.score([], observedAction));
+    factor(actionERP.score([], observedAction));
+    
+    return factorOnSequence( sample(agentERP).belief, index + 1, observedStateAction,
+			     agentActionBelief);
+  }
+};
+
+var agentPosterior = function(){
+  return printERP(MCMC(function(){
+    var utilityTable = sample(utilityTablePrior);
+    var utility = tableToUtilityFunction(utilityTable);
+    var agentProbNClosed = uniformDraw([0.1, 0.2, 0.8, 0.9]);
+    var agentPrior = makeUninformedPrior(agentProbNClosed);
+    var agent = makeBeliefAgent({utility: utility,
+				 alpha: 100,
+				 priorBelief: agentPrior},
+				gridworldPOMDP);
+    var agentActionBelief = agent.agent;
+
+    // console.log(utilityTable);
+    // console.log(agentProbNClosed);
+
+    var factorTrajectory = function(trajectory) {
+      return factorOnSequence(agentPrior, 0, trajectory,
+			      agentActionBelief);
+    };
+
+    map(factorTrajectory, observedTrajectories);
+
+    return {utilityTable: utilityTable,
+	    agentProbNoodleClosed: agentProbNClosed};
+  }));
+};
+
+timeit(agentPosterior);

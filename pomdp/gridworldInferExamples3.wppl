@@ -1,6 +1,5 @@
-// see an agent go to donuts instead of noodles. is this because they like donuts,
-// or do they like noodles but think that the noodle shop is closed?
-// what if we see the agent pass by the noodle shop?
+// we see the agent go the long way around to veg. It must prefer noodle to veg,
+// but think that veg is closed
 
 var gridworldMDP = makeDonutWorld2({big: true});
 var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
@@ -8,17 +7,17 @@ var feature = gridworldMDP.feature;
 var transition = gridworldPOMDP.transition;
 var observe = gridworldPOMDP.observe;
 
-var donutUtilityTable = {'Donut N': 5,
-			 'Donut S': 5,
-			 'Veg': 1,
-			 'Noodle': 1,
-			 timeCost: -0.1};
- 
-var noodleUtilityTable = {'Donut N': 2,
-			  'Donut S': 2,
-			  Veg: 1,
-			  Noodle: 5,
+var noodleUtilityTable = {'Donut N': 1,
+			  'Donut S': 1,
+			  'Veg': 1,
+			  'Noodle': 3,
 			  timeCost: -0.1};
+
+var vegUtilityTable = {'Donut N': 1,
+		       'Donut S': 1,
+		       Veg: 3,
+		       Noodle: 1,
+		       timeCost: -0.1};
 
 var tableToUtilityFunction = function(table) {
   return function(state, action) {
@@ -36,28 +35,28 @@ var uninformedPrior = Enumerate(function(){
     return {'Donut N': true,
 	    'Donut S': true,
 	    'Veg': true,
-	    'Noodle': false};
+	    'Noodle': true};
   } else {
     return {'Donut N': true,
 	    'Donut S': true,
 	    'Veg': true,
-	    'Noodle': true};
+	    'Noodle': false};
   }
 });
 
 var informedPrior = deltaERP({'Donut N': true,
 			      'Donut S': true,
 			      'Veg': true,
-			      'Noodle': true});
+			      'Noodle': false});
 
 var startState = {manifestState: {loc: [3,1],
 				  dead: false,
-				  timeLeft: 6,
+				  timeLeft: 10,
 				  digest: 1},
 		  latentState: {'Donut N': true,
 				'Donut S': true,
 				'Veg': true,
-				'Noodle': true}};
+				'Noodle': false}};
 
 var agent = makeBeliefAgent({utility: tableToUtilityFunction(noodleUtilityTable),
 			     alpha: 100,
@@ -66,27 +65,11 @@ var agent = makeBeliefAgent({utility: tableToUtilityFunction(noodleUtilityTable)
 var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 6,
 					     'both');
 
-// in a second trajectory, we let the agent know that noodle is open, and see where
-// it goes
-var startState2 = {manifestState: {loc: [5,4],
-				   dead: false,
-				   timeLeft: 10,
-				   digest: 1},
-		   latentState: {'Donut N': true,
-				 'Donut S': true,
-				 'Veg': true,
-				 'Noodle': true}};
-var observedTrajectory2 = simulateBeliefAgent(startState2, gridworldPOMDP, agent, 10,
-					      'both');
-
-// var observedTrajectories = [observedTrajectory, observedTrajectory2];
-var observedTrajectories = [observedTrajectory];
-
 var utilityTablePrior = Enumerate(function(){
   if (flip(0.5)) {
-    return donutUtilityTable;
-  } else {
     return noodleUtilityTable;
+  } else {
+    return vegUtilityTable;
   }
 });
 
@@ -97,8 +80,6 @@ var beliefPrior = Enumerate(function(){
     return informedPrior;
   }
 });
-
-var numTrajectories = observedTrajectories.length;
 
 var conditionOnSequence = function(currentBelief, index, observedStateAction,
 				   agentActionBelief){
@@ -127,13 +108,9 @@ var agentPosterior = Enumerate(function(){
 			      gridworldPOMDP);
   var agentActionBelief = agent.agent;
 
-  var conditionTrajectory = function(trajectory) {
-    return conditionOnSequence(agentPrior, 0, trajectory,
-			       agentActionBelief);
-  };
-
-  map(conditionTrajectory, observedTrajectories);
-
+  conditionOnSequence(agentPrior, 0, observedTrajectory,
+		      agentActionBelief);
+  
   return {utilityTable: utilityTable,
 	  prior: agentPrior};
 });

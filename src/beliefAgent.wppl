@@ -29,7 +29,7 @@ var makeBeliefAgent = function(agentParams, world) {
       assert.ok(_.isFinite(manifestState.timeLeft) && isERP(currentBelief),
 		'agent args fail');
       var newBelief = updateBelief(manifestState, currentBelief, observation);
-
+      
       return Enumerate(function(){
 	var action = uniformDraw(manifestStateToActions(manifestState));
 	var eu = expectedUtility(manifestState, newBelief, action);
@@ -68,6 +68,8 @@ var makeBeliefAgent = function(agentParams, world) {
 // paste it here
 var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
 				    outputStatesOrActions) {
+  assert.ok( isPOMDP(world),
+	     'world argument lacks transition, stateToActions, or observe');
   var perceivedTotalTime = startState.manifestState.timeLeft;
   assert.ok( actualTotalTime <= perceivedTotalTime && isState(startState),
 	     'simulate args');
