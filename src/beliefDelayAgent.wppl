@@ -60,7 +60,7 @@ var stateActionToFullStates = function(locAction, latentState){
 
 
 
-var makeBeliefDelayAgent = function (agentParams, world){
+var oldMakeBeliefDelayAgent = function (agentParams, world){
   assertHasProperties(agentParams, ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief', 'noDelays'], 
                       'makeBeliefDelayAgent args');
   assertIsWorld(world);
@@ -142,7 +142,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
   return { agent : agent, _agent:_agent, expectedUtility : expectedUtility, agentParams: agentParams};
 };
 
-var _makeBeliefDelayAgent = function (agentParams, world){
+var makeBeliefDelayAgent = function (agentParams, world){
   assertHasProperties(agentParams, ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief', 'noDelays'], 
                       'makeBeliefDelayAgent args');
   assertIsWorld(world);
