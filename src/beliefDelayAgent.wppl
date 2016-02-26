@@ -189,14 +189,14 @@ var makeBeliefDelayAgent = function (agentParams, world){
    
       return Enumerate(function () {
         var action = uniformDraw(manifestStateToActions(manifestState));
-        var eu = expectedUtility(manifestState, newBelief, action, delay);
+        var eu = expectedUtility(manifestState, currentBelief, action, delay);
         factor(agentParams.alpha * eu);
         return action;
       });
     });
   
   var act = function (manifestState, currentBelief) {
-    return _act(manifestState, currentBelief, observation, 0);
+    return _act(manifestState, currentBelief, 0);
   };
 
   var expectedUtility = dp.cache(
