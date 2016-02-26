@@ -2,8 +2,12 @@
 
 ## List of small todos to make code more readable and consistent
 
+Generally: Look at beliefDelayAgent.wppl and use the names there (unless it's clearer in hyperbolic or beliefAgent to use different names). 
+https://github.com/agentmodels/webppl-gridworld/blob/master/src/beliefDelayAgent.wppl#L157
 
-###1. BeliefAgent and Hyperbolic
+
+
+### BeliefAgent and Hyperbolic
 - Call *simulate* function something more specific, e.g. *simulateHyperbolic*. 
 
 - 'statesOrActions' argument to *simulate* function is now called ‘outputVariables’. See example in `beliefDelayAgent` of the possible string values.
@@ -30,8 +34,6 @@ https://github.com/agentmodels/webppl-gridworld/blob/master/src/beliefDelayAgent
 
 
 ### Future changes (don't change for now)
-
-- _agent -> _act
 
 - .loc to .location
 
