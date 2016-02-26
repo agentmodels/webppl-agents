@@ -109,28 +109,26 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
     var factorOnTrajectory = function(){
       var trajectoryERP = Rejection( function(){
         return simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states')}, numRejectionSamples);
-      factor( trajectoryERP.score( [], map(first, observedStateAction)) );
+      factor(trajectoryERP.score([], map(first, observedStateAction)));
     };
 
     // Move agent through observed sequence 
     var factorSequenceOffPolicy = function(currentBelief, timeIndex){
-      if (timeIndex >= observedStateAction.length){ 
-        return []; // no-op
-      } else {
+      if (timeIndex < observedStateAction.length) { 
         var observedAction = observedStateAction[timeIndex][1];
         
         // Go to next world state and sample observation from that state
         var state = observedStateAction[timeIndex][0];
-        var observation = observe(state);
+        var observation = observe(state);  // assuming that observations are deterministic?
 
         // Update agent's internal state and get action ERP
         var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation);
-        var nextAction = agentAct( state.manifestState, nextBelief );
+        var nextActionERP = agentAct(state.manifestState, nextBelief);
 
-        factor( nextAction.score([],observedAction) );
+        factor(nextActionERP.score([], observedAction));
 
         // condition on next world state, passing through updated internal state
-        factorSequenceOffPolicy( nextBelief, timeIndex + 1);
+        factorSequenceOffPolicy(nextBelief, timeIndex + 1);
       }
     };
 
