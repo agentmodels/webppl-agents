@@ -1,6 +1,6 @@
 // like gridworldInferExamples2, but with a prior with broader support, so we need MCMC
 
-var gridworldMDP = makeDonutWorld2({big: true});
+var gridworldMDP = makeDonutWorld2({big: true, noReverse: true});
 var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
 var feature = gridworldMDP.feature;
 var transition = gridworldPOMDP.transition;
@@ -60,16 +60,16 @@ var agent = makeBeliefAgent({utility: tableToUtilityFunction(noodleUtilityTable)
 			     alpha: 100,
 			     priorBelief: makeUninformedPrior(0.8)}, gridworldPOMDP);
 
-var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 10,
-    					     'both');
+// var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 10,
+//     					     'both');
 
-// var obsFunc = function(){return JSON.stringify(simulateBeliefAgent(startState,
-// 								   gridworldPOMDP,
-// 								   agent,
-// 								   10, 'both'));};
+var obsFunc = function(){return JSON.stringify(simulateBeliefAgent(startState,
+								   gridworldPOMDP,
+								   agent,
+								   10, 'both'));};
 
-// console.log(timeit(obsFunc));
-// ash();
+console.log(timeit(obsFunc));
+ash();
 
 // in a second trajectory, we let the agent know that noodle is open, and see where
 // it goes
