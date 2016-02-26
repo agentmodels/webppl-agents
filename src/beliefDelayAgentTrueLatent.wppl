@@ -13,10 +13,6 @@ var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', '
 var isWorld = function (x) { return x.hasOwnProperty('transition') && x.hasOwnProperty('manifestStateToActions') &&
                              x.hasOwnProperty('observe');};
 
-var assertIsWorld = function(world){
-  assertHasProperties(world, ['transition', 'manifestStateToActions', 'observe'], 'putative world lacks properties of world')
-};
-
 var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
                    
 
@@ -61,9 +57,11 @@ var stateActionToFullStates = function(locAction, latentState){
 
 
 var makeBeliefDelayAgent = function (agentParams, world){
-  assert.ok( hasProperties( agentParams, ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief', 'noDelays']), 
-                      'makeBeliefDelayAgent args');
-  assertIsWorld(world);
+  assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
+                                    'priorBelief', 'noDelays']), 
+             'makeBeliefDelayAgent args');
+  assert.ok( isWorld(world), 'makeBeliefDelay world is not world' );
+  
   
   var utility = agentParams.utility;
   var manifestStateToActions = world.manifestStateToActions;
