@@ -7,15 +7,12 @@
 // Helper functions for testing argument types (warning: heuristics only)
 
 var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
-var isERP = function (x) {return x.hasOwnProperty('score') && x.hasOwnProperty('sample');};
+var isERP = function (x) {return hasProperties(x,['sample', 'support']);};
 var isState = function (x) {x.hasOwnProperty('latentState') && _.isFinite(x.manifestState.timeLeft);};
 var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
-var isWorld = function (x) { return x.hasOwnProperty('transition') && x.hasOwnProperty('manifestStateToActions') &&
-                             x.hasOwnProperty('observe');};
 
-var assertIsWorld = function(world){
-  assertHasProperties(world, ['transition', 'manifestStateToActions', 'observe'], 'putative world lacks properties of world')
-};
+
+var isWorld = function(world){ hasProperties(world, ['transition', 'manifestStateToActions', 'observe']);};
 
 var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
                    
@@ -61,9 +58,10 @@ var stateActionToFullStates = function(locAction, latentState){
 
 
 var makeBeliefDelayAgent = function (agentParams, world){
-  assertHasProperties(agentParams, ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief', 'noDelays'], 
-                      'makeBeliefDelayAgent args');
-  assertIsWorld(world);
+  assert.ok( hasProperties(agentParams, ['utility','alpha','discount','sophisticatedOrNaive', 
+                                         'priorBelief', 'noDelays']), 
+             'makeBeliefDelayAgent args');
+  assert.ok( isWorld(world) );
   
   var utility = agentParams.utility;
   var manifestStateToActions = world.manifestStateToActions;
