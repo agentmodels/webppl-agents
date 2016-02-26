@@ -48,7 +48,8 @@ var noDiscountBaseAgentParams = { // doesn't contain priorBelief or utility
   alpha: 100,
   noDelays: true,
   discount: 0,
-  sophisticatedOrNaive: 'naive'
+  sophisticatedOrNaive: 'naive',
+  myopiaCutoff: false
 };
 
 
@@ -123,7 +124,7 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
 
         // Update agent's internal state and get action ERP
         var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation);
-        var nextActionERP = agentAct(state.manifestState, nextBelief);
+        var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
 
         factor(nextActionERP.score([], observedAction));
 

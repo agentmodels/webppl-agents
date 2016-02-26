@@ -134,7 +134,8 @@ var runIRLBanditExamples = function(){
     alpha: 100,
     noDelays: true,
     discount: 0,
-    sophisticatedOrNaive: 'naive'
+    sophisticatedOrNaive: 'naive',
+    myopiaCutoff: false
   };
 
   var getTrajectory = function(priorBelief){
@@ -176,6 +177,7 @@ var runIRLBanditExamples = function(){
     noDelays: true,
     discount: 0,
     sophisticatedOrNaive: 'naive',
+    myopiaCutoff: false
   };
   
   // Agent thinks each arm might offer c, and so tries them all (as c is so good -- and b is not that bad)  
@@ -212,6 +214,7 @@ var runIRLBanditExamples = function(){
     noDelays: true,
     discount: 0,
     sophisticatedOrNaive: 'naive',
+    myopiaCutoff: false
   };
  
   var prizeToUtility = {a:5, b:10, c:-8}; 

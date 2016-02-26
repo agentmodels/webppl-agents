@@ -57,72 +57,76 @@ var stateActionToFullStates = function(locAction, latentState){
 
 
 
-var makeBeliefDelayAgent = function (agentParams, world){
-  assert.ok( hasProperties(agentParams, ['utility','alpha','discount','sophisticatedOrNaive', 
-                                         'priorBelief', 'noDelays']), 
+
+var makeBeliefDelayAgent = function (params, world){
+  assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
+                                         'priorBelief', 'noDelays', 'myopiaCutoff']), 
              'makeBeliefDelayAgent args');
-  assert.ok( isWorld(world) );
+  assert.ok( isWorld(world), 'makeBeliefDelay world is not world' );
   
-  var utility = agentParams.utility;
+  if (params.myopiaCutoff >= 1){
+    assert.ok( !(params.noDelays || params.SophisticatedOrNaive==='naive'), 'myopiaCutoff');
+  } else {
+    assert.ok( params.myopiaCutoff === false, 'myopiaCutoff');
+  }
+
+  var utility = params.utility;
   var manifestStateToActions = world.manifestStateToActions;
   var transition = world.transition;
   var observe = world.observe;
 
-  
-  // Set all delays to zero if *noDelays* (for POMDP agent without discounting)
-  var noDelays = agentParams.noDelays || (agentParams.discount==0 && !agentParams.myopiaCutoff);
-  
-  var getPerceivedDelay = function(currentDelay){
-    return noDelays ? 0 : {naive: currentDelay + 1, sophisticated: 0 }[agentParams.sophisticatedOrNaive];
+  var transformDelay = function(delay){
+    var table = {naive: delay + 1, sophisticated: 0 };
+    return params.noDelays ? 0 : table[params.sophisticatedOrNaive];
   };
   
-  var incrementDelay = function(currentDelay){
-    return noDelays ? 0 : currentDelay + 1;
+  var incrementDelay = function(delay){
+    return params.noDelays ? 0 : delay + 1;
   };
 
-  // For myopic agent, terminate in expUtility when delay reaches *myopiaCutoff*
-  if (agentParams.myopiaCutoff){assert.ok(!noDelays && agentParams.sophisticatedOrNaive==='naive',
-                                          'Myopia needs delays and naive');}
-  var myopiaCutoff = function(delay){
-    return _.isNumber(agentParams.myopiaCutoff) ? delay >= agentParams.myopiaCutoff : false;
-  };
+ 
+  var shouldTerminate = function(state, delay) {
+    if (state.manifestState.dead) {
+      return true;
+    }
+    if (params.myopiaCutoff) {
+      return delay >= params.myopiaCutoff;
+    }
+    return false;
+  }
 
   
-  // *currentBelief* is ERP on latent states, returns posterior ERP on latent states
+  // *belief* is ERP on latent states, returns posterior ERP on latent states
   var updateBelief = dp.cache(
-    function (manifestState, currentBelief, observation) {
+    function (manifestState, belief, observation) {
       return Enumerate(function () {
-        var latentState = sample(currentBelief);
+        var latentState = sample(belief);
         var state = buildState(manifestState, latentState);
         condition(_.isEqual(observe(state), observation));
         return latentState;
       });
     });
 
-  var _act = dp.cache(
-    function (manifestState, currentBelief, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(currentBelief) && _.isFinite(delay), '_agent args fail'); 
+  var act = dp.cache(
+    function (manifestState, belief, delay) {
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), 'act arguments error'); 
    
       return Enumerate(function () {
         var action = uniformDraw(manifestStateToActions(manifestState));
-        var eu = expectedUtility(manifestState, currentBelief, action, delay);
-        factor(agentParams.alpha * eu);
+        var eu = expectedUtility(manifestState, belief, action, delay);
+        factor(params.alpha * eu);
         return action;
       });
     });
-  
-  var act = function (manifestState, currentBelief) {
-    return _act(manifestState, currentBelief, 0);
-  };
 
   var expectedUtility = dp.cache(
-    function (manifestState, currentBelief, action, delay) {
+    function (manifestState, belief, action, delay) {
       return expectation(
         Enumerate(function () {
-          var latentState = sample(currentBelief);
+          var latentState = sample(belief);
           var state = buildState(manifestState, latentState);
-          var u = 1.0 / (1 + agentParams.discount * delay) * utility(state, action);
-          if (state.manifestState.dead || myopiaCutoff(delay)) {
+          var u = 1.0 / (1 + params.discount * delay) * utility(state, action);
+          if (shouldTerminate(state, delay)){
             return u;
           } else {
             // Change state and get observation based on *latentState*
@@ -130,9 +134,9 @@ var makeBeliefDelayAgent = function (agentParams, world){
             var nextObservation = observe(nextState);
 
             // Update agent's internal state based on new manifestState, the observation, old belief, old delay.
-            var nextBelief = updateBelief(nextState.manifestState, currentBelief, nextObservation);
-            var perceivedDelay = getPerceivedDelay(delay);
-            var nextAction = sample(_act(nextState.manifestState, nextBelief, perceivedDelay));
+            var nextBelief = updateBelief(nextState.manifestState, belief, nextObservation);
+            var transformedDelay = transformDelay(delay);
+            var nextAction = sample(act(nextState.manifestState, nextBelief, transformedDelay));
 
             // Compute utility given agent's new internal belief state, the new manifestState, and agent's action. 
             var futureU = expectedUtility(nextState.manifestState,nextBelief,nextAction,incrementDelay(delay));
@@ -142,7 +146,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
     });
 
   
-  return { act:act, _act:_act, updateBelief:updateBelief, expectedUtility : expectedUtility, agentParams: agentParams};
+  return { act:act, updateBelief:updateBelief, expectedUtility : expectedUtility, params: params};
 };
 
 
@@ -154,13 +158,13 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
 
   var agentAct = agent.act;
   var agentUpdateBelief = agent.updateBelief;
-  var priorBelief = agent.agentParams.priorBelief;
+  var priorBelief = agent.params.priorBelief;
   var transition = world.transition;
   var observe = world.observe;
   
-  var getOutputVariables = function(state, nextAction, currentBelief){
+  var getOutputVariables = function(state, nextAction, belief){
     var table =  {states:state, actions:nextAction.action, stateAction:[state, nextAction.action], 
-                  stateBelief: [state, currentBelief]};
+                  stateBelief: [state, belief]};
     assert.ok( _.has(table,outputVariables), "outputVariables key not in ['states', 'actions', 'stateAction', 'stateBelief']");
     return table[outputVariables];
   };
@@ -169,19 +173,19 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
       function (actualTimeLeft, state) {return actualTimeLeft == 0;};
 
 
-  var sampleSequence = function(state, currentBelief, actualTimeLeft) {
+  var sampleSequence = function(state, belief, actualTimeLeft) {
     if (terminateCondition(actualTimeLeft, state.manifestState) ) {
       return [];
     } else {
       var nextObservation = observe(state);
 
       // Update agent's internal state and get action
-      var nextBelief = agentUpdateBelief( state.manifestState, currentBelief, nextObservation );
-      var nextAction = sample(agentAct(state.manifestState, nextBelief));
+      var nextBelief = agentUpdateBelief( state.manifestState, belief, nextObservation );
+      var nextAction = sample(agentAct(state.manifestState, nextBelief, 0)); // *delay* argument is 0
 
       // Update world state and return output and output from recursing on updated world state, internal state, and time. 
       var nextState = transition(state, nextAction);
-      var out = getOutputVariables(state, nextAction, currentBelief);
+      var out = getOutputVariables(state, nextAction, belief);
       return [out].concat( sampleSequence(nextState, nextBelief, actualTimeLeft - 1));
     }
   };
@@ -198,7 +202,7 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
 // close the agent is to the state (as measured by *delay*).
 
 var getExpectedUtilitiesBeliefDelayAgent = function (startState, world, agent, actualTotalTime){
-  assert.ok( !agent.agentParams.noDelays, 'Delays switched off. This function uses variation in delays.');
+  assert.ok( !agent.params.noDelays, 'Delays switched off. This function uses variation in delays.');
   
   var trajectory = simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'stateBelief');
   

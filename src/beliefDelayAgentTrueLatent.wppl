@@ -61,7 +61,7 @@ var stateActionToFullStates = function(locAction, latentState){
 
 
 var makeBeliefDelayAgent = function (agentParams, world){
-  assertHasProperties(agentParams, ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief', 'noDelays'], 
+  assert.ok( hasProperties( agentParams, ['utility','alpha','discount','sophisticatedOrNaive', 'priorBelief', 'noDelays']), 
                       'makeBeliefDelayAgent args');
   assertIsWorld(world);
   
