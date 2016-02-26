@@ -113,7 +113,116 @@ var testInferIRLBandit = function(){
   console.log('passed ALL testBanditInferBeliefOnly tests');
 };
 
+var coupledTest = function(){
+// world params
+  var numArms = 3;
+  var armToPrize = {0:'a', 1:'open1', 2:'closed2'};
+  var perceivedTotalTime = 2;
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
+  var world = worldAndStart.world;
+  var startState = worldAndStart.startState;
 
+  var modifiedManifestStateToActions = function(manifestState){
+    if (manifestState=='start' || manifestState==0){
+      return [0,1];
+    } else {
+      return [0,1,2]
+    }
+  };
+  var world = update(world, {manifestStateToActions: modifiedManifestStateToActions});
+
+  
+  // agent params
+  // want utils s.t. its best to go to 0 because expectation of going to
+  // 1 and then 2 is worse (coz they cant both be open)
+
+  // Correct reasoning.
+  // OPEN,CLOSED - utils: 11=22, 12=11, 00=20, 01=21, 10=21.
+  // CLOSED, OPEN- utils: 11=0, 12=12, 00=20, 01=10, 10=10.
+  // BAD, BAD- utils: 11=-20, 12=-20, 00=20, 01=0, 10=0
+
+  
+  
+
+  var getEUs = function(actionSequences, prizeToUtility, priorArmToPrize){
+
+    var actionSequenceToUtility = function(actionSequence, armToPrize){
+      return sum( map( function(action){
+        return prizeToUtility[ armToPrize[action] ];
+      }, actionSequence));
+    };
+
+    var actionSequenceToEU = function(actionSequence){
+    return sum(map( function(probArmToPrize){
+      var prob = probArmToPrize[0];
+      var armToPrize = probArmToPrize[1];
+      return prob*actionSequenceToUtility(actionSequence,armToPrize);
+    }, priorArmToPrize));
+    };
+
+    return zip(actionSequences,  map(actionSequenceToEU,actionSequences));
+  };
+
+  var prizeToUtility = {a:10, open1:11, open2:12, closed1:0, closed2:0, bad:-5};
+  
+  var probs = [.3333333333, .333333333, .3333333333];
+  var armToPrizeValues = [ {0:'a', 1:'open1', 2:'closed2'},  
+                           {0:'a', 1:'closed1', 2:'open2'}, 
+                           {0:'a', 1:'bad', 2:'bad'} ];
+  var priorArmToPrize = zip(probs, armToPrizeValues);
+
+  var actionSequences = [ [1,1], [1,2], [0,0], [0,1], [1,0] ];
+
+  console.log('action to EU, actual prior', getEUs(actionSequences, prizeToUtility, priorArmToPrize) );
+
+
+  var probs = repeat( 9, function(){return 1./9;} );
+  var armToPrizeValues = [ {0:'a', 1:'open1', 2:'closed2'},  
+                           {0:'a', 1:'open1', 2:'open2'},
+                           {0:'a', 1:'open1', 2:'bad'},
+                           {0:'a', 1:'closed1', 2:'open2'}, 
+                           {0:'a', 1:'closed1', 2:'closed2'},
+                           {0:'a', 1:'closed1', 2:'bad'},
+                           {0:'a', 1:'bad', 2:'open2'},
+                           {0:'a', 1:'bad', 2:'closed2'},
+                           {0:'a', 1:'bad', 2:'bad'}
+                         ];
+
+  var priorArmToPrize = zip(probs, armToPrizeValues);
+  
+  console.log('action to EU, indie prior', getEUs(actionSequences, prizeToUtility, priorArmToPrize) );
+
+  ash();
+  
+  var baseAgentParams = {
+    priorBelief: null,
+    alpha: 100,
+    noDelays: true,
+    discount: 0,
+    sophisticatedOrNaive: 'naive',
+    myopiaCutoff: false
+  };
+
+  var getTrajectory = function(priorBelief){
+    var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
+    var agent = makeIRLBanditAgent(prizeToUtility, agentParams, worldAndStart);
+    return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
+  };
+   
+  var priorBelief = Enumerate(function(){
+    return categorical(probs, armToPrizeValues);                         
+  });
+
+  
+  // Agent has .5 chance on arm 1 having best prize c, and so tries 1 before switching to 0. 
+  var trajectory = getTrajectory(Enumerate(
+    function(){
+      return categorical( [.5, .5], [armToPrize, {0:'a', 1:'c'}]);
+    }));
+  assert.ok( trajectory[1].manifestState.loc == 1 && trajectory[2].manifestState.loc == 0, 'fail banditexample 2');
+};
+
+coupledTest();
 
 var runIRLBanditExamples = function(){
 
@@ -155,6 +264,7 @@ var runIRLBanditExamples = function(){
     }));
   assert.ok( trajectory[1].manifestState.loc == 1 && trajectory[2].manifestState.loc == 0, 'fail banditexample 2');
   
+
   
   
   // --------------------------------
