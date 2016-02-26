@@ -149,11 +149,9 @@ var makeBeliefDelayAgent = function (params, world){
   return { act:act, updateBelief:updateBelief, expectedUtility : expectedUtility, params: params};
 };
 
-
-
-var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTime, outputVariables) {
+var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTime, outputType) {
   var perceivedTotalTime = startState.manifestState.timeLeft;
-  assert.ok( actualTotalTime <= perceivedTotalTime && isState(startState), 'simulate args');
+  assert.ok( actualTotalTime <= perceivedTotalTime && isState(startState), 'simulateBeliefDelayAgent args');
   assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
 
   var agentAct = agent.act;
@@ -162,35 +160,39 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
   var transition = world.transition;
   var observe = world.observe;
   
-  var getOutputVariables = function(state, nextAction, belief){
+  var selectOutput = function(state, nextAction, currentBelief){
     var table =  {states:state, actions:nextAction.action, stateAction:[state, nextAction.action], 
-                  stateBelief: [state, belief]};
-    assert.ok( _.has(table,outputVariables), "outputVariables key not in ['states', 'actions', 'stateAction', 'stateBelief']");
-    return table[outputVariables];
+                  stateBelief: [state, currentBelief]};
+    assert.ok( _.has(table,outputType), "outputType key not in ['states', 'actions', 'stateAction', 'stateBelief']");
+    return table[outputType];
   };
- 
-  var terminateCondition = isGridworld(world) ? function (actualTimeLeft, state) {return actualTimeLeft == 0 || state.dead;} :
-      function (actualTimeLeft, state) {return actualTimeLeft == 0;};
+
+  // TODO: can we switch to just the gridworld case?
+  var shouldTerminate = (isGridworld(world) ?
+                         function (actualTimeLeft, state) { return actualTimeLeft === 0 || state.dead; } :
+                         function (actualTimeLeft, state) { return actualTimeLeft === 0; });
 
 
   var sampleSequence = function(state, belief, actualTimeLeft) {
-    if (terminateCondition(actualTimeLeft, state.manifestState) ) {
+    if (shouldTerminate(actualTimeLeft, state.manifestState) ) {
       return [];
     } else {
       var nextObservation = observe(state);
 
       // Update agent's internal state and get action
-      var nextBelief = agentUpdateBelief( state.manifestState, belief, nextObservation );
-      var nextAction = sample(agentAct(state.manifestState, nextBelief, 0)); // *delay* argument is 0
+      var nextBelief = agentUpdateBelief(state.manifestState, belief, nextObservation);
+      var nextAction = sample(agentAct(state.manifestState, nextBelief, 0));  // delay=0
 
       // Update world state and return output and output from recursing on updated world state, internal state, and time. 
       var nextState = transition(state, nextAction);
-      var out = getOutputVariables(state, nextAction, belief);
-      return [out].concat( sampleSequence(nextState, nextBelief, actualTimeLeft - 1));
+      var output = selectOutput(state, nextAction, belief);
+      return [output].concat(sampleSequence(nextState, nextBelief, actualTimeLeft - 1));
     }
   };
   return sampleSequence(startState, priorBelief, actualTotalTime);
 };
+
+
 
 
 // TODO REWRITE EXP UTILITY IF IT NEEDS IT?
