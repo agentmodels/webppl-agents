@@ -28,8 +28,11 @@ var makeBeliefAgent = function(agentParams, world) {
     function(manifestState, currentBelief, observation) {
       assert.ok(_.isFinite(manifestState.timeLeft) && isERP(currentBelief),
 		'agent args fail');
-      var newBelief = updateBelief(manifestState, currentBelief, observation);
+
+//      console.log('agent', manifestState);
       
+      var newBelief = updateBelief(manifestState, currentBelief, observation);
+
       return Enumerate(function(){
 	var action = uniformDraw(manifestStateToActions(manifestState));
 	var eu = expectedUtility(manifestState, newBelief, action);
@@ -40,6 +43,7 @@ var makeBeliefAgent = function(agentParams, world) {
 
   var expectedUtility = dp.cache(
     function(manifestState, currentBelief, action) {
+//      console.log('eu', manifestState);
       return expectation(
 	Enumerate(function(){
 	  var latentState = sample(currentBelief);
