@@ -209,11 +209,17 @@ var makeBeliefDelayAgent = function (agentParams, world){
           if (state.manifestState.dead || myopiaCutoff(delay)) {
             return u;
           } else {
+            // Change state and get observation based on *latentState*
             var nextState = transition(state, action);
-            var nextBelief = updateBelief(manifestState, currentBelief, observe(nextState));
+            var nextObservation = observe(nextState);
+
+            // Update agent's internal state based on new manifestState, the observation, old belief, old delay.
+            var nextBelief = updateBelief(nextState.manifestState, currentBelief, nextObservation);
             var perceivedDelay = getPerceivedDelay(delay);
             var nextAction = sample(_act(nextState.manifestState, nextBelief, perceivedDelay));
-            var futureU = expectedUtility(nextState.manifestState, nextBelief, nextAction, incrementDelay(delay));                                                                                                                
+
+            // Compute utility given agent's new internal belief state, the new manifestState, and agent's action. 
+            var futureU = expectedUtility(nextState.manifestState,nextBelief,nextAction,incrementDelay(delay));
             return u + futureU;
           }
         }));
@@ -230,7 +236,8 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
   assert.ok( actualTotalTime <= perceivedTotalTime && isState(startState), 'simulate args');
   assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
 
-  var agentAction = agent.agent;
+  var agentAct = agent.act;
+  var agentUpdateBelief = agent.updateBelief;
   var priorBelief = agent.agentParams.priorBelief;
   var transition = world.transition;
   var observe = world.observe;
@@ -250,18 +257,23 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
     if (terminateCondition(actualTimeLeft, state.manifestState) ) {
       return [];
     } else {
-      var observation = observe(state);
-      var nextAction = sample(agentAction(state.manifestState, currentBelief, observation));
-      var nextState = transition(state, nextAction.action);
+      var nextObservation = observe(state);
 
+      // Update agent's internal state and get action
+      var nextBelief = agentUpdateBelief( state.manifestState, currentBelief, nextObservation );
+      var nextAction = sample(agentAct(state.manifestState, nextBelief));
+
+      // Update world state and return output and output from recursing on updated world state, internal state, and time. 
+      var nextState = transition(state, nextAction);
       var out = getOutputVariables(state, nextAction, currentBelief);
-      
-      return [out].concat( sampleSequence(nextState, nextAction.belief, actualTimeLeft - 1));
+      return [out].concat( sampleSequence(nextState, nextBelief, actualTimeLeft - 1));
     }
   };
   return sampleSequence(startState, priorBelief, actualTotalTime);
 };
 
+
+// TODO REWRITE EXP UTILITY IF IT NEEDS IT?
 
 // Run *simulate*. Then use *expectedUtility* to compute the expected
 // utilities of each state along the trajectory. Do this from the
