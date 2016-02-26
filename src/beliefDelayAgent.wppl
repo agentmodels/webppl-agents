@@ -56,24 +56,24 @@ var stateActionToFullStates = function(locAction, latentState){
 
 
 
-var makeBeliefDelayAgent = function (agentParams, world){
+var makeBeliefDelayAgent = function (params, world){
   assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
                                     'priorBelief', 'noDelays']), 
              'makeBeliefDelayAgent args');
   assert.ok( isWorld(world), 'makeBeliefDelay world is not world' );
   
   
-  var utility = agentParams.utility;
+  var utility = params.utility;
   var manifestStateToActions = world.manifestStateToActions;
   var transition = world.transition;
   var observe = world.observe;
 
   
   // Set all delays to zero if *noDelays* (for POMDP agent without discounting)
-  var noDelays = agentParams.noDelays || (agentParams.discount==0 && !agentParams.myopiaCutoff);
+  var noDelays = params.noDelays || (params.discount==0 && !params.myopiaCutoff);
 
   var transformDelay = function(delay){
-    return noDelays ? 0 : {naive: delay + 1, sophisticated: 0 }[agentParams.sophisticatedOrNaive];
+    return noDelays ? 0 : {naive: delay + 1, sophisticated: 0 }[params.sophisticatedOrNaive];
   };
   
   var incrementDelay = function(delay){
@@ -81,15 +81,15 @@ var makeBeliefDelayAgent = function (agentParams, world){
   };
 
   // For myopic agent, terminate in expUtility when delay reaches *myopiaCutoff*
-  if (agentParams.myopiaCutoff){assert.ok(!noDelays && agentParams.sophisticatedOrNaive==='naive',
+  if (params.myopiaCutoff){assert.ok(!noDelays && params.sophisticatedOrNaive==='naive',
                                           'Myopia needs delays and naive');}
 
   var shouldTerminate = function(state, delay) {
     if (state.manifestState.dead) {
       return true;
     }
-    if (_.isNumber(agentParams.myopiaCutoff)) {
-      return delay >= agentParams.myopiaCutoff;
+    if (_.isNumber(params.myopiaCutoff)) {
+      return delay >= params.myopiaCutoff;
     }
     return false;
   }
@@ -112,21 +112,24 @@ var makeBeliefDelayAgent = function (agentParams, world){
       return Enumerate(function () {
         var action = uniformDraw(manifestStateToActions(manifestState));
         var eu = expectedUtility(manifestState, belief, action, delay);
-        factor(agentParams.alpha * eu);
+        factor(params.alpha * eu);
         return action;
       });
     });
 
   var expectedUtility = dp.cache(
     function (manifestState, belief, action, delay) {
-      return expectation(Enumerate(function(){  // don't actually need this...
+      // var getRecurse = function(trueLatentState){
+      // return cache(function(manifestState, belief, action, delay
+      
+      return expectation(Enumerate(function(){// could remove one of the expectations
         var trueLatentState = sample(belief);
 
         var recurse = function(manifestState, belief, action, delay)  {
           return expectation(
             Enumerate(function () {
               var state = buildState(manifestState, trueLatentState);            
-              var u = 1.0 / (1 + agentParams.discount * delay) * utility(state, action);
+              var u = 1.0 / (1 + params.discount * delay) * utility(state, action);
               
               if (shouldTerminate(state, delay)) {
                 return u;
@@ -155,7 +158,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
     act:act,
     updateBelief: updateBelief,
     expectedUtility: expectedUtility,
-    agentParams: agentParams
+    params: params
   };
 };
 
@@ -167,7 +170,7 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
 
   var agentAct = agent.act;
   var agentUpdateBelief = agent.updateBelief;
-  var priorBelief = agent.agentParams.priorBelief;
+  var priorBelief = agent.params.priorBelief;
   var transition = world.transition;
   var observe = world.observe;
   
@@ -213,7 +216,7 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
 // close the agent is to the state (as measured by *delay*).
 
 var getExpectedUtilitiesBeliefDelayAgent = function (startState, world, agent, actualTotalTime){
-  assert.ok( !agent.agentParams.noDelays, 'Delays switched off. This function uses variation in delays.');
+  assert.ok( !agent.params.noDelays, 'Delays switched off. This function uses variation in delays.');
   
   var trajectory = simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'stateBelief');
   
