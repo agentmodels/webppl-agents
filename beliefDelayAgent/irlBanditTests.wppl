@@ -23,7 +23,7 @@ var testInferIRLBandit = function(){
   // EXAMPLE 1
   var observedStateAction = [['start',1], [1,1], [1,1]]; 
   var latentState = armToPrize;
-  var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
+  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
   
   // Test on two different inference functions
   var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
@@ -34,7 +34,7 @@ var testInferIRLBandit = function(){
   // EXAMPLE 2
   var observedStateAction = [['start',0], [0,0], [0,0]]; 
   var observedStates = map(first, observedStateAction);
-  var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
+  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
   var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
   var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
@@ -83,7 +83,7 @@ var testInferIRLBandit = function(){
 
   var latentState = armToPrize;
   var observedStateAction = [['start',0], [0,0], [0,0], [0,0], [0,0]]; 
-  var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
+  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
   
   var out1 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10)});
@@ -99,7 +99,7 @@ var testInferIRLBandit = function(){
 
   // He goes to 1 every time => u(a)==0=
   var observedStateAction = [['start',1], [1,1], [1,1], [1,1], [1,1]]; 
-  var fullObservedStateAction = stateActionToFullStates(observedStateAction, latentState);
+  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
   var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
   var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
@@ -191,7 +191,7 @@ var runIRLBanditExamples = function(){
   var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
   var trajectory = simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
   
-  var locs = getLocs(trajectory).slice(1,5);
+  var locs = trajectoryToLocations(trajectory).slice(1,5);
   assert.ok( _.difference(_.range(4),locs).length == 0, 'fail bandit example 3');
 
   
@@ -224,10 +224,10 @@ var runIRLBanditExamples = function(){
   var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
   var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
   var out = timeit(thunk);
-  var locs = getLocs(out.value).slice(1,4);
+  var locs = trajectoryToLocations(out.value).slice(1,4);
   assert.ok(  _.difference([1,2,3],locs).length == 0, 'fail bandit example 4');
   
-  console.log('\n No discounting: (locs, timeit) ', getLocs(out.value), out.runtimeInMilliseconds);
+  console.log('\n No discounting: (locs, timeit) ', trajectoryToLocations(out.value), out.runtimeInMilliseconds);
 
   // Discounting
   var replaceParams = {discount:4, noDelays:false, priorBelief:priorBelief};
@@ -235,9 +235,9 @@ var runIRLBanditExamples = function(){
   var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
   var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
   var out = timeit(thunk);
-  var locs = getLocs(out.value).slice(1,4);
+  var locs = trajectoryToLocations(out.value).slice(1,4);
   assert.ok(  _.difference([0,0,0],locs).length == 0, 'fail bandit example 5');
-  console.log( '\n Discounting: (locs, timeit) ', getLocs(out.value), out.runtimeInMilliseconds);
+  console.log( '\n Discounting: (locs, timeit) ', trajectoryToLocations(out.value), out.runtimeInMilliseconds);
 
   // Myopia (faster than discounting)
   var testMyopia = function(myopiaCutoff,exploreOrNot){
@@ -246,10 +246,10 @@ var runIRLBanditExamples = function(){
     var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
     var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
     var out = timeit(thunk);
-    var locs = getLocs(out.value).slice(1,4);
+    var locs = trajectoryToLocations(out.value).slice(1,4);
     var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
     assert.ok(  _.difference(prediction,locs).length == 0, 'fail bandit example myopia');
-    console.log( '\n Myopia cutoff ' + myopiaCutoff + ' (locs, timeit) ', getLocs(out.value), out.runtimeInMilliseconds);
+    console.log( '\n Myopia cutoff ' + myopiaCutoff + ' (locs, timeit) ', trajectoryToLocations(out.value), out.runtimeInMilliseconds);
   };
   testMyopia(1,'not');
   testMyopia(2,'not');
@@ -338,7 +338,7 @@ var testNoObservationDependentLatents = function(){
 
   
   var traj = getTrajectory(priorBelief);
-  console.log('traj', traj, getLocs(traj));
+  console.log('traj', traj, trajectoryToLocations(traj));
 
   // MORE COMPLEX VARIANTS
   var probs = repeat( 9, function(){return 1./9;} );

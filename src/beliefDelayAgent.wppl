@@ -29,13 +29,13 @@ var downToOne = function(n){
 };
 
 // From array of POMDP states, extract locations array
-var getLocs = function(trajectory){
-  assert.ok(_.isArray(trajectory) && isState(trajectory[0]), 'getLocs args');
+var trajectoryToLocations = function(trajectory){
+  assert.ok(_.isArray(trajectory) && isState(trajectory[0]), 'trajectory to locations args');
   return _.pluck( _.pluck(trajectory,'manifestState'), 'loc' );
 };
 
 // From array of locs, add *timeLeft* and *dead*
-var locsToManifestStates = function(locs){
+var locationsToManifestStates = function(locs){
   return map( function(locTime){ 
     var dead = locTime[1]==1;
     return {loc: locTime[0], timeLeft:locTime[1], dead: dead};
@@ -44,9 +44,9 @@ var locsToManifestStates = function(locs){
 
 // From array of form [ [loc, action] ], output array of form:
 // [  [{manifestState:{loc:, timeLeft:, dead:}, latentState:latentState}, action ]  ]
-var stateActionToFullStates = function(locAction, latentState){
+var stateActionPairsToFullStates = function(locAction, latentState){
   var locs = map(first,locAction);
-  var manifestStates = locsToManifestStates(locs);
+  var manifestStates = locationsToManifestStates(locs);
   var fullStates = map( function(manifest){
     return buildState(manifest,latentState);
     }, manifestStates);
