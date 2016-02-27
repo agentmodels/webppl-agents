@@ -280,6 +280,18 @@ var runIRLBanditExamples = function(){
 };
 
 
+// var testBoundVOI = function(){
+
+//   // Three corridors: immediate payoff, delay certain payoff, delayed uncertain payoff
+//   var baseTransition = function(state, action){
+//     var table = {
+//       start: { immediate: immediate0,
+//                certainDelay: certainDelay0,
+//                uncertainDelay: uncertainDelay0 }
+//       immediate: { 
+      
+ 
+
 
 
 var testNoObservationDependentLatents = function(){
