@@ -73,7 +73,12 @@ var makeBeliefDelayAgent = function (params, world){
   var utility = params.utility;
   var manifestStateToActions = world.manifestStateToActions;
   var transition = world.transition;
-  var observe = world.observe;
+
+  var worldObserve = world.observe;
+  var observe = !params.boundVOI ? worldObserve :
+      function(state, delay){
+        return delay < params.boundVOI ? worldObserve(state) : 'noObservation';
+      };
 
   var transformDelay = function(delay){
     var table = {naive: delay + 1, sophisticated: 0 };
