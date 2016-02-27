@@ -64,11 +64,12 @@ var makeBeliefDelayAgent = function (params, world){
              'makeBeliefDelayAgent args');
   assert.ok( isWorld(world), 'makeBeliefDelay world is not world' );
 
-  // same thing for boundVOI
-  if (params.myopiaCutoff >= 1){
-    assert.ok( !(params.noDelays || params.SophisticatedOrNaive==='naive'), 'myopiaCutoff');
+  assert.ok( !params.myopiaCutoff || !params.boundVOI, "can't mix myopia and boundVOI");
+
+  if (params.myopiaCutoff >= 1 || params.boundVOI >= 1){
+    assert.ok( !(params.noDelays || params.SophisticatedOrNaive==='naive'), 'myopiaCutoff or boundVOI assume naive delays');
   } else {
-    assert.ok( params.myopiaCutoff === false, 'myopiaCutoff');
+    assert.ok( params.myopiaCutoff === false, 'myopiaCutoff should be false'); // TODO add bound VOI
   }
 
   var utility = params.utility;
