@@ -113,134 +113,6 @@ var testInferIRLBandit = function(){
   console.log('passed ALL testBanditInferBeliefOnly tests');
 };
 
-var coupledTest = function(){
-
-  var getEUs = function(actionSequences, prizeToUtility, priorArmToPrize){
-    var actionSequenceToUtility = function(actionSequence, armToPrize){
-      return sum( map( function(action){
-        return prizeToUtility[ armToPrize[action] ];
-      }, actionSequence));
-    };
-    
-    var actionSequenceToEU = function(actionSequence){
-      return sum(map( function(probArmToPrize){
-        var prob = probArmToPrize[0];
-        var armToPrize = probArmToPrize[1];
-        return prob*actionSequenceToUtility(actionSequence,armToPrize);
-      }, priorArmToPrize));
-    };
-    
-    return zip(actionSequences,  map(actionSequenceToEU,actionSequences));
-  };
-  
-  
-  // world params
-  var numArms = 3;
-  var armToPrize = {0:'a', 1:'open1', 2:'closed2'};
-  var perceivedTotalTime = 3;
-  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
-  var world = worldAndStart.world;
-  var startState = worldAndStart.startState;
-
-  var modifiedManifestStateToActions = function(manifestState){
-    var loc = manifestState.loc;
-    if (loc=='start' || loc==0){ return [0,1]; } 
-    if (loc==1){return [0,2];}
-    if (loc==2){return [0];}
-  };
-  var observe = function(state){return 'noObservation';};
-  var world = update(world, 
-                     {manifestStateToActions: modifiedManifestStateToActions,
-                      observe: observe});  
-  var worldAndStart = update(worldAndStart, {world:world});
-
-  
-  var prizeToUtility = {a:5, open1:11, open2:12, closed1:0, closed2:0, bad:-1};
-
-  var probs = [.3333333333, .333333333, .3333333333];
-
-  var armToPrizeValues = [ {0:'a', 1:'open1', 2:'closed2'},  
-                           {0:'a', 1:'closed1', 2:'open2'}, 
-                           {0:'a', 1:'bad', 2:'bad'} ];
-  var priorArmToPrize = zip(probs, armToPrizeValues);
-  var actionSequences = [ [1,2], [0,0], [0,1], [1,0] ];
-
-  console.log('\n\n action to EU, actual prior', getEUs(actionSequences, prizeToUtility, priorArmToPrize) );  
-
-  var baseAgentParams = {
-    priorBelief: null,
-    alpha: 100,
-    noDelays: true,
-    discount: 0,
-    sophisticatedOrNaive: 'naive',
-    myopiaCutoff: false
-  };
-
-  var getTrajectory = function(priorBelief){
-    var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
-    var agent = makeIRLBanditAgent(prizeToUtility, agentParams, worldAndStart);
-    var world = worldAndStart.world;
-    var startState = worldAndStart.startState;
-
-    return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
-  };
-
-  var priorBelief = Enumerate(function(){
-    return categorical(probs, armToPrizeValues);                         
-  });
-
-  
-  var traj = getTrajectory(priorBelief);
-  console.log('traj', traj, getLocs(traj));
-  ash();
-   
-
-
-  
-  var probs = repeat( 9, function(){return 1./9;} );
-  var armToPrizeValues = [ {0:'a', 1:'open1', 2:'closed2'},  
-                           {0:'a', 1:'open1', 2:'open2'},
-                           {0:'a', 1:'open1', 2:'bad'},
-                           {0:'a', 1:'closed1', 2:'open2'}, 
-                           {0:'a', 1:'closed1', 2:'closed2'},
-                           {0:'a', 1:'closed1', 2:'bad'},
-                           {0:'a', 1:'bad', 2:'open2'},
-                           {0:'a', 1:'bad', 2:'closed2'},
-                           {0:'a', 1:'bad', 2:'bad'}
-                         ];
-
-  // Given a fixed value of 1, each value of 2 is equally likely. 
-  // But values for 1 have different probabilities. 
-
-  // Suppose we now rule out the case where 1 and 2 have the same value
-  // (apart from bad). Then we get [ .15 + .1 + .08333 as the possibilities]
-//   so now we have three possibilies with probs .45, .3, .25. 
-  var probs = [ .15, .15, .15,  
-                .1, .1, .1,
-                .25/3, .25/3, .25/3]; 
-  var armToPrizeValues = [ {0:'a', 1:'open1', 2:'closed2'},  
-                           {0:'a', 1:'open1', 2:'open2'},
-                           {0:'a', 1:'open1', 2:'bad'},
-                           
-                           {0:'a', 1:'closed1', 2:'open2'}, 
-                           {0:'a', 1:'closed1', 2:'closed2'},
-                           {0:'a', 1:'closed1', 2:'bad'},
-                           
-                           {0:'a', 1:'bad', 2:'open2'},
-                           {0:'a', 1:'bad', 2:'closed2'},
-                           {0:'a', 1:'bad', 2:'bad'}
-                         ];
-
-  var priorArmToPrize = zip(probs, armToPrizeValues);
-  
-  console.log('action to EU, indie prior', getEUs(actionSequences, prizeToUtility, priorArmToPrize) );
-
-  
-  
-  assert.ok( trajectory[1].manifestState.loc == 1 && trajectory[2].manifestState.loc == 0, 'fail banditexample 2');
-};
-
-coupledTest();
 
 var runIRLBanditExamples = function(){
 
@@ -385,6 +257,131 @@ var runIRLBanditExamples = function(){
   
   console.log('\n All runIRLBanditExamples passed');
 };
+
+
+
+
+var testNoObservationDependentLatents = function(){
+
+  var getEUs = function(actionSequences, prizeToUtility, priorArmToPrize){
+    var actionSequenceToUtility = function(actionSequence, armToPrize){
+      return sum( map( function(action){
+        return prizeToUtility[ armToPrize[action] ];
+      }, actionSequence));
+    };
+    
+    var actionSequenceToEU = function(actionSequence){
+      return sum(map( function(probArmToPrize){
+        var prob = probArmToPrize[0];
+        var armToPrize = probArmToPrize[1];
+        return prob*actionSequenceToUtility(actionSequence,armToPrize);
+      }, priorArmToPrize));
+    };
+    
+    return zip(actionSequences,  map(actionSequenceToEU,actionSequences));
+  };
+  
+  
+  // world params
+  var numArms = 3;
+  var armToPrize = {0:'a', 1:'open1', 2:'closed2'};
+  var perceivedTotalTime = 3;
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
+  var world = worldAndStart.world;
+  var startState = worldAndStart.startState;
+
+  var modifiedManifestStateToActions = function(manifestState){
+    var loc = manifestState.loc;
+    if (loc=='start' || loc==0){ return [0,1]; } 
+    if (loc==1){return [0,2];}
+    if (loc==2){return [0];}
+  };
+  var observe = function(state){return 'noObservation';};
+  var world = update(world, 
+                     {manifestStateToActions: modifiedManifestStateToActions,
+                      observe: observe});  
+  var worldAndStart = update(worldAndStart, {world:world});
+  
+  var prizeToUtility = {a:5, open1:11, open2:12, closed1:0, closed2:0, bad:-1};
+
+  var probs = [.3333333333, .333333333, .3333333333];
+
+  var armToPrizeValues = [ {0:'a', 1:'open1', 2:'closed2'},  
+                           {0:'a', 1:'closed1', 2:'open2'}, 
+                           {0:'a', 1:'bad', 2:'bad'} ];
+  var priorArmToPrize = zip(probs, armToPrizeValues);
+  var actionSequences = [ [1,2], [0,0], [0,1], [1,0] ];
+
+  console.log('\n\n action to EU, actual prior', getEUs(actionSequences, prizeToUtility, priorArmToPrize) );  
+
+  var baseAgentParams = {
+    priorBelief: null,
+    alpha: 100,
+    noDelays: true,
+    discount: 0,
+    sophisticatedOrNaive: 'naive',
+    myopiaCutoff: false
+  };
+
+  var getTrajectory = function(priorBelief){
+    var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
+    var agent = makeIRLBanditAgent(prizeToUtility, agentParams, worldAndStart);
+    var world = worldAndStart.world;
+    var startState = worldAndStart.startState;
+
+    return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
+  };
+
+  var priorBelief = Enumerate(function(){
+    return categorical(probs, armToPrizeValues);                         
+  });
+
+  
+  var traj = getTrajectory(priorBelief);
+  console.log('traj', traj, getLocs(traj));
+
+  // MORE COMPLEX VARIANTS
+  var probs = repeat( 9, function(){return 1./9;} );
+  var armToPrizeValues = [ {0:'a', 1:'open1', 2:'closed2'},  
+                           {0:'a', 1:'open1', 2:'open2'},
+                           {0:'a', 1:'open1', 2:'bad'},
+                           {0:'a', 1:'closed1', 2:'open2'}, 
+                           {0:'a', 1:'closed1', 2:'closed2'},
+                           {0:'a', 1:'closed1', 2:'bad'},
+                           {0:'a', 1:'bad', 2:'open2'},
+                           {0:'a', 1:'bad', 2:'closed2'},
+                           {0:'a', 1:'bad', 2:'bad'}
+                         ];
+
+  // Given a fixed value of 1, each value of 2 is equally likely. 
+  // But values for 1 have different probabilities. 
+
+  // Suppose we now rule out the case where 1 and 2 have the same value
+  // (apart from bad). Then we get [ .15 + .1 + .08333 as the possibilities]
+//   so now we have three possibilies with probs .45, .3, .25. 
+  var probs = [ .15, .15, .15,  
+                .1, .1, .1,
+                .25/3, .25/3, .25/3]; 
+  var armToPrizeValues = [ {0:'a', 1:'open1', 2:'closed2'},  
+                           {0:'a', 1:'open1', 2:'open2'},
+                           {0:'a', 1:'open1', 2:'bad'},
+                           
+                           {0:'a', 1:'closed1', 2:'open2'}, 
+                           {0:'a', 1:'closed1', 2:'closed2'},
+                           {0:'a', 1:'closed1', 2:'bad'},
+                           
+                           {0:'a', 1:'bad', 2:'open2'},
+                           {0:'a', 1:'bad', 2:'closed2'},
+                           {0:'a', 1:'bad', 2:'bad'}
+                         ];
+
+  var priorArmToPrize = zip(probs, armToPrizeValues);
+  
+  console.log('action to EU, indie prior', getEUs(actionSequences, prizeToUtility, priorArmToPrize) );  
+
+};
+
+
 
 
 testInferIRLBandit();
