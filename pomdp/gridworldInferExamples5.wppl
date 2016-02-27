@@ -6,9 +6,9 @@ var feature = gridworldMDP.feature;
 var transition = gridworldPOMDP.transition;
 var observe = gridworldPOMDP.observe;
 
-var noodleUtilityTable = {'Donut N': 1,
-			  'Donut S': 1,
-			  'Veg': 0,
+var noodleUtilityTable = {'Donut N': 0,
+			  'Donut S': 0,
+			  'Veg': 1,
 			  'Noodle': 2,
 			  timeCost: -0.1};
 
@@ -47,10 +47,10 @@ var informedPrior = deltaERP({'Donut N': true,
 			      'Veg': true,
 			      'Noodle': true});
 
-var startState = {manifestState: {loc: [3,1],
+var startState = {manifestState: {loc: [3,3],
 				  dead: false,
 				  timeLeft: 10,
-				  digest: 1},
+				  digest: 0},
 		  latentState: {'Donut N': true,
 				'Donut S': true,
 				'Veg': true,
@@ -60,16 +60,16 @@ var agent = makeBeliefAgent({utility: tableToUtilityFunction(noodleUtilityTable)
 			     alpha: 100,
 			     priorBelief: makeUninformedPrior(0.8)}, gridworldPOMDP);
 
-// var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 10,
-//     					     'both');
+var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 10,
+    					     'both');
 
-var obsFunc = function(){return JSON.stringify(simulateBeliefAgent(startState,
-								   gridworldPOMDP,
-								   agent,
-								   10, 'both'));};
+// var obsFunc = function(){return JSON.stringify(simulateBeliefAgent(startState,
+// 								   gridworldPOMDP,
+// 								   agent,
+// 								   10, 'both'));};
 
-console.log(timeit(obsFunc));
-ash();
+// console.log(timeit(obsFunc));
+// ash();
 
 // in a second trajectory, we let the agent know that noodle is open, and see where
 // it goes
@@ -88,11 +88,11 @@ var observedTrajectory2 = simulateBeliefAgent(startState2, gridworldPOMDP, agent
 var observedTrajectories = [observedTrajectory];
 
 var utilityTablePrior = Enumerate(function(){
-  var donutUtility = uniformDraw(range(3));
+  var donutUtility = uniformDraw(range(2));
   return {'Donut N': donutUtility,
 	  'Donut S': donutUtility,
-	  'Veg': uniformDraw(range(3)),
-	  'Noodle': uniformDraw(range(3)),
+	  'Veg': uniformDraw(range(2)),
+	  'Noodle': uniformDraw(range(2)),
 	  'timeCost': -0.1};
 });
 
@@ -114,11 +114,12 @@ var factorOnSequence = function(currentBelief, index, observedStateAction,
   }
 };
 
+// I can't figure out a way to run this inference that is both quick and correct. MCMC is quick but wrong, SMC is slow but right.
 var agentPosterior = function(){
   return printERP(MCMC(function(){
     var utilityTable = sample(utilityTablePrior);
     var utility = tableToUtilityFunction(utilityTable);
-    var agentProbNClosed = uniformDraw([0.1, 0.2, 0.8, 0.9]);
+    var agentProbNClosed = uniformDraw([0.2, 0.8]);
     var agentPrior = makeUninformedPrior(agentProbNClosed);
     var agent = makeBeliefAgent({utility: utility,
 				 alpha: 100,
@@ -138,7 +139,7 @@ var agentPosterior = function(){
 
     return {utilityTable: utilityTable,
 	    agentProbNoodleClosed: agentProbNClosed};
-  }));
+  }, {lag: 5, samples: 300}));
 };
 
 timeit(agentPosterior);

@@ -29,7 +29,7 @@ var makeBeliefAgent = function(agentParams, world) {
       assert.ok(_.isFinite(manifestState.timeLeft) && isERP(currentBelief),
 		'agent args fail');
       var newBelief = updateBelief(manifestState, currentBelief, observation);
-      
+
       return Enumerate(function(){
 	var action = uniformDraw(manifestStateToActions(manifestState));
 	var eu = expectedUtility(manifestState, newBelief, action);
