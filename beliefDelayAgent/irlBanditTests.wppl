@@ -1,3 +1,4 @@
+/* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
 
 
 var testInferIRLBandit = function(){
@@ -199,7 +200,7 @@ var runIRLBanditExamples = function(){
   
   // ----------
   // Discounting example: agent thinks arms other than 0 could have b, with u=10, or
-  // c, with u=-8. Non discounter will explore but discounter will just take 0, which
+  // c, with u= -8. Non discounter will explore but discounter will just take 0, which
   // is known to have utility 5. (All arms still yield prize a). 
 
   var priorBelief = Enumerate(
@@ -237,7 +238,8 @@ var runIRLBanditExamples = function(){
   var out = timeit(thunk);
   var locs = trajectoryToLocations(out.value).slice(1,4);
   assert.ok(  _.difference([0,0,0],locs).length == 0, 'fail bandit example 5');
-  console.log( '\n Discounting: (locs, timeit) ', trajectoryToLocations(out.value), out.runtimeInMilliseconds);
+  console.log( '\n Discounting: (locs, timeit) ', 
+               trajectoryToLocations(out.value), out.runtimeInMilliseconds+' ms');
 
   // Myopia (faster than discounting)
   var testMyopia = function(myopiaCutoff,exploreOrNot){
@@ -249,12 +251,31 @@ var runIRLBanditExamples = function(){
     var locs = trajectoryToLocations(out.value).slice(1,4);
     var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
     assert.ok(  _.difference(prediction,locs).length == 0, 'fail bandit example myopia');
-    console.log( '\n Myopia cutoff ' + myopiaCutoff + ' (locs, timeit) ', trajectoryToLocations(out.value), out.runtimeInMilliseconds);
+    console.log( '\n Myopia cutoff ' + myopiaCutoff + ' (locs, timeit) ', 
+                 trajectoryToLocations(out.value), out.runtimeInMilliseconds + ' ms');
   };
+  console.log( '\n MYOPIA \n Myopia should be faster than discount')
   testMyopia(1,'not');
   testMyopia(2,'not');
   testMyopia(3,'explore');
-  
+
+  // BoundVOI (faster than discounting)
+  var testBoundVOI = function(boundVOI,exploreOrNot){
+    var replaceParams = {discount:0, noDelays:false, boundVOI:boundVOI, priorBelief:priorBelief};
+    var agentParams = update(baseAgentParams, replaceParams);
+    var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
+    var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
+    var out = timeit(thunk);
+    var locs = trajectoryToLocations(out.value).slice(1,4);
+    var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
+    assert.ok(  _.difference(prediction,locs).length == 0, 'fail bandit example boundVOI');
+    console.log( '\n BoundVOI bound: ' + boundVOI + ' (locs, timeit) ', trajectoryToLocations(out.value), out.runtimeInMilliseconds + ' ms');
+  };
+  console.log('\n BOUND VOI \n BoundVOI should be similar in runtime to discount');
+  testBoundVOI(1,'not');
+  testBoundVOI(2,'explore');
+  testBoundVOI(2,'explore');
+
   console.log('\n All runIRLBanditExamples passed');
 };
 
@@ -383,7 +404,7 @@ var testNoObservationDependentLatents = function(){
 
 
 
-
+// TODO change back
 testInferIRLBandit();
 runIRLBanditExamples();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');

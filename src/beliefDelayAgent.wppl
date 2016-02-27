@@ -63,7 +63,8 @@ var makeBeliefDelayAgent = function (params, world){
                                          'priorBelief', 'noDelays', 'myopiaCutoff']), 
              'makeBeliefDelayAgent args');
   assert.ok( isWorld(world), 'makeBeliefDelay world is not world' );
-  
+
+  // same thing for boundVOI
   if (params.myopiaCutoff >= 1){
     assert.ok( !(params.noDelays || params.SophisticatedOrNaive==='naive'), 'myopiaCutoff');
   } else {
