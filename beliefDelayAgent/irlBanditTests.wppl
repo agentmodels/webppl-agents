@@ -292,7 +292,7 @@ var testBoundVOI = function(){
   // When boundVOI==1, agent will not take superior *eitherAorB* option. 
   
   
-  var makeThreePathsWorldAndStart = function(perceivedTime){
+  var makeThreePathsWorldAndStart = function(perceivedTime, noisyObserve){
     var transitionTable = {
       start: { immediate0: 'immediate0',
                certain0: 'certain0',
@@ -331,6 +331,12 @@ var testBoundVOI = function(){
       else {return 'noObservation';}
     };
     
+    // var observe = !noisyObserve ? observe :
+    //     function(state){
+    //       if (state.manifestState.loc=='eitherAorB_0'){
+    //         if (flip .6){return state.latentState;}
+
+
     var world = {manifestStateToActions: manifestStateToActions, transition:transition, observe:observe};
     var start = buildState({timeLeft:perceivedTime, loc:'start', dead:false}, 'gotoA');
     return {world:world, startState:start, transitionTable:transitionTable};
@@ -407,18 +413,13 @@ var testBoundVOI = function(){
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
   assert.ok( arraysEqual( out, [ 'start', 'certain0', 'certain1' ]), 'test boundVOI 4');
 
+  console.log('\n Passed all boundVOI tests');
 };
 
-testBoundVOI();
-ash();
 
     
 
     
-                   
-      
- 
-
 
 
 var testNoObservationDependentLatents = function(){
@@ -546,6 +547,7 @@ var testNoObservationDependentLatents = function(){
 // TODO change back
 testInferIRLBandit();
 runIRLBanditExamples();
+testBoundVOI();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null
 
