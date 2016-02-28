@@ -116,7 +116,8 @@ var makeBeliefDelayAgent = function (params, world){
 
   var act = dp.cache(
     function (manifestState, belief, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), 'act arguments error'); 
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), 'act arguments error' + 
+                'act: manifestState, belief, delay' + JSON.stringify([manifestState, belief, delay]));
       
       return Enumerate(function () {
         var action = uniformDraw(manifestStateToActions(manifestState));
