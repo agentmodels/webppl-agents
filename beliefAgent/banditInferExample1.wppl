@@ -23,7 +23,7 @@ var agentBelief = Enumerate(function(){
 var informedBelief = deltaERP(trueLatent);
 
 // here, we generate the trajectory of our agent, which we then print.
-var observedTrajectory = runBandit(numArms, trueLatent, agentBelief, 3);
+var observedTrajectory = runBeliefAgentBandit(numArms, trueLatent, agentBelief, 3);
 
 // note: change console.log to print in codeboxes
 console.log('observed trajectory', map( function (state) {

@@ -21,7 +21,7 @@ var agentBelief = Enumerate(function(){
 var informedBelief = deltaERP(trueLatent);
 
 // reader: try changing 3 to 2 and see what happens and why.
-var observedTrajectory = runBandit(numArms, trueLatent, agentBelief, 2);
+var observedTrajectory = runBeliefAgentBandit(numArms, trueLatent, agentBelief, 2);
 
 // note: change console.log to print in codeboxes
 console.log('observed trajectory', map( function (state) {
