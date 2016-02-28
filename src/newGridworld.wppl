@@ -37,7 +37,7 @@ var moveState = function(gridMap, state, action) {
 }
 
 var makeGridTransition_ = function(gridMap, options) {
-  return function(state,action){    
+  return function(state,action){
     var getFeature = gridMap.feature;
     var state1_5 = options.noReverse ? addPrevious(state) : state;
     var state2 = advanceStateTime(state1_5);
@@ -50,6 +50,7 @@ var makeGridTransition_ = function(gridMap, options) {
       }
       return state3;
     }
+
     return moveState(gridMap, state2, action);
   };
 };

@@ -28,8 +28,9 @@ var makeBeliefAgent = function(agentParams, world) {
     function(manifestState, currentBelief, observation) {
       assert.ok(_.isFinite(manifestState.timeLeft) && isERP(currentBelief),
 		'agent args fail');
-      var newBelief = updateBelief(manifestState, currentBelief, observation);
 
+      var newBelief = updateBelief(manifestState, currentBelief, observation);
+      
       return Enumerate(function(){
 	var action = uniformDraw(manifestStateToActions(manifestState));
 	var eu = expectedUtility(manifestState, newBelief, action);
@@ -40,11 +41,36 @@ var makeBeliefAgent = function(agentParams, world) {
 
   var expectedUtility = dp.cache(
     function(manifestState, currentBelief, action) {
+      // var eu =  expectation(
+      // 	Enumerate(function(){
+      // 	  var latentState = sample(currentBelief);
+      // 	  var state = buildState(manifestState, latentState);
+
+      // 	  var u = utility(state, action);
+
+      // 	  if (state.manifestState.dead) {
+      // 	    return u;
+      // 	  } else {
+      // 	    var nextState = transition(state, action);
+      // 	    var nextAction = sample(agent(nextState.manifestState,
+      // 					  currentBelief,
+      // 					  observe(nextState)));
+      // 	    var futureU = expectedUtility(nextState.manifestState,
+      // 					  nextAction.belief,
+      // 					  nextAction.action);
+      // 	    return u + futureU;
+      // 	  }
+      // 	}));
+
+      // console.log(manifestState, action, eu);
+      
       return expectation(
 	Enumerate(function(){
 	  var latentState = sample(currentBelief);
 	  var state = buildState(manifestState, latentState);
+
 	  var u = utility(state, action);
+
 	  if (state.manifestState.dead) {
 	    return u;
 	  } else {
@@ -91,6 +117,7 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
       var nextAction = sample(agentAction(state.manifestState, currentBelief,
 					  observe(state)));
       var nextState = transition(state, nextAction.action);
+
       var out = {states:state, actions:nextAction.action,
 		 both:[state, nextAction.action],
                  stateBelief: [state, currentBelief]}[outputStatesOrActions];

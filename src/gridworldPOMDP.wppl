@@ -77,6 +77,7 @@ var makeGridworldPOMDP = function(gridworld) {
     } else {
       var restaurantNames = map(function(manifestState){
 	return feature(manifestState).name;}, neighbourRests);
+      
       return map(function(name){return [name, state.latentState[name]];},
 		 restaurantNames);
     }
@@ -95,8 +96,8 @@ var makeGridworldPOMDP = function(gridworld) {
     assert.ok(isState(state), 'transition state arg');
 
     var proposedNewState = mdpTransition(state, action);
-    // console.log(JSON.stringify(feature(proposedNewState.manifestState)));
     var newFeatureName = feature(proposedNewState.manifestState).name;
+
     // if proposedNewState is a restaurant that is closed, stay put, but increment
     // time. otherwise, change to proposed new state.
     if (newFeatureName && !proposedNewState.latentState[newFeatureName]) {
