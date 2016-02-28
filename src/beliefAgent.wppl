@@ -30,7 +30,7 @@ var makeBeliefAgent = function(params, world) {
     function(manifestState, belief) {
       assert.ok(_.isFinite(manifestState.timeLeft) && isERP(belief),
 		'agent args fail');
-
+      
       return Enumerate(function(){
 	var action = uniformDraw(manifestStateToActions(manifestState));
 	var eu = expectedUtility(manifestState, belief, action);
@@ -76,6 +76,7 @@ var makeBeliefAgent = function(params, world) {
 
 var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
 				    outputType) {
+
   var perceivedTotalTime = startState.manifestState.timeLeft;
   assert.ok( isPOMDP(world),
 	     'world argument lacks transition, stateToActions, or observe');
@@ -92,8 +93,8 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   var selectOutput = function(state, nextAction, currentBelief){
     var table =  {
       states:state,
-      actions:nextAction.action,
-      stateAction:[state, nextAction.action], 
+      actions:nextAction,
+      stateAction:[state, nextAction], 
       stateBelief: [state, currentBelief]
     };
     assert.ok( _.has(table,outputType), "outputType key not in ['states', 'actions', 'stateAction', 'stateBelief']");
@@ -117,9 +118,9 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
 
       // update world state, return immediate output and output from recursing
       // on updated world state, agent belief, and time.
-      var nextState = transition(state, nextAction.action);
+      var nextState = transition(state, nextAction);
       var output = selectOutput(state, nextAction, belief);
-      
+
       return [output].concat( sampleSequence(nextState, nextBelief,
 					     actualTimeLeft - 1));
     }

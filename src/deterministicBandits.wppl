@@ -39,7 +39,7 @@ var runBeliefAgentBandit = function(numArms, armToRewards, priorBelief,
   assert.ok( _.isFinite(priorBelief.score([],armToRewards)),
 	     "actual latent not in prior's support" );
 
-  var agentParams = { 
+  var params = { 
     utility: function (state,action) {
       return state.manifestState.loc === 'start' ? 0 :
 	state.latentState.rewards[state.manifestState.loc];
@@ -48,7 +48,7 @@ var runBeliefAgentBandit = function(numArms, armToRewards, priorBelief,
     priorBelief: priorBelief
   };
 
-  var agent = makeBeliefAgent(agentParams, world);
+  var agent = makeBeliefAgent(params, world);
 
   var actualTotalTime = perceivedTotalTime;
   var startState = {manifestState: {loc: 'start',
