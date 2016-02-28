@@ -55,6 +55,8 @@ var stateActionPairsToFullStates = function(locAction, latentState){
 };
 
 
+// Example of well-formed *params* argument for makeBeliefDelayAgent.
+// See more examples in ../beliefDelayAgent/irlBanditTests.wppl
 var exampleMakeAgentParams = {
   alpha: 100,
   noDelays: false,
