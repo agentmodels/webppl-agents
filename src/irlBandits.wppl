@@ -49,7 +49,8 @@ var noDiscountBaseAgentParams = { // doesn't contain priorBelief or utility
   noDelays: true,
   discount: 0,
   sophisticatedOrNaive: 'naive',
-  myopiaCutoff: false
+  myopia: {on: false, bound:0},
+  boundVOI: {on: false, bound:0}
 };
 
 

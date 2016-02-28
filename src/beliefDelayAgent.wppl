@@ -55,21 +55,28 @@ var stateActionPairsToFullStates = function(locAction, latentState){
 };
 
 
-
+var exampleMakeAgentParams = {
+  alpha: 100,
+  noDelays: false,
+  discount: 2,
+  sophisticatedOrNaive: 'sophisticated',
+  myopia: {on:false, bound:0},
+  priorBelief: Enumerate(function(){return flip() ? 'latentA' : 'latentB';}),
+  boundVOI: {on:false, bound:0}
+};
 
 
 var makeBeliefDelayAgent = function (params, world){
   assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
-                                         'priorBelief', 'noDelays', 'myopiaCutoff']), 
+                                    'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
              'makeBeliefDelayAgent args');
   assert.ok( isWorld(world), 'makeBeliefDelay world is not world' );
 
-  assert.ok( !params.myopiaCutoff || !params.boundVOI, "can't mix myopia and boundVOI");
-
-  if (params.myopiaCutoff >= 1 || params.boundVOI >= 1){
-    assert.ok( !(params.noDelays || params.SophisticatedOrNaive==='naive'), 'myopiaCutoff or boundVOI assume naive delays');
-  } else {
-    assert.ok( params.myopiaCutoff === false, 'myopiaCutoff should be false'); // TODO add bound VOI
+  
+  assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI is false");
+  if (params.myopia.on || params.boundVOI.on){
+    assert.ok( params.noDelays === false && params.sophisticatedOrNaive=== 'naive', 
+    'myopia and boundVOI require Naive agent with delays');
   }
 
   var utility = params.utility;
@@ -92,8 +99,8 @@ var makeBeliefDelayAgent = function (params, world){
     if (state.manifestState.dead) {
       return true;
     }
-    if (params.myopiaCutoff) {
-      return delay >= params.myopiaCutoff;
+    if (params.myopia.on) {
+      return delay >= params.myopia.bound;
     }
     return false;
   }
@@ -102,7 +109,7 @@ var makeBeliefDelayAgent = function (params, world){
   // *belief* is ERP on latent states, returns posterior ERP on latent states
   var updateBelief = dp.cache(
     function (manifestState, belief, observation, delay) {
-      if (params.boundVOI && delay >= params.boundVOI){
+      if (params.boundVOI.on && (delay >= params.boundVOI.bound)){
         return belief;
       } else {
         return Enumerate(function () {

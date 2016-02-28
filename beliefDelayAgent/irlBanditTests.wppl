@@ -135,7 +135,8 @@ var runIRLBanditExamples = function(){
     noDelays: true,
     discount: 0,
     sophisticatedOrNaive: 'naive',
-    myopiaCutoff: false
+    myopia: {on:false, bound:0},
+    boundVOI: {on:false, bound:0}
   };
 
   var getTrajectory = function(priorBelief){
@@ -178,7 +179,8 @@ var runIRLBanditExamples = function(){
     noDelays: true,
     discount: 0,
     sophisticatedOrNaive: 'naive',
-    myopiaCutoff: false
+    myopia: {on:false, bound:0},
+    boundVOI: {on:false, bound:0}
   };
   
   // Agent thinks each arm might offer c, and so tries them all (as c is so good -- and b is not that bad)  
@@ -215,7 +217,8 @@ var runIRLBanditExamples = function(){
     noDelays: true,
     discount: 0,
     sophisticatedOrNaive: 'naive',
-    myopiaCutoff: false
+    myopia: {on:false, bound:0},
+    boundVOI: {on:false, bound:0}
   };
  
   var prizeToUtility = {a:5, b:10, c:-8}; 
@@ -242,17 +245,23 @@ var runIRLBanditExamples = function(){
                trajectoryToLocations(out.value), out.runtimeInMilliseconds+' ms');
 
   // Myopia (faster than discounting)
-  var testMyopia = function(myopiaCutoff,exploreOrNot){
-    var replaceParams = {discount:0, noDelays:false, myopiaCutoff:myopiaCutoff, priorBelief:priorBelief};
+  var testMyopia = function(myopiaBound,exploreOrNot){
+    var replaceParams = {
+      discount:0, 
+      noDelays:false,
+      sophisticatedOrNaive: 'naive',
+      myopia:{on:true, bound:myopiaBound}, 
+      priorBelief:priorBelief
+    };
     var agentParams = update(baseAgentParams, replaceParams);
     var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
     var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
     var out = timeit(thunk);
     var locs = trajectoryToLocations(out.value).slice(1,4);
     var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
-    assert.ok(  _.difference(prediction,locs).length == 0, 'fail bandit example myopia');
-    console.log( '\n Myopia cutoff ' + myopiaCutoff + ' (locs, timeit) ', 
+    console.log( '\n Myopia bound ' + myopiaBound + ' (locs, timeit) ', 
                  trajectoryToLocations(out.value), out.runtimeInMilliseconds + ' ms');
+    assert.ok(  _.difference(prediction,locs).length == 0, 'fail bandit example myopia');
   };
   console.log( '\n MYOPIA \n Myopia should be faster than discount')
   testMyopia(1,'not');
@@ -260,8 +269,14 @@ var runIRLBanditExamples = function(){
   testMyopia(3,'explore');
 
   // BoundVOI (faster than discounting)
-  var testBoundVOI = function(boundVOI,exploreOrNot){
-    var replaceParams = {discount:0, noDelays:false, boundVOI:boundVOI, priorBelief:priorBelief};
+  var testBoundVOI = function(boundVOIBound, exploreOrNot){
+    var replaceParams = {
+      discount:0, 
+      noDelays:false,
+      sophisticatedOrNaive: 'naive',
+      boundVOI:{on:true, bound:boundVOIBound}, 
+      priorBelief:priorBelief
+    };
     var agentParams = update(baseAgentParams, replaceParams);
     var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
     var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
@@ -269,7 +284,7 @@ var runIRLBanditExamples = function(){
     var locs = trajectoryToLocations(out.value).slice(1,4);
     var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
     assert.ok(  _.difference(prediction,locs).length == 0, 'fail bandit example boundVOI');
-    console.log( '\n BoundVOI bound: ' + boundVOI + ' (locs, timeit) ', trajectoryToLocations(out.value), out.runtimeInMilliseconds + ' ms');
+    console.log( '\n BoundVOI bound: ' + boundVOIBound + ' (locs, timeit) ', trajectoryToLocations(out.value), out.runtimeInMilliseconds + ' ms');
   };
   console.log('\n BOUND VOI \n BoundVOI should be similar in runtime to discount');
   testBoundVOI(1,'not');
@@ -378,9 +393,9 @@ var testBoundVOI = function(){
       noDelays: false,
       discount: 0.1,
       sophisticatedOrNaive: 'naive',
-      myopiaCutoff: false,
+      myopia: {on:false, bound:0},
       priorBelief: Enumerate(function(){return flip() ? 'gotoA' : 'gotoB';}),
-      boundVOI: false
+      boundVOI: {on:false, bound:0}
     };
     
     var params = update(baseAgentParams, paramsUpdate);
@@ -404,12 +419,12 @@ var testBoundVOI = function(){
   assert.ok( arraysEqual( out, [ 'start', 'immediate0', 'immediate1' ]), 'test boundVOI 2');
 
   // myopic agent
-  var paramsUpdate = {discount:0, myopiaCutoff:1};
+  var paramsUpdate = {discount:0, myopia: {on:true, bound:1} };
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
   assert.ok( arraysEqual( out, [ 'start', 'immediate0', 'immediate1' ]), 'test boundVOI 3');
 
   // boundVOI agent
-  var paramsUpdate = {discount:0, boundVOI:1};
+  var paramsUpdate = {discount:0, boundVOI:{on:true, bound:1} };
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
   assert.ok( arraysEqual( out, [ 'start', 'certain0', 'certain1' ]), 'test boundVOI 4');
 
