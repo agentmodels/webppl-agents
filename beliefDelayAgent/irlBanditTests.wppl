@@ -197,6 +197,16 @@ var runIRLBanditExamples = function(){
   var locs = trajectoryToLocations(trajectory).slice(1,5);
   assert.ok( _.difference(_.range(4),locs).length == 0, 'fail bandit example 3');
 
+
+  // Agent starts in state 0 and so gets an observation immediately. so it wont check 0 again
+  var startState = update(startState, {manifestState: update(startState.manifestState,{loc:0})});
+  var worldAndStart = update(worldAndStart, {startState:startState});
+  var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
+  var trajectory = simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
+  
+  var locs = trajectoryToLocations(trajectory).slice(1,4);
+  assert.ok( _.difference([1,2,3],locs).length == 0, 'fail bandit example 3.5');
+ 
   
  
   

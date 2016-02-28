@@ -67,24 +67,27 @@ var exampleMakeAgentParams = {
 
 
 var makeBeliefDelayAgent = function (params, world){
+
+  // Check on correctness of *params* and *world*
   assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
                                     'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
              'makeBeliefDelayAgent args');
   assert.ok( isWorld(world), 'makeBeliefDelay world is not world' );
-
   
-  assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI is false");
+  assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI must be false");
   if (params.myopia.on || params.boundVOI.on){
     assert.ok( params.noDelays === false && params.sophisticatedOrNaive=== 'naive', 
     'myopia and boundVOI require Naive agent with delays');
   }
 
+  // Variables for methods
   var utility = params.utility;
   var manifestStateToActions = world.manifestStateToActions;
   var transition = world.transition;
   var observe = world.observe;
   
 
+  // Update the *delay* parameter in *expectedUtility* for sampling actions and future utilities
   var transformDelay = function(delay){
     var table = {naive: delay + 1, sophisticated: 0 };
     return params.noDelays ? 0 : table[params.sophisticatedOrNaive];
@@ -94,7 +97,7 @@ var makeBeliefDelayAgent = function (params, world){
     return params.noDelays ? 0 : delay + 1;
   };
 
- 
+  // Termination condition for *expectedUtility*
   var shouldTerminate = function(state, delay) {
     if (state.manifestState.dead) {
       return true;
@@ -121,6 +124,7 @@ var makeBeliefDelayAgent = function (params, world){
       }
     });
 
+  
   var act = dp.cache(
     function (manifestState, belief, delay) {
       assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), 'act arguments error' + 
@@ -160,7 +164,6 @@ var makeBeliefDelayAgent = function (params, world){
         }));
     });
 
-  
   return { act:act, updateBelief:updateBelief, expectedUtility : expectedUtility, params: params};
 };
 
