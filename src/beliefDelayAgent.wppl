@@ -63,22 +63,20 @@ var makeBeliefDelayAgent = function (params, world){
                                          'priorBelief', 'noDelays', 'myopiaCutoff']), 
              'makeBeliefDelayAgent args');
   assert.ok( isWorld(world), 'makeBeliefDelay world is not world' );
-  
-  if (params.myopiaCutoff >= 1){
-    assert.ok( !(params.noDelays || params.SophisticatedOrNaive==='naive'), 'myopiaCutoff');
+
+  assert.ok( !params.myopiaCutoff || !params.boundVOI, "can't mix myopia and boundVOI");
+
+  if (params.myopiaCutoff >= 1 || params.boundVOI >= 1){
+    assert.ok( !(params.noDelays || params.SophisticatedOrNaive==='naive'), 'myopiaCutoff or boundVOI assume naive delays');
   } else {
-    assert.ok( params.myopiaCutoff === false, 'myopiaCutoff');
+    assert.ok( params.myopiaCutoff === false, 'myopiaCutoff should be false'); // TODO add bound VOI
   }
 
   var utility = params.utility;
   var manifestStateToActions = world.manifestStateToActions;
   var transition = world.transition;
-
-  var worldObserve = world.observe;
-  var observe = !params.boundVOI ? worldObserve :
-      function(state, delay){
-        return delay < params.boundVOI ? worldObserve(state) : 'noObservation';
-      };
+  var observe = world.observe;
+  
 
   var transformDelay = function(delay){
     var table = {naive: delay + 1, sophisticated: 0 };
@@ -103,18 +101,23 @@ var makeBeliefDelayAgent = function (params, world){
   
   // *belief* is ERP on latent states, returns posterior ERP on latent states
   var updateBelief = dp.cache(
-    function (manifestState, belief, observation) {
-      return Enumerate(function () {
-        var latentState = sample(belief);
-        var state = buildState(manifestState, latentState);
-        condition(_.isEqual(observe(state), observation));
-        return latentState;
+    function (manifestState, belief, observation, delay) {
+      if (params.boundVOI && delay >= params.boundVOI){
+        return belief;
+      } else {
+        return Enumerate(function () {
+          var latentState = sample(belief);
+          var state = buildState(manifestState, latentState);
+          condition(_.isEqual(observe(state), observation));
+          return latentState;
       });
+      }
     });
 
   var act = dp.cache(
     function (manifestState, belief, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), 'act arguments error'); 
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), 'act arguments error' + 
+                'act: manifestState, belief, delay' + JSON.stringify([manifestState, belief, delay]));
       
       return Enumerate(function () {
         var action = uniformDraw(manifestStateToActions(manifestState));
@@ -139,8 +142,8 @@ var makeBeliefDelayAgent = function (params, world){
             var nextObservation = observe(nextState);
 
             // Update agent's internal state based on new manifestState, the observation, old belief, old delay.
-            var nextBelief = updateBelief(nextState.manifestState, belief, nextObservation);
             var transformedDelay = transformDelay(delay);
+            var nextBelief = updateBelief(nextState.manifestState, belief, nextObservation, transformedDelay);
             var nextAction = sample(act(nextState.manifestState, nextBelief, transformedDelay));
 
             // Compute utility given agent's new internal belief state, the new manifestState, and agent's action. 
@@ -185,8 +188,9 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
       var nextObservation = observe(state);
 
       // Update agent's internal state and get action
-      var nextBelief = agentUpdateBelief(state.manifestState, belief, nextObservation);
-      var nextAction = sample(agentAct(state.manifestState, nextBelief, 0));  // delay=0
+      var delay = 0;
+      var nextBelief = agentUpdateBelief(state.manifestState, belief, nextObservation, delay);
+      var nextAction = sample(agentAct(state.manifestState, nextBelief, delay));  
 
       // Update world state and return output and output from recursing on updated world state, internal state, and time. 
       var nextState = transition(state, nextAction);

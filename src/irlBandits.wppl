@@ -123,8 +123,9 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
         var observation = observe(state);  // assuming that observations are deterministic?
 
         // Update agent's internal state and get action ERP
-        var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation);
-        var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
+        var delay = 0;
+        var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation, delay);
+        var nextActionERP = agentAct(state.manifestState, nextBelief, delay);
 
         factor(nextActionERP.score([], observedAction));
 
