@@ -1,4 +1,183 @@
 // unit tests for beliefAgent
 
-// bandit setting
-// test test test
+var pluckLocs = function(trajectory) {
+  return _.pluck( _.pluck(trajectory, 'manifestState'), 'loc');
+};
+
+var posRange = function(n) {
+  return rest(range(n));
+};
+
+var testAgent = function(){
+  
+  // bandit setting
+
+  // if agent knows the latent state, they should just do the optimal action
+  var numArms1 = 3;
+  var armToRewards1 = {'start': 0, rewards: [10, 0, 15]};
+  var priorBelief1 = deltaERP(armToRewards1);
+  var perceivedTotalTime1 = 10;
+  var locs1 = pluckLocs(runBeliefAgentBandit(numArms1, armToRewards1,
+  					     priorBelief1,
+  					     perceivedTotalTime1));
+  map(function(index){assert.ok( locs1[index] === 2, 'banditsTest1');}, posRange(10));
+
+  // if the agent is unsure about the latent state, they should explore the
+  // most promising arm first, and then update
+
+  var numArms2 = 3;
+  var armToRewards2 = {start: 0, rewards: [0, 1, 0]};
+  var priorBelief2 = Enumerate(function(){
+    return uniformDraw([armToRewards1, armToRewards2]);
+  });
+  var perceivedTotalTime2 = 3;
+  var locs2 = pluckLocs(runBeliefAgentBandit(numArms2, armToRewards2,
+  					     priorBelief2,
+  					     perceivedTotalTime2));
+  assert.ok(locs2[1] === 2 && locs2[2] === 1, 'banditsTest2');
+
+  // even if one arm has lower expected reward, the agent should still explore
+  // it if it has higher value of information
+
+  var numArms3 = 2;
+  var armToRewards3 = {start: 0, rewards: [1, 0]};
+  var arm1Bonanza = {start: 0, rewards: [1, 2]};
+  var priorBelief3 = Enumerate(function(){
+    return categorical([0.8, 0.2], [armToRewards3, arm1Bonanza]);
+  });
+  var perceivedTotalTime3 = 10;
+  var locs3 = pluckLocs(runBeliefAgentBandit(numArms3, armToRewards3,
+  					     priorBelief3,
+  					     perceivedTotalTime3));
+  assert.ok(locs3[1] === 1 && locs3[2] === 0, 'banditsTest3');
+
+  // agent thinks that each arm could have high reward, and thinks the reward
+  // of each arm is independent, so tries them all
+
+  var numArms4 = 4;
+  var armToRewards4 = {start: 0, rewards: [1,1,1,1]};
+  var priorBelief4 = Enumerate(function(){
+    var dist = function(){return uniformDraw([1, 10]);};
+    return {start: 0, rewards: [dist(), dist(), dist(), dist()]};
+  });
+  var perceivedTotalTime4 = 6;
+  var locs4 = pluckLocs(runBeliefAgentBandit(numArms4, armToRewards4,
+  					     priorBelief4,
+  					     perceivedTotalTime4));
+  assert.ok(_.difference(_.range(4), locs4).length === 0, 'banditsTest4');
+
+  console.log('bandit tests passed');
+
+  // gridworld tests
+
+  var gridworldMDP = makeDonutWorld2({big: true});
+  var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
+  var feature = gridworldMDP.feature;
+
+  var tableToUtilityFunction = function(table) {
+    return function(state, action) {
+      if (state.dead) {
+	return 0;
+      }
+      var stateFeatureName = feature(state.manifestState).name;
+      if (stateFeatureName) {
+  	return table[stateFeatureName];
+      } else {
+  	return table.timeCost;
+      }
+    };
+  };
+
+  // if the agent knows the latent state, they should go to the closest
+  // restaurant that they like
+
+  var startState1 = {manifestState: {loc: [3,1],
+  				     dead: false,
+  				     timeLeft: 10,
+				     digest: 0},
+  		     latentState: {'Donut N': true,
+  				   'Donut S': true,
+  				   Veg: true,
+  				   Noodle: true}};
+  var utilityTable1 = {'Donut N': 5,
+  		       'Donut S': 5,
+  		       Veg: 0,
+  		       Noodle: 0,
+  		       timeCost: -0.1};
+  var prior1 = deltaERP(startState1.latentState);
+  var agent1 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable1),
+  				alpha: 100,
+  				priorBelief: prior1}, gridworldPOMDP);
+  var gridLocs1 = pluckLocs(simulateBeliefAgent(startState1, gridworldPOMDP,
+  						agent1, 2, 'states'));
+  assert.ok(_.isEqual(gridLocs1[1],[2,1]), 'gridTest1');
+
+  // if the agent knows that both donuts are either open or closed, and they
+  // learn that donut south is closed, they should go to their favourite
+  // non-donut restaurant
+  var startState2 = {manifestState: {loc: [3,1],
+  				     dead: false,
+  				     timeLeft: 20,
+				     digest: 0},
+  		     latentState: {'Donut N': false,
+  				   'Donut S': false,
+  				   Veg: true,
+  				   Noodle: true}};
+  var utilityTable2 = {'Donut N': 5,
+  		       'Donut S': 5,
+  		       Veg: 0,
+  		       Noodle: 3,
+  		       timeCost: -0.1};
+  var prior2 = Enumerate(function(){
+    return categorical([0.2, 0.8], [startState2.latentState,
+  				    startState1.latentState]);
+  });
+  var agent2 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable2),
+  				alpha: 200,
+  				priorBelief: prior2}, gridworldPOMDP);
+  var gridLocs2 = pluckLocs(simulateBeliefAgent(startState2, gridworldPOMDP,
+  						agent2, 12, 'states'));
+  assert.ok(_.isEqual(gridLocs2[3], [0,1]) && _.isEqual(gridLocs2[9], [4,3]),
+  	    'gridTest2');
+
+  // even if a restaurant has low expected utility, maybe you should go there
+  // anyway for value of information purposes. For instance, you don't like
+  // donuts, love noodles, think veg is ok, and think that the donut shop is
+  // open iff the noodle shop is. In this situation, you might walk by the donut
+  // shop and then go on to veg even though that path has lower a priori
+  // expected utility than going directly to the noodle shop
+
+  var startState3 = {manifestState: {loc: [3,4],
+				     dead: false,
+				     timeLeft: 10,
+				     digest: 0},
+		     latentState: {'Donut N': false,
+				   'Donut S': false,
+				   Veg: true,
+				   Noodle: false}};
+  var utilityTable3 = {'Donut N': 0,
+		       'Donut S': 0,
+		       Veg: 1,
+		       Noodle: 3,
+		       timeCost: -0.1};
+  var prior3 = Enumerate(function(){
+    return uniformDraw([startState1.latentState, startState3.latentState]);
+  });
+  var agent3 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable3),
+				alpha: 300,
+				priorBelief: prior3}, gridworldPOMDP);
+  var gridLocs3 = pluckLocs(simulateBeliefAgent(startState3, gridworldPOMDP,
+						agent3, 10, 'states'));
+
+  assert.ok(_.isEqual(gridLocs3[1], [3,5]) && _.isEqual(gridLocs3[3], [4,6]),
+	    'gridTest3');
+
+  // note: the agent seems to be staying in restaurants for two turns.
+  // not sure how to fix this.
+
+  console.log('gridworld tests passed');
+  
+  return 0;
+};
+
+testAgent();
