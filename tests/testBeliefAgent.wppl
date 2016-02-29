@@ -1,4 +1,4 @@
-// unit tests for beliefAgent
+// unit tests for beliefAgent - passed by renamed version
 
 var pluckLocs = function(trajectory) {
   return _.pluck( _.pluck(trajectory, 'manifestState'), 'loc');
