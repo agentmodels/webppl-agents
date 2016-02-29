@@ -41,36 +41,13 @@ var makeBeliefAgent = function(agentParams, world) {
 
   var expectedUtility = dp.cache(
     function(manifestState, currentBelief, action) {
-      // var eu =  expectation(
-      // 	Enumerate(function(){
-      // 	  var latentState = sample(currentBelief);
-      // 	  var state = buildState(manifestState, latentState);
-
-      // 	  var u = utility(state, action);
-
-      // 	  if (state.manifestState.dead) {
-      // 	    return u;
-      // 	  } else {
-      // 	    var nextState = transition(state, action);
-      // 	    var nextAction = sample(agent(nextState.manifestState,
-      // 					  currentBelief,
-      // 					  observe(nextState)));
-      // 	    var futureU = expectedUtility(nextState.manifestState,
-      // 					  nextAction.belief,
-      // 					  nextAction.action);
-      // 	    return u + futureU;
-      // 	  }
-      // 	}));
-
-      // console.log(manifestState, action, eu);
-      
       return expectation(
 	Enumerate(function(){
 	  var latentState = sample(currentBelief);
 	  var state = buildState(manifestState, latentState);
 
 	  var u = utility(state, action);
-
+	  
 	  if (state.manifestState.dead) {
 	    return u;
 	  } else {
