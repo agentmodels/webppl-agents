@@ -25,6 +25,9 @@ var vegUtilityTable = {'Donut N': 1,
 
 var tableToUtilityFunction = function(table) {
   return function(state, action) {
+    if (state.manifestState.dead) {
+      return 0;
+    }
     var stateFeatureName = feature(state.manifestState).name;
     if (stateFeatureName) {
       return table[stateFeatureName];

@@ -30,7 +30,7 @@ var makeBeliefAgent = function(agentParams, world) {
 		'agent args fail');
 
       var newBelief = updateBelief(manifestState, currentBelief, observation);
-      
+
       return Enumerate(function(){
 	var action = uniformDraw(manifestStateToActions(manifestState));
 	var eu = expectedUtility(manifestState, newBelief, action);
@@ -45,7 +45,7 @@ var makeBeliefAgent = function(agentParams, world) {
 	Enumerate(function(){
 	  var latentState = sample(currentBelief);
 	  var state = buildState(manifestState, latentState);
-
+	  
 	  var u = utility(state, action);
 	  
 	  if (state.manifestState.dead) {
@@ -82,6 +82,7 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   var priorBelief = agent.agentParams.priorBelief;
   var transition = world.transition;
   var observe = world.observe;
+  var eu = agent.expectedUtility;
 
   var cutoffCondition = function (actualTimeLeft, state) {
     return actualTimeLeft === 0 || state.dead;
@@ -91,10 +92,12 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
     if (cutoffCondition(actualTimeLeft, state.manifestState) ) {
       return [];
     } else {
+
       var nextAction = sample(agentAction(state.manifestState, currentBelief,
 					  observe(state)));
-      var nextState = transition(state, nextAction.action);
 
+      var nextState = transition(state, nextAction.action);
+      
       var out = {states:state, actions:nextAction.action,
 		 both:[state, nextAction.action],
                  stateBelief: [state, currentBelief]}[outputStatesOrActions];

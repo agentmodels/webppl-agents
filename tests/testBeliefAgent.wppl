@@ -76,7 +76,7 @@ var testAgent = function(){
 
   var tableToUtilityFunction = function(table) {
     return function(state, action) {
-      if (state.dead) {
+      if (state.manifestState.dead) {
 	return 0;
       }
       var stateFeatureName = feature(state.manifestState).name;
@@ -167,14 +167,79 @@ var testAgent = function(){
 				alpha: 300,
 				priorBelief: prior3}, gridworldPOMDP);
   var gridLocs3 = pluckLocs(simulateBeliefAgent(startState3, gridworldPOMDP,
-						agent3, 10, 'states'));
+  						agent3, 10, 'states'));
 
   assert.ok(_.isEqual(gridLocs3[1], [3,5]) && _.isEqual(gridLocs3[3], [4,6]),
-	    'gridTest3');
+  	    'gridTest3');
 
-  // note: the agent seems to be staying in restaurants for two turns.
-  // not sure how to fix this.
+  // check that the agent doesn't double-count utility from restaurants
+  // (or to figure out settings to make that so)
 
+  var restaurant = {
+    donut: {name: 'Donut'},
+    noodle: {name: 'Noodle'}
+  };
+  
+  var makeForkRoad = function(options) { 
+    var _ = ' '; 
+    var D = restaurant.donut;
+    var N = restaurant.noodle;
+
+    var myOptions = options || {};
+
+    var features =
+	  [[ D , '#'],
+	   [ _ , '#'],
+	   [ _ , '#'],
+	   [ _ , '#'],
+	   [ _ , '#'],
+	   [ _ , '#'],
+	   [ _ , '#'],
+	   [ _ , '#'],
+	   [ _ , '#'],
+	   [ _ , '#'],
+	   [ _ , '#'],
+	   [ _ ,  N ]];
+    
+    return makeGridWorld(features, myOptions);
+  };
+
+  var forkyGridworldMDP = makeForkRoad({noReverse: true});
+  var forkyGridworldPOMDP = makeGridworldPOMDP(forkyGridworldMDP);
+  var forkFeature = forkyGridworldMDP.feature;
+
+  var tableToUtilityFunctionFork = function(table) {
+    return function(state, action) {
+      if (state.manifestState.dead) {
+	return 0;
+      }
+      var stateFeatureName = forkFeature(state.manifestState).name;
+      if (stateFeatureName) {
+  	return table[stateFeatureName];
+      } else {
+  	return table.timeCost;
+      }
+    };
+  };
+
+  var startState4 = {manifestState: {loc: [0,0],
+				     dead: false,
+				     timeLeft: 20,
+				     digest: 1},
+		     latentState: {Donut: true,
+				   Noodle: true}};
+  var utilityTable4 = {Noodle: 4,
+		       Donut: 4.6,
+		       timeCost: -0.1};
+  var prior4 = deltaERP(startState4.latentState);
+  var agent4 = makeBeliefAgent({utility: tableToUtilityFunctionFork(utilityTable4),
+				alpha: 100,
+				priorBelief: prior4}, forkyGridworldPOMDP);
+  var gridLocs4 = pluckLocs(simulateBeliefAgent(startState4, forkyGridworldPOMDP,
+						agent4, 20, 'states'));
+
+  assert.ok(_.isEqual(gridLocs4[1], [1,0]), 'gridTest4');
+  
   console.log('gridworld tests passed');
   
   return 0;
