@@ -239,6 +239,26 @@ var testAgent = function(){
 						agent4, 20, 'states'));
 
   assert.ok(_.isEqual(gridLocs4[1], [1,0]), 'gridTest4');
+
+  // if one restaurant would be excellent but is too far for the agent to reach,
+  // the agent should go to the closer restaurant
+  var startState5 = {manifestState: {loc: [0,0],
+				     dead: false,
+				     timeLeft: 3,
+				     digest: 1},
+		     latentState: {Donut: true,
+				   Noodle: true}};
+  var utilityTable5 = {Noodle: 4,
+		       Donut: 50,
+		       timeCost: -0.1};
+  var prior5 = deltaERP(startState5.latentState);
+  var agent5 = makeBeliefAgent({utility: tableToUtilityFunctionFork(utilityTable5),
+				alpha: 100,
+				priorBelief: prior5}, forkyGridworldPOMDP);
+  var gridLocs5 = pluckLocs(simulateBeliefAgent(startState5, forkyGridworldPOMDP,
+						agent5, 3, 'states'));
+
+  assert.ok(_.isEqual(gridLocs5[1], [1,0]), 'gridTest5');
   
   console.log('gridworld tests passed');
   
