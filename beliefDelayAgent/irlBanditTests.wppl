@@ -446,7 +446,9 @@ var testBoundVOI = function(){
 
     
 
-
+// Meant to test whether dependencies between elements of the latent
+// state are treated correctly. Abandonded for now, since all the
+// agents we've considered perform the same on this particular task. 
 var testNoObservationDependentLatents = function(){
 
   var getEUs = function(actionSequences, prizeToUtility, priorArmToPrize){
@@ -469,8 +471,6 @@ var testNoObservationDependentLatents = function(){
   
 
   var makeLineWorld = function() {
-
-
     // This is a bandit world, but with a custom observation function, and a 
     
     // From start, you go to zero or 1 (start is like 0, but with no reward)
@@ -565,7 +565,6 @@ var testNoObservationDependentLatents = function(){
   console.log('Prior Belief: ');
   printERP(priorBelief);
   console.log('Trajectory: ', traj, ' \n\n',trajectoryToLocations(traj));
-
 
 };
 
