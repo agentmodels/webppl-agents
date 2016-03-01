@@ -467,105 +467,108 @@ var testNoObservationDependentLatents = function(){
     return zip(actionSequences,  map(actionSequenceToEU,actionSequences));
   };
   
-  
-  // world params
-  var numArms = 3;
-  var armToPrize = {0:'a', 1:'open1', 2:'closed2'};
-  var perceivedTotalTime = 3;
-  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
-  var world = worldAndStart.world;
-  var startState = worldAndStart.startState;
 
-  var modifiedManifestStateToActions = function(manifestState){
-    var loc = manifestState.loc;
-    if (loc=='start' || loc==0){ return [0,1]; } 
-    if (loc==1){return [0,2];}
-    if (loc==2){return [0];}
+  var makeLineWorld = function() {
+
+
+    // This is a bandit world, but with a custom observation function, and a 
+    
+    // From start, you go to zero or 1 (start is like 0, but with no reward)
+    // Then 0,1,2 lie on a line. You can't stay put. At 2, you must go back to zero. 
+    
+    
+    // next state is simply current action
+    var mdpTransition = function (state, action) {
+      var dead = state.timeLeft - 1 == 1 ? true : false;
+      return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
+    };
+    
+    var manifestStateToActions = function(manifestState){
+      var loc = manifestState.loc;
+      if (loc=='start' || loc==0){ return [0,1]; } 
+      if (loc==1){return [0,2];}
+      if (loc==2){return [0];}
+    };
+    
+    var transition = function(state, action){
+      return buildState( mdpTransition(state.manifestState, action), state.latentState);
+    };
+    
+    var observe = function(state){return 'noObservation';};
+    
+    return {manifestStateToActions: manifestStateToActions, transition:transition, observe:observe};
   };
-  var observe = function(state){return 'noObservation';};
-  var world = update(world, 
-                     {manifestStateToActions: modifiedManifestStateToActions,
-                      observe: observe});  
-  var worldAndStart = update(worldAndStart, {world:world});
   
-  var prizeToUtility = {a:5, open1:11, open2:12, closed1:0, closed2:0, bad:-1};
-
-  var probs = [.3333333333, .333333333, .3333333333];
-
-  var armToPrizeValues = [ {0:'a', 1:'open1', 2:'closed2'},  
-                           {0:'a', 1:'closed1', 2:'open2'}, 
-                           {0:'a', 1:'bad', 2:'bad'} ];
-  var priorArmToPrize = zip(probs, armToPrizeValues);
-  var actionSequences = [ [1,2], [0,0], [0,1], [1,0] ];
-
-  console.log('\n\n action to EU, actual prior', getEUs(actionSequences, prizeToUtility, priorArmToPrize) );  
-
+  // World
+  var world = makeLineWorld();
+  var trueLatentState = {0:'a', 1:'bad', 2:'bad'};
+  var perceivedTotalTime = 3;
+  var actualTotalTime = perceivedTotalTime;
+  var startState = buildState( {loc:'start', timeLeft:perceivedTotalTime, dead:false}, trueLatentState);  
+  
+  // Agent params:
+  
   var baseAgentParams = {
     priorBelief: null,
     alpha: 100,
     noDelays: true,
     discount: 0,
     sophisticatedOrNaive: 'naive',
-    myopiaCutoff: false
+    myopia: {on:false, bound:0},
+    boundVOI: {on:false, bound:0}
   };
 
-  var getTrajectory = function(priorBelief){
-    var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
-    var agent = makeIRLBanditAgent(prizeToUtility, agentParams, worldAndStart);
-    var world = worldAndStart.world;
-    var startState = worldAndStart.startState;
+  
+  var getUtility = function(prizeToUtility){
+    return function(state,action){
+      var loc = state.manifestState.loc;
+      if (loc=='start'){return 0;};
+      return prizeToUtility[state.latentState[loc]];
+    };
+  };
 
+  var isPrizeToUtility = function(x){
+    return hasProperties(prizeToUtility,['a','open1', 'open2', 'closed1', 'closed2', 'bad']);
+  };
+  
+  var getTrajectory = function(prizeToUtility, priorComponents){
+    assert.ok(isPrizeToUtility(prizeToUtility), 'args getTraj');
+
+    var priorStateToPrize = zip(priorComponents.probs, priorComponents.stateToPrizeValues);
+    var actionSequences = [ [1,2], [0,0], [0,1], [1,0] ];
+    console.log('\n\n action to EU, computed direction: ', getEUs(actionSequences, prizeToUtility, priorStateToPrize) );  
+
+    var priorBelief = Enumerate(function(){
+      return categorical(priorComponents.probs, priorComponents.stateToPrizeValues);                         
+    });
+
+    var agentParams = update(baseAgentParams, {priorBelief: priorBelief, utility:getUtility(prizeToUtility)});
+    var agent = makeBeliefDelayAgent(params, world);
     return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
   };
 
-  var priorBelief = Enumerate(function(){
-    return categorical(probs, armToPrizeValues);                         
-  });
-
+  // AGENT'S UTILITIES
+  // For state 0, the prize is 0, for state 1 the prize is open1 or open2, etc.
+  var prizeToUtility = {a:5, open1:11, open2:12, closed1:0, closed2:0, bad:-1};
   
-  var traj = getTrajectory(priorBelief);
-  console.log('traj', traj, trajectoryToLocations(traj));
-
-  // MORE COMPLEX VARIANTS
-  var probs = repeat( 9, function(){return 1./9;} );
-  var armToPrizeValues = [ {0:'a', 1:'open1', 2:'closed2'},  
-                           {0:'a', 1:'open1', 2:'open2'},
-                           {0:'a', 1:'open1', 2:'bad'},
-                           {0:'a', 1:'closed1', 2:'open2'}, 
-                           {0:'a', 1:'closed1', 2:'closed2'},
-                           {0:'a', 1:'closed1', 2:'bad'},
-                           {0:'a', 1:'bad', 2:'open2'},
-                           {0:'a', 1:'bad', 2:'closed2'},
-                           {0:'a', 1:'bad', 2:'bad'}
-                         ];
-
-  // Given a fixed value of 1, each value of 2 is equally likely. 
-  // But values for 1 have different probabilities. 
-
-  // Suppose we now rule out the case where 1 and 2 have the same value
-  // (apart from bad). Then we get [ .15 + .1 + .08333 as the possibilities]
-//   so now we have three possibilies with probs .45, .3, .25. 
-  var probs = [ .15, .15, .15,  
-                .1, .1, .1,
-                .25/3, .25/3, .25/3]; 
-  var armToPrizeValues = [ {0:'a', 1:'open1', 2:'closed2'},  
-                           {0:'a', 1:'open1', 2:'open2'},
-                           {0:'a', 1:'open1', 2:'bad'},
-                           
-                           {0:'a', 1:'closed1', 2:'open2'}, 
-                           {0:'a', 1:'closed1', 2:'closed2'},
-                           {0:'a', 1:'closed1', 2:'bad'},
-                           
-                           {0:'a', 1:'bad', 2:'open2'},
-                           {0:'a', 1:'bad', 2:'closed2'},
-                           {0:'a', 1:'bad', 2:'bad'}
-                         ];
-
-  var priorArmToPrize = zip(probs, armToPrizeValues);
+  // AGENT'S PRIOR ON STATE TO PRIZES
+  // Agent prior on latent states
+  var priorComponents = {
+    probs: [.3333333333, .333333333, .3333333333],
+    stateToPrizeValues: [ {0:'a', 1:'open1', 2:'closed2'},  
+                          {0:'a', 1:'closed1', 2:'open2'}, 
+                          {0:'a', 1:'bad', 2:'bad'} ]
+  };
   
-  console.log('action to EU, indie prior', getEUs(actionSequences, prizeToUtility, priorArmToPrize) );  
+  var traj = getTrajectory(prizeToUtility, priorComponents);
+  console.log('\n\n Params:  prizeToUtility  ', prizeToUtility);
+  console.log('Prior Belief: ');
+  printERP(priorBelief);
+  console.log('Trajectory: ', traj, ' \n\n',trajectoryToLocations(traj));
+
 
 };
+
 
 
 
