@@ -93,7 +93,7 @@ var makeGridworldPOMDP = function(gridworld) {
   };
 
   var transition = function(state, action) {
-    assert.ok(isState(state), 'transition state arg');
+    assert.ok(isPOMDPState(state), 'transition state arg');
 
     var proposedNewState = mdpTransition(state, action);
     var newFeatureName = feature(proposedNewState.manifestState).name;
