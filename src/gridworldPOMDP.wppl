@@ -1,9 +1,4 @@
-// Helper functions for testing argument types (warning: heuristics only)
-var isGreaterZero = function (x) {return x && _.isFinite(x) && x > 0;};
-var isERP = function (x) {return x && x.hasOwnProperty('score')
-			  && x.hasOwnProperty('sample');};
-var isState = function (x) {return x && x.hasOwnProperty('latentState')
-			    && _.isFinite(x.manifestState.timeLeft);};
+
 // note: isGridworld is different in this file than how it is in other files
 var isGridworld = function(world){return world
 				  && arraysEqual(world.actions,
@@ -12,15 +7,7 @@ var isGridworld = function(world){return world
 				  && world.hasOwnProperty('xLim')
 				  && world.hasOwnProperty('yLim')
 				  && world.hasOwnProperty('transition');};
-var isPOMDP = function (x) { return x
-			     && x.hasOwnProperty('transition')
-			     && x.hasOwnProperty('manifestStateToActions')
-			     && x.hasOwnProperty('observe');};
 
-// Helper function for building state from its components
-var buildState = function (manifestState, latentState) {
-  return { manifestState:manifestState, latentState:latentState };
-};
 
 // function that builds a gridworld POMDP
 
@@ -77,6 +64,7 @@ var makeGridworldPOMDP = function(gridworld) {
     } else {
       var restaurantNames = map(function(manifestState){
 	return feature(manifestState).name;}, neighbourRests);
+      
       return map(function(name){return [name, state.latentState[name]];},
 		 restaurantNames);
     }
@@ -92,11 +80,11 @@ var makeGridworldPOMDP = function(gridworld) {
   };
 
   var transition = function(state, action) {
-    assert.ok(isState(state), 'transition state arg');
+    assert.ok(isPOMDPState(state), 'transition state arg');
 
     var proposedNewState = mdpTransition(state, action);
-    // console.log(JSON.stringify(feature(proposedNewState.manifestState)));
     var newFeatureName = feature(proposedNewState.manifestState).name;
+
     // if proposedNewState is a restaurant that is closed, stay put, but increment
     // time. otherwise, change to proposed new state.
     if (newFeatureName && !proposedNewState.latentState[newFeatureName]) {

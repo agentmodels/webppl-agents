@@ -41,8 +41,8 @@ var runBeliefAgentBandit = function(numArms, armToRewards, priorBelief,
 
   var params = { 
     utility: function (state,action) {
-      return state.manifestState.loc === 'start' ? 0 :
-	state.latentState.rewards[state.manifestState.loc];
+      return state.manifestState.loc === 'start' ? state.latentState.start
+	: state.latentState.rewards[state.manifestState.loc];
     }, // utility == reward
     alpha: 100,
     priorBelief: priorBelief

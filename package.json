@@ -16,6 +16,7 @@
       "src/gridworld.wppl",
       "src/hyperbolic.wppl",
       "src/newGridworld.wppl",
+      "src/POMDPUtils.wppl",
       "src/gridworldPOMDP.wppl",
       "src/beliefAgent.wppl",
       "src/deterministicBandits.wppl",

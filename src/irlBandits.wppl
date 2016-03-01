@@ -1,6 +1,6 @@
 // IRL Bandits
 
-// Functions for running agents and doing inference depend on beliefDelayAgent.wppl
+// Functions for running agents and doing inference that depend on beliefDelayAgent.wppl
 
 
 // Multi-arm deterministic bandits.
@@ -49,7 +49,8 @@ var noDiscountBaseAgentParams = { // doesn't contain priorBelief or utility
   noDelays: true,
   discount: 0,
   sophisticatedOrNaive: 'naive',
-  myopiaCutoff: false
+  myopia: {on: false, bound:0},
+  boundVOI: {on: false, bound:0}
 };
 
 
@@ -91,10 +92,10 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
   var priorPrizeToUtility = prior.priorPrizeToUtility;
   var priorAgentPrior = prior.priorAgentPrior;
 
-  assert.ok(isWorld(world) && isState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args');
+  assert.ok(isPOMDPWorld(world) && isPOMDPState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args');
   assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 'trajectoryOrOffPolicy bad');
   if (actualTotalTime != observedStateAction.length){console.log( 'Warning: actualTotalTime is not observed trajectory length');}
-  assert.ok( isState(observedStateAction[0][0]), 'fullstate in trajectory for inferirlbandit');
+  assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferirlbandit');
 
   
   return Enumerate(function(){
@@ -123,8 +124,9 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
         var observation = observe(state);  // assuming that observations are deterministic?
 
         // Update agent's internal state and get action ERP
-        var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation);
-        var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
+        var delay = 0;
+        var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation, delay);
+        var nextActionERP = agentAct(state.manifestState, nextBelief, delay);
 
         factor(nextActionERP.score([], observedAction));
 
