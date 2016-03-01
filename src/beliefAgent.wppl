@@ -1,6 +1,15 @@
 // POMDP AGENT WITHOUT DELAYS
 // basically the same as makeBeliefDelayAgent without delays or discounting
 
+
+// TODO NAMES TO CHANGE based on beliefDelayAgent.wppl
+// agentParams -> params
+// agent -> act
+// currentBelief -> belief
+// outputStatesOrActions -> outputType
+// cutOffCondition -> shouldTerminate
+
+
 var makeBeliefAgent = function(agentParams, world) {
   map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeBeliefAgent args');}, 
       ['utility','alpha', 'priorBelief']);
