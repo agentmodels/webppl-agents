@@ -1,14 +1,22 @@
 // POMDP AGENT WITHOUT DELAYS
 // basically the same as makeBeliefDelayAgent without delays or discounting
 
+
+// TODO NAMES TO CHANGE based on beliefDelayAgent.wppl
+// agentParams -> params
+// agent -> act
+// currentBelief -> belief
+// outputStatesOrActions -> outputType
+// cutOffCondition -> shouldTerminate
+
+
 var makeBeliefAgent = function(agentParams, world) {
   map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeBeliefAgent args');}, 
       ['utility','alpha', 'priorBelief']);
-  assert.ok( isPOMDP(world),
+  assert.ok( isPOMDPWorld(world),
 	     'world argument lacks transition, stateToActions, or observe');
 
   var utility = agentParams.utility;
-
   var manifestStateToActions = world.manifestStateToActions;
   var transition = world.transition;
   var observe = world.observe;
@@ -71,10 +79,10 @@ var makeBeliefAgent = function(agentParams, world) {
 // paste it here
 var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
 				    outputStatesOrActions) {
-  assert.ok( isPOMDP(world),
+  assert.ok( isPOMDPWorld(world),
 	     'world argument lacks transition, stateToActions, or observe');
   var perceivedTotalTime = startState.manifestState.timeLeft;
-  assert.ok( actualTotalTime <= perceivedTotalTime && isState(startState),
+  assert.ok( actualTotalTime <= perceivedTotalTime && isPOMDPState(startState),
 	     'simulate args');
   assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
 

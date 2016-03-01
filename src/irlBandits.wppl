@@ -1,6 +1,6 @@
 // IRL Bandits
 
-// Functions for running agents and doing inference depend on beliefDelayAgent.wppl
+// Functions for running agents and doing inference that depend on beliefDelayAgent.wppl
 
 
 // Multi-arm deterministic bandits.
@@ -92,10 +92,10 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
   var priorPrizeToUtility = prior.priorPrizeToUtility;
   var priorAgentPrior = prior.priorAgentPrior;
 
-  assert.ok(isWorld(world) && isState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args');
+  assert.ok(isPOMDPWorld(world) && isPOMDPState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args');
   assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 'trajectoryOrOffPolicy bad');
   if (actualTotalTime != observedStateAction.length){console.log( 'Warning: actualTotalTime is not observed trajectory length');}
-  assert.ok( isState(observedStateAction[0][0]), 'fullstate in trajectory for inferirlbandit');
+  assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferirlbandit');
 
   
   return Enumerate(function(){
