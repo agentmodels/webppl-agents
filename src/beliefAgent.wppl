@@ -82,7 +82,6 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   var priorBelief = agent.agentParams.priorBelief;
   var transition = world.transition;
   var observe = world.observe;
-  var eu = agent.expectedUtility;
 
   var cutoffCondition = function (actualTimeLeft, state) {
     return actualTimeLeft === 0 || state.dead;
@@ -95,7 +94,6 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
 
       var nextAction = sample(agentAction(state.manifestState, currentBelief,
 					  observe(state)));
-
       var nextState = transition(state, nextAction.action);
       
       var out = {states:state, actions:nextAction.action,
