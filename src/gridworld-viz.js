@@ -11,30 +11,33 @@ function createCanvas(element, options) {
 }
 
 function convertDraw(world, additional) {
+  var additional = additional || {}; 
+
   var xyf = _(world.features)
-    .map(function (val, y) {
+    .flatMap(function (val, y) {
       return _.map(val, function (feat, x) { return { feat : feat, pos : [x, y]};})})
-    .flatten()
     .value();
 
-  var blocked = _.map(_.filter(xyf, function (o) { return o.feat == '#' }), 'pos');
-  var terminal = _.map(_.filter(xyf, function (o) { return o.feat.name !== undefined }), 'pos');
-
-  var xLim = world.features[0].length;
-  var yLim = world.features.length;
+  var blocked  = _.map(_.filter(xyf, { feat : '#' }), 'pos');
+  var terminal = _.map(_.filter(xyf, 'feat.name'   ), 'pos');
 
   var world2 = {
     blockedStates : blocked, 
     terminals : terminal, 
-    xLim : xLim, 
-    yLim : yLim
+    xLim : world.xLim, 
+    yLim : world.yLim
   };
+
+  var featureLabels = _.map(_.filter(xyf, 'feat.name'), function (a) { 
+    return { point : a.pos, content : a.feat.name } 
+  })
+  var labels = _.concat(additional.labels, featureLabels);
 
   var trajectory = _.map(additional.trajectory, function(state) { 
     return [state.loc, ''];
   });
 
-  return draw(world2, _.extend(additional, {trajectory : trajectory}));
+  return draw(world2, _.extend(additional, {trajectory : trajectory, labels : labels}));
 }
 
 function draw(world, additional) {

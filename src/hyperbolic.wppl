@@ -83,7 +83,7 @@ var simulate = function(state, world, agent, actualTotalTime, statesOrActions) {
 // ideally we'd use the MAP path, and the 
 var likelyPath = function(state, world, agent, actualTotalTime, statesOrActions) { 
   var perceivedTotalTime = state.timeLeft;
-  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work' + JSON.stringify(state));
+  assert.ok( perceivedTotalTime  > 0, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work' + JSON.stringify(state));
 
   var agentAction = agent.agent;
   var expectedUtility = agent.expectedUtility;
