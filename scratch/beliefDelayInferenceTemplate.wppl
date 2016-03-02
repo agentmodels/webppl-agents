@@ -87,7 +87,6 @@ var inferBeliefDelayAgent = function(observedTrajectories,
     };
     
     var agent = makeBeliefDelayAgent(params, world);
-    var agentAct = agent.act;
 
     var factorTrajectory = function(trajectory) {
       return sampleAlongTrajectory(0, trajectory, agent, agentPrior);

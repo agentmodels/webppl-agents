@@ -69,7 +69,7 @@ var agent = makeBeliefAgent({utility: tableToUtilityFunction(noodleUtilityTable)
 var obsFunc = function(){return JSON.stringify(simulateBeliefAgent(startState,
 								   gridworldPOMDP,
 								   agent,
-								   10, 'both'));};
+								   10, 'stateAction'));};
 
 console.log(timeit(obsFunc));
 ash();
@@ -85,7 +85,7 @@ var startState2 = {manifestState: {loc: [5,4],
 				 'Veg': true,
 				 'Noodle': true}};
 var observedTrajectory2 = simulateBeliefAgent(startState2, gridworldPOMDP, agent, 10,
-					      'both');
+					      'stateAction');
 
 // var observedTrajectories = [observedTrajectory, observedTrajectory2];
 var observedTrajectories = [observedTrajectory];
@@ -99,21 +99,23 @@ var utilityTablePrior = Enumerate(function(){
 	  'timeCost': -0.1};
 });
 
-var factorOnSequence = function(currentBelief, index, observedStateAction,
-				agentActionBelief){
+var conditionOnSequence = function(currentBelief, index, observedStateAction, agent){
   if (index >= observedStateAction.length){ 
     return []; // no-op
   } else {
+    var agentAct = agent.act;
+    var agentUpdateBelief = agent.updateBelief;
+    
     var state = observedStateAction[index][0];
     var observedAction = observedStateAction[index][1];
-    var agentERP = agentActionBelief(state.manifestState, currentBelief,
-				     observe(state));
-    var actionERP = Enumerate(function(){return sample(agentERP).action;});
-    // console.log(actionERP.score([], observedAction));
-    factor(actionERP.score([], observedAction));
+
+    var observation = observe(state);
+    var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation);
+    var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
     
-    return factorOnSequence( sample(agentERP).belief, index + 1, observedStateAction,
-			     agentActionBelief);
+    factor(nextActionERP.score([], observedAction));
+    
+    return conditionOnSequence(nextBelief, index + 1, observedStateAction, agent);
   }
 };
 
@@ -127,17 +129,16 @@ var agentPosterior = function(){
 				 alpha: 100,
 				 priorBelief: agentPrior},
 				gridworldPOMDP);
-    var agentActionBelief = agent.agent;
 
     // console.log(utilityTable);
     // console.log(agentProbNClosed);
 
-    var factorTrajectory = function(trajectory) {
-      return factorOnSequence(agentPrior, 0, trajectory,
-			      agentActionBelief);
+    var conditionTrajectory = function(trajectory) {
+      return conditionOnSequence(agentPrior, 0, trajectory,
+				 agent);
     };
 
-    map(factorTrajectory, observedTrajectories);
+    map(conditionTrajectory, observedTrajectories);
 
     return {utilityTable: utilityTable,
 	    agentProbNoodleClosed: agentProbNClosed};

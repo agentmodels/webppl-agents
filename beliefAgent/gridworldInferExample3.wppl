@@ -67,24 +67,27 @@ var agent = makeBeliefAgent({utility: tableToUtilityFunction(noodleUtilityTable)
 			     priorBelief: uninformedPrior}, gridworldPOMDP);
 
 var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 6,
-					     'both');
+					     'stateAction');
 // GridWorld.draw(gridworldMDP, {trajectory: observedTrajectory});
 // TODO: labels
 
-var conditionOnSequence = function(currentBelief, index, observedStateAction,
-				   agentActionBelief){
+var conditionOnSequence = function(currentBelief, index, observedStateAction, agent){
   if (index >= observedStateAction.length){ 
-    return [];
+    return []; // no-op
   } else {
+    var agentAct = agent.act;
+    var agentUpdateBelief = agent.updateBelief;
+    
     var state = observedStateAction[index][0];
     var observedAction = observedStateAction[index][1];
-    var agentERP = agentActionBelief(state.manifestState, currentBelief,
-				     observe(state));
+
+    var observation = observe(state);
+    var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation);
+    var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
     
-    condition( _.isEqual( sample(agentERP).action, observedAction ) );
+    factor(nextActionERP.score([], observedAction));
     
-    return conditionOnSequence( sample(agentERP).belief, index + 1, observedStateAction,
-				agentActionBelief);
+    return conditionOnSequence(nextBelief, index + 1, observedStateAction, agent);
   }
 };
 
@@ -97,10 +100,9 @@ var agentPosterior = function(){
 				 alpha: 100,
 				 priorBelief: agentPrior},
 				gridworldPOMDP);
-    var agentActionBelief = agent.agent;
 
     conditionOnSequence(agentPrior, 0, observedTrajectory,
-			agentActionBelief);
+			agent);
     
     return {utilityTable: utilityTable,
 	    prior: agentPrior};
