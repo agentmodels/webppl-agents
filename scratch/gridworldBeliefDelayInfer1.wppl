@@ -1,0 +1,6 @@
+// here, we observe the agent in a gridworld, going past a nearby donut shop
+// and towards a further away donut shop. we can conclude that the agent likes
+// donuts, but thinks that the nearby donut shop is closed.
+
+// assume that the agent is not a discounter, does not have bounded VOI, etc
+
