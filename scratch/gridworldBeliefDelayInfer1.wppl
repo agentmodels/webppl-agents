@@ -65,7 +65,7 @@ var informedPrior = deltaERP({'Donut N': true,
 var startState = {manifestState: {loc: [2,1],
 				  dead: false,
 				  timeLeft: 10,
-				  digest: 1},
+				  digest: 0},
 		  latentState: {'Donut N': true,
 				'Donut S': true,
 				'Veg': true,
@@ -103,7 +103,7 @@ var factorAlongTrajectory = function(index, trajectory, agent, belief){
     var observation = observe(state);
     var nextBelief = agentUpdateBelief(state.manifestState, belief, observation, 0);
     var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
-    
+
     factor(nextActionERP.score([], observedAction));
     
     return factorAlongTrajectory(index + 1, trajectory, agent, nextBelief);

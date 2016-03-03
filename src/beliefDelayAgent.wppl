@@ -86,7 +86,7 @@ var makeBeliefDelayAgent = function (params, world){
     function (manifestState, belief, delay) {
       assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), 'act arguments error' + 
                 'act: manifestState, belief, delay' + JSON.stringify([manifestState, belief, delay]));
-      
+
       return Enumerate(function () {
         var action = uniformDraw(manifestStateToActions(manifestState));
         var eu = expectedUtility(manifestState, belief, action, delay);
@@ -136,7 +136,7 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
   var observe = world.observe;
   
   var selectOutput = function(state, nextAction, currentBelief){
-    var table =  {states:state, actions:nextAction.action, stateAction:[state, nextAction.action], 
+    var table =  {states:state, actions:nextAction, stateAction:[state, nextAction], 
                   stateBelief: [state, currentBelief]};
     assert.ok( _.has(table,outputType), "outputType key not in ['states', 'actions', 'stateAction', 'stateBelief']");
     return table[outputType];
