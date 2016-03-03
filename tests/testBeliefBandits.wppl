@@ -137,4 +137,3 @@ var testBandits = function () {
 };
 
 testBandits();                                                       
-ash();
