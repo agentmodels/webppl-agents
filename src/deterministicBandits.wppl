@@ -5,8 +5,8 @@ var makeDeterministicBandit = function (numArms) {
   var actions = _.range(numArms);
   
   var mdpTransition = function (state, action) {
-    var dead = state.timeLeft - 1 == 1 ? true : false;
-    return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
+    var terminateAfterAction = state.timeLeft - 1 == 1 ? true : false;
+    return update(state, { loc:action, timeLeft:state.timeLeft - 1, terminateAfterAction:terminateAfterAction });
   };
   
   var manifestStateToActions = function (manifestState) {return actions;};
@@ -53,7 +53,7 @@ var runBeliefAgentBandit = function(numArms, armToRewards, priorBelief,
   var actualTotalTime = perceivedTotalTime;
   var startState = {manifestState: {loc: 'start',
 				    timeLeft: perceivedTotalTime,
-				    dead: false},
+				    terminateAfterAction: false},
 		    latentState: armToRewards};
 
   return simulateBeliefAgent(startState, world, agent, actualTotalTime, 'states');

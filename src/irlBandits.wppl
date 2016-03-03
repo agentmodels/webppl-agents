@@ -9,9 +9,17 @@ var makeIRLBanditWorld = function (numArms) {
   var actions = _.range(numArms);
   
   var mdpTransition = function (state, action) {
+<<<<<<< 18287b8ade2af6e861de6f4425cef4f28221f331
     var newTimeLeft = state.timeLeft - 1;
     var terminateAfterAction = (newTimeLeft == 1);
     return update(state, { loc:action, timeLeft:newTimeLeft, terminateAfterAction: terminateAfterAction});
+||||||| merged common ancestors
+    var dead = state.timeLeft - 1 == 1 ? true : false;
+    return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
+=======
+    var terminateAfterAction = state.timeLeft - 1 == 1 ? true : false;
+    return update(state, { loc:action, timeLeft:state.timeLeft - 1, terminateAfterAction:terminateAfterAction });
+>>>>>>> digest->restaurantTimeLeft, dead->terminateAfterAction
   };
   
   var manifestStateToActions = function (manifestState) {return actions;};

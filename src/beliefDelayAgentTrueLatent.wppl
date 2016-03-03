@@ -33,16 +33,16 @@ var getLocs = function(trajectory){
   return _.pluck( _.pluck(trajectory,'manifestState'), 'loc' );
 };
 
-// From array of locs, add *timeLeft* and *dead*
+// From array of locs, add *timeLeft* and *terminateAfterAction*
 var locsToManifestStates = function(locs){
   return map( function(locTime){ 
-    var dead = locTime[1]==1;
-    return {loc: locTime[0], timeLeft:locTime[1], dead: dead};
+    var terminateAfterAction = locTime[1]==1;
+    return {loc: locTime[0], timeLeft:locTime[1], terminateAfterAction: terminateAfterAction};
   }, zip( locs, downToOne(locs.length) ) );
 };
 
 // From array of form [ [loc, action] ], output array of form:
-// [  [{manifestState:{loc:, timeLeft:, dead:}, latentState:latentState}, action ]  ]
+// [  [{manifestState:{loc:, timeLeft:, terminateAfterAction:}, latentState:latentState}, action ]  ]
 var stateActionToFullStates = function(locAction, latentState){
   var locs = map(first,locAction);
   var manifestStates = locsToManifestStates(locs);
@@ -85,7 +85,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
                                           'Myopia needs delays and naive');}
 
   var shouldTerminate = function(state, delay) {
-    if (state.manifestState.dead) {
+    if (state.manifestState.terminateAfterAction) {
       return true;
     }
     if (_.isNumber(agentParams.myopiaCutoff)) {
@@ -163,7 +163,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
 var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTime, outputType) {
   var perceivedTotalTime = startState.manifestState.timeLeft;
   assert.ok( actualTotalTime <= perceivedTotalTime && isState(startState), 'simulate args');
-  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
+  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work');
 
   var agentAct = agent.act;
   var agentUpdateBelief = agent.updateBelief;
@@ -180,7 +180,7 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
 
   // TODO: can we switch to just the gridworld case?
   var shouldTerminate = (isGridworld(world) ?
-                         function (actualTimeLeft, state) { return actualTimeLeft === 0 || state.dead; } :
+                         function (actualTimeLeft, state) { return actualTimeLeft === 0 || state.terminateAfterAction; } :
                          function (actualTimeLeft, state) { return actualTimeLeft === 0; });
 
 
