@@ -1,7 +1,7 @@
 var start = { 
   loc : [3,0],
-  dead : false,
-  digest : 2, 
+  terminateAfterAction : false,
+  restaurantTimeLeft : 2, 
   timeLeft : 14
 };
 

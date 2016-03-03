@@ -14,8 +14,8 @@ var isAllowedState_ = function(gridMap, loc) {
 };
 
 var advanceStateTime = function(state) { 
-  var dead = state.timeLeft > 1 ? state.dead : true;
-  return update(state, { timeLeft : state.timeLeft - 1, dead : dead, previousLoc : state.loc});
+  var terminateAfterAction = state.timeLeft > 1 ? state.terminateAfterAction : true;
+  return update(state, { timeLeft : state.timeLeft - 1, terminateAfterAction : terminateAfterAction, previousLoc : state.loc});
 };
 
 var addPrevious = function(state) { 
@@ -44,9 +44,9 @@ var makeGridTransition_ = function(gridMap, options) {
 
 
     if ( getFeature(state2).name ) { // there's a restaurant here
-      var state3 =  update(state2, { digest : state2.digest -1}); 
-      if (state3.digest <= 0) {
-        return update(state3, { dead : true });
+      var state3 =  update(state2, { restaurantTimeLeft : state2.restaurantTimeLeft -1}); 
+      if (state3.restaurantTimeLeft <= 0) {
+        return update(state3, { terminateAfterAction : true });
       }
       return state3;
     }

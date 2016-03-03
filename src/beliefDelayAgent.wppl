@@ -56,7 +56,7 @@ var makeBeliefDelayAgent = function (params, world){
 
   // Termination condition for *expectedUtility*
   var shouldTerminate = function(state, delay) {
-    if (state.manifestState.dead) {
+    if (state.manifestState.terminateAfterAction) {
       return true;
     }
     if (params.myopia.on) {
@@ -127,7 +127,7 @@ var makeBeliefDelayAgent = function (params, world){
 var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTime, outputType) {
   var perceivedTotalTime = startState.manifestState.timeLeft;
   assert.ok( actualTotalTime <= perceivedTotalTime && isPOMDPState(startState), 'simulateBeliefDelayAgent args');
-  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
+  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work');
 
   var agentAct = agent.act;
   var agentUpdateBelief = agent.updateBelief;
@@ -144,7 +144,7 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
 
   // TODO: can we switch to just the gridworld case?
   var shouldTerminate = (isGridworld(world) ?
-                         function (actualTimeLeft, state) { return actualTimeLeft === 0 || state.dead; } :
+                         function (actualTimeLeft, state) { return actualTimeLeft === 0 || state.terminateAfterAction; } :
                          function (actualTimeLeft, state) { return actualTimeLeft === 0; });
 
 

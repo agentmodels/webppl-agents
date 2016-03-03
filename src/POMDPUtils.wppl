@@ -29,16 +29,16 @@ var trajectoryToLocations = function(trajectory){
   return _.pluck( _.pluck(trajectory,'manifestState'), 'loc' );
 };
 
-// From array of locs, add *timeLeft* and *dead*
+// From array of locs, add *timeLeft* and *terminateAfterAction*
 var locationsToManifestStates = function(locs){
   return map( function(locTime){ 
-    var dead = locTime[1]==1;
-    return {loc: locTime[0], timeLeft:locTime[1], dead: dead};
+    var terminateAfterAction = locTime[1]==1;
+    return {loc: locTime[0], timeLeft:locTime[1], terminateAfterAction: terminateAfterAction};
   }, zip( locs, downToOne(locs.length) ) );
 };
 
 // From array of form [ [loc, action] ], output array of form:
-// [  [{manifestState:{loc:, timeLeft:, dead:}, latentState:latentState}, action ]  ]
+// [  [{manifestState:{loc:, timeLeft:, terminateAfterAction:}, latentState:latentState}, action ]  ]
 var stateActionPairsToFullStates = function(locAction, latentState){
   var locs = map(first,locAction);
   var manifestStates = locationsToManifestStates(locs);

@@ -18,7 +18,7 @@ var isGridworld = function(world){return world
 // noReverse must be false in the MDP.
 
 // manifest states in this POMDP are objects with loc (an array of two
-// numbers), timeLeft, dead, and digest - the same as states in gridworld MDPs.
+// numbers), timeLeft, terminateAfterAction, and restaurantTimeLeft - the same as states in gridworld MDPs.
 // latent states are an object listing whether each restaurant type is open.
 // transition acts the same as in gridworld MDPs, not touching the latent state,
 // unless the transition would take the agent into a closed restaurant, in which

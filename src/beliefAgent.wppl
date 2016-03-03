@@ -46,7 +46,7 @@ var makeBeliefAgent = function(params, world) {
 	  var latentState = sample(belief);
 	  var state = buildState(manifestState, latentState);
 	  var u = utility(state, action);
-	  if (state.manifestState.dead) {
+	  if (state.manifestState.terminateAfterAction) {
 	    return u;
 	  } else {
 	    // change state and get an observation based on *latentState*
@@ -82,7 +82,7 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
 	     'world argument lacks transition, stateToActions, or observe');
   assert.ok( actualTotalTime <= perceivedTotalTime && isPOMDPState(startState),
 	     'simulate args');
-  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
+  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work');
 
   var agentAct = agent.act;
   var priorBelief = agent.params.priorBelief;
@@ -102,7 +102,7 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   };
   
   var shouldTerminate = function (actualTimeLeft, state) {
-    return actualTimeLeft === 0 || state.dead;
+    return actualTimeLeft === 0 || state.terminateAfterAction;
   };
 
   var sampleSequence = function(state, belief, actualTimeLeft) {

@@ -339,11 +339,11 @@ var testBoundVOI = function(){
     
     var transition = function(state, action){
       var newTimeLeft = state.manifestState.timeLeft - 1;
-      var dead = (newTimeLeft ==1);
+      var terminateAfterAction = (newTimeLeft ==1);
       var newLoc = action;
       assert.ok(newLoc === transitionTable[state.manifestState.loc][action], 'transition' );
       
-      var newManifestState = {loc:newLoc, timeLeft:newTimeLeft, dead:dead };
+      var newManifestState = {loc:newLoc, timeLeft:newTimeLeft, terminateAfterAction:terminateAfterAction };
       return buildState(newManifestState, state.latentState);
     };
 
@@ -363,7 +363,7 @@ var testBoundVOI = function(){
 
 
     var world = {manifestStateToActions: manifestStateToActions, transition:transition, observe:observe};
-    var start = buildState({timeLeft:perceivedTime, loc:'start', dead:false}, 'gotoA');
+    var start = buildState({timeLeft:perceivedTime, loc:'start', terminateAfterAction:false}, 'gotoA');
     return {world:world, startState:start, transitionTable:transitionTable};
   };
   
@@ -479,8 +479,8 @@ var testNoObservationDependentLatents = function(){
     
     // next state is simply current action
     var mdpTransition = function (state, action) {
-      var dead = state.timeLeft - 1 == 1 ? true : false;
-      return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
+      var terminateAfterAction = state.timeLeft - 1 == 1 ? true : false;
+      return update(state, { loc:action, timeLeft:state.timeLeft - 1, terminateAfterAction:terminateAfterAction });
     };
     
     var manifestStateToActions = function(manifestState){
@@ -504,7 +504,7 @@ var testNoObservationDependentLatents = function(){
   var trueLatentState = {0:'a', 1:'bad', 2:'bad'};
   var perceivedTotalTime = 3;
   var actualTotalTime = perceivedTotalTime;
-  var startState = buildState( {loc:'start', timeLeft:perceivedTotalTime, dead:false}, trueLatentState);  
+  var startState = buildState( {loc:'start', timeLeft:perceivedTotalTime, terminateAfterAction:false}, trueLatentState);  
   
   // Agent params:
   
