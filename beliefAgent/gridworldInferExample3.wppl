@@ -71,7 +71,7 @@ var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 
 // GridWorld.draw(gridworldMDP, {trajectory: observedTrajectory});
 // TODO: labels
 
-var conditionOnSequence = function(currentBelief, index, observedStateAction, agent){
+var factorOnSequence = function(currentBelief, index, observedStateAction, agent){
   if (index >= observedStateAction.length){ 
     return []; // no-op
   } else {
@@ -87,7 +87,7 @@ var conditionOnSequence = function(currentBelief, index, observedStateAction, ag
     
     factor(nextActionERP.score([], observedAction));
     
-    return conditionOnSequence(nextBelief, index + 1, observedStateAction, agent);
+    return factorOnSequence(nextBelief, index + 1, observedStateAction, agent);
   }
 };
 
@@ -101,8 +101,8 @@ var agentPosterior = function(){
 				 priorBelief: agentPrior},
 				gridworldPOMDP);
 
-    conditionOnSequence(agentPrior, 0, observedTrajectory,
-			agent);
+    factorOnSequence(agentPrior, 0, observedTrajectory,
+		     agent);
     
     return {utilityTable: utilityTable,
 	    prior: agentPrior};

@@ -99,7 +99,7 @@ var utilityTablePrior = Enumerate(function(){
 	  'timeCost': -0.1};
 });
 
-var conditionOnSequence = function(currentBelief, index, observedStateAction, agent){
+var factorOnSequence = function(currentBelief, index, observedStateAction, agent){
   if (index >= observedStateAction.length){ 
     return []; // no-op
   } else {
@@ -115,7 +115,7 @@ var conditionOnSequence = function(currentBelief, index, observedStateAction, ag
     
     factor(nextActionERP.score([], observedAction));
     
-    return conditionOnSequence(nextBelief, index + 1, observedStateAction, agent);
+    return factorOnSequence(nextBelief, index + 1, observedStateAction, agent);
   }
 };
 
@@ -133,12 +133,12 @@ var agentPosterior = function(){
     // console.log(utilityTable);
     // console.log(agentProbNClosed);
 
-    var conditionTrajectory = function(trajectory) {
-      return conditionOnSequence(agentPrior, 0, trajectory,
+    var factorTrajectory = function(trajectory) {
+      return factorOnSequence(agentPrior, 0, trajectory,
 				 agent);
     };
 
-    map(conditionTrajectory, observedTrajectories);
+    map(factorTrajectory, observedTrajectories);
 
     return {utilityTable: utilityTable,
 	    agentProbNoodleClosed: agentProbNClosed};

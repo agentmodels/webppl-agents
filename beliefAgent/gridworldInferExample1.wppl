@@ -88,9 +88,9 @@ var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 
 // condition on them taking the same actions. This way, we reject agents at the
 // first action where they differ, rather than having to generate a whole
 // incorrect trajectory.
-var conditionOnSequence = function(currentBelief, index, observedStateAction, agent){
+var factorOnSequence = function(currentBelief, index, observedStateAction, agent){
   // *index* tracks how far through the trajectory we are. If we are at the end
-  // of the trajectory, we don't have to condition any more.
+  // of the trajectory, we don't have to factor any more.
   if (index >= observedStateAction.length){ 
     return [];
   } else {
@@ -106,7 +106,7 @@ var conditionOnSequence = function(currentBelief, index, observedStateAction, ag
     
     factor(nextActionERP.score([], observedAction));
     
-    return conditionOnSequence(nextBelief, index + 1, observedStateAction, agent);
+    return factorOnSequence(nextBelief, index + 1, observedStateAction, agent);
   }
 };
 
@@ -121,7 +121,7 @@ var agentPosterior = function(){
 				 priorBelief: agentPrior},
 				gridworldPOMDP);
 
-    conditionOnSequence(agentPrior, 0, observedTrajectory, agent);
+    factorOnSequence(agentPrior, 0, observedTrajectory, agent);
     
     return {utilityTable: utilityTable,
 	    prior: agentPrior};
