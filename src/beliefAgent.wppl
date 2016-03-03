@@ -28,7 +28,7 @@ var makeBeliefAgent = function(params, world) {
 
   var act = dp.cache(
     function(manifestState, belief) {
-      assert.ok(_.isFinite(manifestState.timeLeft) && isERP(belief),
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief),
 		'agent args fail');
       
       return Enumerate(function(){
@@ -101,9 +101,9 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
     return table[outputType];
   };
   
-  var shouldTerminate = function (actualTimeLeft, state) {
-    return actualTimeLeft === 0 || state.dead;
-  };
+  var shouldTerminate = (isGridworld(world) ?
+                         function (actualTimeLeft, state) { return actualTimeLeft === 0 || state.dead; } :
+                         function (actualTimeLeft, state) { return actualTimeLeft === 0; });
 
   var sampleSequence = function(state, belief, actualTimeLeft) {
     if (shouldTerminate(actualTimeLeft, state.manifestState) ) {

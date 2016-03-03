@@ -5,7 +5,7 @@ var makeDeterministicBandit = function (numArms) {
   var actions = _.range(numArms);
   
   var mdpTransition = function (state, action) {
-    var dead = state.timeLeft - 1 == 0 ? true : false;
+    var dead = state.timeLeft - 1 == 1 ? true : false;
     return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
   };
   
@@ -18,7 +18,7 @@ var makeDeterministicBandit = function (numArms) {
 
   var observe = function(state){
     // agent observes the reward of arm when he chooses it
-    return state.manifestState.loc === 'start' ? 0 :
+    return state.manifestState.loc === 'start' ? state.latentState.start :
       state.latentState.rewards[state.manifestState.loc];
   };
   

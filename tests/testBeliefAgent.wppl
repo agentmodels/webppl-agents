@@ -14,8 +14,8 @@ var testAgent = function(){
   var priorBelief1 = deltaERP(armToRewards1);
   var perceivedTotalTime1 = 10;
   var locs1 = trajectoryToLocations(runBeliefAgentBandit(numArms1, armToRewards1,
-  					     priorBelief1,
-  					     perceivedTotalTime1));
+  							 priorBelief1,
+  							 perceivedTotalTime1));
   map(function(index){assert.ok( locs1[index] === 2, 'banditsTest1');}, rest(_.range(10)));
 
   // if the agent is unsure about the latent state, they should explore the
@@ -28,8 +28,8 @@ var testAgent = function(){
   });
   var perceivedTotalTime2 = 3;
   var locs2 = trajectoryToLocations(runBeliefAgentBandit(numArms2, armToRewards2,
-  					     priorBelief2,
-  					     perceivedTotalTime2));
+  							 priorBelief2,
+  							 perceivedTotalTime2));
   assert.ok(locs2[1] === 2 && locs2[2] === 1, 'banditsTest2');
 
   // even if one arm has lower expected reward, the agent should still explore
@@ -43,8 +43,8 @@ var testAgent = function(){
   });
   var perceivedTotalTime3 = 10;
   var locs3 = trajectoryToLocations(runBeliefAgentBandit(numArms3, armToRewards3,
-  					     priorBelief3,
-  					     perceivedTotalTime3));
+  							 priorBelief3,
+  							 perceivedTotalTime3));
   assert.ok(locs3[1] === 1 && locs3[2] === 0, 'banditsTest3');
 
   // agent thinks that each arm could have high reward, and thinks the reward
@@ -58,8 +58,8 @@ var testAgent = function(){
   });
   var perceivedTotalTime4 = 6;
   var locs4 = trajectoryToLocations(runBeliefAgentBandit(numArms4, armToRewards4,
-  					     priorBelief4,
-  					     perceivedTotalTime4));
+  							 priorBelief4,
+  							 perceivedTotalTime4));
   assert.ok(_.difference(_.range(4), locs4).length === 0, 'banditsTest4');
 
   console.log('bandit tests passed');
@@ -108,7 +108,7 @@ var testAgent = function(){
   				alpha: 100,
   				priorBelief: prior1}, gridworldPOMDP);
   var gridLocs1 = trajectoryToLocations(simulateBeliefAgent(startState1, gridworldPOMDP,
-  						agent1, 2, 'states'));
+  							    agent1, 2, 'states'));
   assert.ok(_.isEqual(gridLocs1[1],[2,1]), 'gridTest1');
 
   // if the agent knows that both donuts are either open or closed, and they
@@ -135,7 +135,7 @@ var testAgent = function(){
   				alpha: 200,
   				priorBelief: prior2}, gridworldPOMDP);
   var gridLocs2 = trajectoryToLocations(simulateBeliefAgent(startState2, gridworldPOMDP,
-  						agent2, 12, 'states'));
+  							    agent2, 12, 'states'));
   assert.ok(_.isEqual(gridLocs2[3], [0,1]) && _.isEqual(gridLocs2[9], [4,3]),
   	    'gridTest2');
 
@@ -166,7 +166,7 @@ var testAgent = function(){
 				alpha: 300,
 				priorBelief: prior3}, gridworldPOMDP);
   var gridLocs3 = trajectoryToLocations(simulateBeliefAgent(startState3, gridworldPOMDP,
-  						agent3, 10, 'states'));
+  							    agent3, 10, 'states'));
 
   assert.ok(_.isEqual(gridLocs3[1], [3,5]) && _.isEqual(gridLocs3[3], [4,6]),
   	    'gridTest3');
@@ -235,7 +235,7 @@ var testAgent = function(){
 				alpha: 100,
 				priorBelief: prior4}, forkyGridworldPOMDP);
   var gridLocs4 = trajectoryToLocations(simulateBeliefAgent(startState4, forkyGridworldPOMDP,
-						agent4, 20, 'states'));
+							    agent4, 20, 'states'));
 
   assert.ok(_.isEqual(gridLocs4[1], [1,0]), 'gridTest4');
 
@@ -255,7 +255,7 @@ var testAgent = function(){
 				alpha: 100,
 				priorBelief: prior5}, forkyGridworldPOMDP);
   var gridLocs5 = trajectoryToLocations(simulateBeliefAgent(startState5, forkyGridworldPOMDP,
-						agent5, 3, 'states'));
+							    agent5, 3, 'states'));
 
   assert.ok(_.isEqual(gridLocs5[1], [1,0]), 'gridTest5');
   
