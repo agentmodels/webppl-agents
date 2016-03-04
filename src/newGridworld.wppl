@@ -14,7 +14,7 @@ var isAllowedState_ = function(gridMap, loc) {
 };
 
 var advanceStateTime = function(state) { 
-  var dead = state.timeLeft > 0 ? state.dead : true;
+  var dead = state.timeLeft > 2 ? state.dead : true;
   return update(state, { timeLeft : state.timeLeft - 1, dead : dead, previousLoc : state.loc});
 };
 
