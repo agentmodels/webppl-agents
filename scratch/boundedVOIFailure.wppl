@@ -1,0 +1,68 @@
+// this is designed to show that an agent with bounded VOI can behave
+// differently depending on whether *makeBeliefDelayAgent* uses the trueLatent
+// thing or not
+
+// designed so that the utility of going to noodle should barely be higher than
+// the utility of going to donut
+
+var makeForkRoad = function(options) { 
+  var _ = ' '; 
+  var D = {name: 'Donut'};
+  var N = {name: 'Noodle'};
+
+  var myOptions = options || {};
+
+  var features =
+	[[ D , '#'],
+	 [ _ , '#'],
+	 [ _ , '#'],
+	 [ _ , '#'],
+	 [ _ , '#'],
+	 [ _ , '#'],
+	 [ _ , '#'],
+	 [ _ , '#'],
+	 [ _ , '#'],
+	 [ _ , '#'],
+	 [ _ , '#'],
+	 [ _ ,  N ]];
+  
+  return makeGridWorld(features, myOptions);
+};
+
+var forkyGridworldMDP = makeForkRoad();
+var forkyGridworldPOMDP = makeGridworldPOMDP(forkyGridworldMDP);
+var forkFeature = forkyGridworldMDP.feature;
+
+var tableToUtilityFunctionFork = function(table) {
+  return function(state, action) {
+    if (state.manifestState.dead) {
+      return 0;
+    }
+    var stateFeatureName = forkFeature(state.manifestState).name;
+    if (stateFeatureName) {
+      return table[stateFeatureName];
+    } else {
+      return table.timeCost;
+    }
+  };
+};
+
+var startState = {manifestState: {loc: [0,0],
+				  dead: false,
+				  timeLeft: 20,
+				  digest: 1},
+		  latentState: {Donut: true,
+				Noodle: true}};
+var utilityTable = {Noodle: 5,
+		    Donut: 12,
+		    timeCost: -0.1};
+var prior = Enumerate(function(){
+  return uniformDraw([startState.latentState, {Donut: false, Noodle: true}]);
+});
+var agent = makeBeliefAgent({utility: tableToUtilityFunctionFork(utilityTable),
+			     alpha: 100,
+			     priorBelief: prior}, forkyGridworldPOMDP);
+var trajectory = simulateBeliefAgent(startState, forkyGridworldPOMDP,
+				     agent, 20, 'states');
+var gridLocs = _.pluck(_.pluck(trajectory, 'manifestState'), 'loc');
+console.log(gridLocs);

@@ -108,7 +108,7 @@ var makeBeliefDelayAgent = function (params, world){
   var act = dp.cache(
     function (manifestState, belief, delay) {
       assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), '_agent args fail'); 
-   
+      
       return Enumerate(function () {
         var action = uniformDraw(manifestStateToActions(manifestState));
         var eu = expectedUtility(manifestState, belief, action, delay);
