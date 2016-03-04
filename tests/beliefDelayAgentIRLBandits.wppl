@@ -14,12 +14,11 @@ var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk){
   return Enumerate(armToPrizeThunk);
 };
 
-var speedTest = function(){
-  var beliefOrBeliefDelay ='belief';
+var speedTestIRLBandits = function(beliefOrBeliefDelay){
+  console.log('\n Speedtest on IRL bandits for agent: ', beliefOrBeliefDelay);
+  
   var simulate = getSimulateFunction(beliefOrBeliefDelay);
 
-
-  
   var getWorld = function(perceivedTotalTime){
     var numArms = 4;
     var armToPrize = {0:'a', 1:'a', 2:'a', 3:'a'};
@@ -37,7 +36,13 @@ var speedTest = function(){
     var baseAgentParams = {
       priorBelief: priorBelief,
       alpha: 100,
+      noDelays: true,
+      discount: 0,
+      sophisticatedOrNaive: 'naive',
+      myopia: {on:false, bound:0},
+      boundVOI: {on:false, bound:0}
     };
+
     var agentParams = update(baseAgentParams, {priorBelief:priorBelief}); 
     var prizeToUtility = {a:5, b:10, c:-8}; 
     return makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart, beliefOrBeliefDelay);
@@ -56,14 +61,18 @@ var speedTest = function(){
 
     console.log('\n Perceived Time: ', perceivedTotalTime, '  (locs, timeit) ', trajectoryToLocations(out.value), 
                 out.runtimeInMilliseconds);
-    return out.runtimeInMilliseconds;
+    return out.runtimeInMilliseconds + ' ms';
   };
-  var timeValues = [5,6,7,8];
+  var timeValues = [5,6,7];
   var runTimes = map( testTime, timeValues);
   console.log('\n\n [perceivedTime, runTime]: ', zip(timeValues, runTimes) );
+  console.log('\n completed speed test irlBandits' )
 };  
-speedTest();
-ash();
+
+var runSpeedTests = function(){
+  map( speedTestIRLBandits, ['belief', 'beliefDelay'] );
+};
+
 
 
 var testInferIRLBandit = function(){
@@ -634,9 +643,7 @@ var testNoObservationDependentLatents = function(){
 };
 
 
-
-
-// TODO change back
+runSpeedTests();
 testInferIRLBandit();
 runIRLBanditExamples();
 testBoundVOI();
