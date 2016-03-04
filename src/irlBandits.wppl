@@ -2,15 +2,6 @@
 
 // Functions for running agents and doing inference that depend on beliefDelayAgent.wppl
 
-var getMakeAgentFunction = function(beliefOrBeliefDelay){
-  if ( _.isUndefined(beliefOrBeliefDelay) || 
-       beliefOrBeliefDelay == 'beliefDelay'){
-    return makeBeliefDelayAgent;
-  } else {
-    return makeBeliefAgent;
-  }
-};
-
 
 // Multi-arm deterministic bandits.
 // Rewards of arms are fixed by the latent state. 

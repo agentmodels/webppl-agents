@@ -1,13 +1,5 @@
 /* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
 
-var getSimulateFunction = function(beliefOrBeliefDelay){
-  if ( _.isUndefined(beliefOrBeliefDelay) || 
-       beliefOrBeliefDelay == 'beliefDelay'){
-    return simulateBeliefDelayAgent;
-  } else {
-    return simulateBeliefAgent;
-  }
-};
 
 // from thunk to prior only on latents
 var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk){
@@ -59,9 +51,8 @@ var speedTestIRLBandits = function(beliefOrBeliefDelay){
     if (perceivedTotalTime > 5){
       assert.ok(  _.difference([1,2,3],locs).length == 0, 'fail belief bandit example 4');
     }
-
-    console.log('\n Perceived Time: ', perceivedTotalTime, '  (locs, timeit) ', trajectoryToLocations(out.value), 
-                out.runtimeInMilliseconds);
+    // console.log('\n Perceived Time: ', perceivedTotalTime, '  (locs, timeit) ', trajectoryToLocations(out.value), 
+    //             out.runtimeInMilliseconds);
     return out.runtimeInMilliseconds + ' ms';
   };
   var timeValues = [5,6,7];
@@ -496,7 +487,6 @@ var testBoundVOI = function(){
   var paramsUpdate = {discount: 0.1};
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
   assert.ok( arraysEqual( out, [ 'start', 'eitherAorB_0', 'eitherAorB_A' ]), 'test boundVOI 1');
-  console.log( 'low discount:', out)
 
   // high discount agent
   var paramsUpdate = {discount: 4};

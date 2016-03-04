@@ -48,3 +48,6 @@ var stateActionPairsToFullStates = function(locAction, latentState){
   
   return zip( fullStates, map(second,locAction) );
 };
+
+
+
