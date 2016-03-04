@@ -56,7 +56,9 @@ var startState = {manifestState: {loc: [0,0],
 var utilityTable = {Noodle: 5,
 		    Donut: 12,
 		    timeCost: -0.1};
-var prior = deltaERP(startState.latentState);
+var prior = Enumerate(function(){
+  return uniformDraw([startState.latentState, {Donut: false, Noodle: true}]);
+});
 var agent = makeBeliefAgent({utility: tableToUtilityFunctionFork(utilityTable),
 			     alpha: 100,
 			     priorBelief: prior}, forkyGridworldPOMDP);
