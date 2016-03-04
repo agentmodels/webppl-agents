@@ -13,18 +13,9 @@ var makeForkRoad = function(options) {
   var myOptions = options || {};
 
   var features =
-	[[ D , '#'],
+	[[ N , '#'],
 	 [ _ , '#'],
-	 [ _ , '#'],
-	 [ _ , '#'],
-	 [ _ , '#'],
-	 [ _ , '#'],
-	 [ _ , '#'],
-	 [ _ , '#'],
-	 [ _ , '#'],
-	 [ _ , '#'],
-	 [ _ , '#'],
-	 [ _ ,  N ]];
+	 [ _ ,  D ]];
   
   return makeGridWorld(features, myOptions);
 };
@@ -49,19 +40,27 @@ var tableToUtilityFunctionFork = function(table) {
 
 var startState = {manifestState: {loc: [0,0],
 				  dead: false,
-				  timeLeft: 20,
+				  timeLeft: 5,
 				  digest: 1},
 		  latentState: {Donut: true,
 				Noodle: true}};
-var utilityTable = {Noodle: 5,
-		    Donut: 12,
+var utilityTable = {Noodle: 11,
+		    Donut: 1,
 		    timeCost: -0.1};
 var prior = Enumerate(function(){
-  return uniformDraw([startState.latentState, {Donut: false, Noodle: true}]);
+  return categorical([0.1, 0.9], [startState.latentState, {Donut: true, Noodle: false}]);
 });
-var agent = makeBeliefAgent({utility: tableToUtilityFunctionFork(utilityTable),
-			     alpha: 100,
-			     priorBelief: prior}, forkyGridworldPOMDP);
-var gridLocs = trajectoryToLocations(simulateBeliefAgent(startState, forkyGridworldPOMDP,
-							 agent, 20, 'states'));
+
+var params = {alpha: 1000,
+	      noDelays: false,
+	      discount: 0,
+	      sophisticatedOrNaive: 'naive',
+	      myopia: {on: false, bound: 0},
+	      priorBelief: prior,
+	      boundVOI: {on: true, bound: 0},
+	      utility: tableToUtilityFunctionFork(utilityTable)};
+
+var agent = makeBeliefDelayAgent(params, forkyGridworldPOMDP);
+var gridLocs = trajectoryToLocations(simulateBeliefDelayAgent(startState, forkyGridworldPOMDP,
+							      agent, 4, 'states'));
 console.log(gridLocs);
