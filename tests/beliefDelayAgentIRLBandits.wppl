@@ -14,6 +14,7 @@ var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk){
   return Enumerate(armToPrizeThunk);
 };
 
+
 var speedTestIRLBandits = function(beliefOrBeliefDelay){
   console.log('\n Speedtest on IRL bandits for agent: ', beliefOrBeliefDelay);
   
