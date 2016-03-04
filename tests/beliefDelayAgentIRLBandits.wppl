@@ -67,119 +67,6 @@ var runSpeedTests = function(){
 
 
 
-var testInferIRLBandit = function(){
-  // Prizes are [a,b]. If agent chooses 0, then they prefer 'a'. 
-  
-  // world params
-  var numArms = 2;
-  var armToPrize = {0:'a', 1:'b'};
-  var perceivedTotalTime = 3;
-  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
-  
-  // agent params
-  var baseAgentParams = noDiscountBaseAgentParams;
-
-  var prior = {
-    priorPrizeToUtility: Enumerate(function(){
-      return categorical( [.5, .5], [{a:0, b:1}, {a:1, b:0} ] );
-    }),
-    
-    priorAgentPrior: Enumerate(function(){return deltaERP({0:'a', 1:'b'});})
-  };
-
-  // EXAMPLE 1
-  var observedStateAction = [['start',1], [1,1], [1,1]]; 
-  var latentState = armToPrize;
-  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
-  
-  // Test on two different inference functions
-  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
-  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
-  assert.ok( sample(erp1).prizeToUtility.a == 0 && sample(erp2).prizeToUtility.a == 0, 'testbandit infer 1');
-  
-  
-  // EXAMPLE 2
-  var observedStateAction = [['start',0], [0,0], [0,0]]; 
-  var observedStates = map(first, observedStateAction);
-  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
-
-  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
-  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
-  assert.ok( sample(erp1).prizeToUtility.a == 1 && sample(erp2).prizeToUtility.a == 1, 'testbandit infer 2');
-
-  console.log('passed easy testBanditInferBeliefOnly tests');
-  
-  
-  // EXAMPLE 3 - INFER PRIOR AND UTILITY
-  
-  // Two arms: {0:a, 1:c}. Agent stays at 0. 
-  // Explanation: u(a) high and prior that 1:b is low.
-
-  // True armToPrize: 0:a, 1:c
-  // True priorBelief:  0:a, 1:categorical([.05,.95],[b,c])
-  // True utilities: {a:10, b:20, c:1}
-  
-  // world params
-  var numArms = 2;
-  var armToPrize = {0:'a', 1:'c'};
-  var perceivedTotalTime = 5;
-  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
-  
-  // agent params
-  var baseAgentParams = noDiscountBaseAgentParams;
-
-  // Prior on agent's prizeToUtility
-  var truePrizeToUtility = {a:10, b:20, c:1};
-  var priorPrizeToUtility = Enumerate(function(){
-    return {a: uniformDraw([0,3,10]), b:20, c:1};
-  });
-  
-  // Prior on agent's prior
-  var trueAgentPrior = Enumerate(function(){
-    return {0:'a', 1: categorical([.05, .95], ['b','c']) };
-  });
-  var falseAgentPrior = Enumerate(function(){
-    return {0:'a', 1: categorical([.5, .5], ['b','c']) };
-  });
-
-  var priorAgentPrior = Enumerate(function(){
-    return flip() ? trueAgentPrior : falseAgentPrior;
-  });
-  
-  var prior = {priorPrizeToUtility: priorPrizeToUtility, priorAgentPrior: priorAgentPrior};
-
-  var latentState = armToPrize;
-  var observedStateAction = [['start',0], [0,0], [0,0], [0,0], [0,0]]; 
-  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
-
-  
-  var out1 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10)});
-  var out2 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'offPolicy', 10)});
-  console.log('Time for Example 3, 2 arms and time 5: [from states, offpolicy]', out1.runtimeInMilliseconds, out2.runtimeInMilliseconds);
-  var testERP = function(erp){
-    var out = sample(erp);
-    assert.ok( out.prizeToUtility.a==10  && _.isFinite( out.priorBelief.score([], armToPrize)),
-               'testbandit inferbelief example 4' );
-  };
-  map(testERP,[out1.value,out2.value]);
-
-
-  // He goes to 1 every time => u(a)==0=
-  var observedStateAction = [['start',1], [1,1], [1,1], [1,1], [1,1]]; 
-  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
-
-  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
-  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
-
-  var testERP = function(erp){
-    var out = sample(erp);
-    assert.ok( out.prizeToUtility.a == 0, 'testbandit inferbelief example 5' );
-  };
-  map(testERP,[erp1,erp2]);
- 
-  console.log('passed ALL testBanditInferBeliefOnly tests');
-};
-
 
 var runIRLBanditExamples = function(){
 
@@ -369,6 +256,124 @@ var runIRLBanditExamples = function(){
 
   console.log('\n All runIRLBanditExamples passed');
 };
+
+
+
+var testInferIRLBandit = function(){
+  // Prizes are [a,b]. If agent chooses 0, then they prefer 'a'. 
+  
+  // world params
+  var numArms = 2;
+  var armToPrize = {0:'a', 1:'b'};
+  var perceivedTotalTime = 3;
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
+  
+  // agent params
+  var baseAgentParams = noDiscountBaseAgentParams;
+
+  var prior = {
+    priorPrizeToUtility: Enumerate(function(){
+      return categorical( [.5, .5], [{a:0, b:1}, {a:1, b:0} ] );
+    }),
+    
+    priorAgentPrior: Enumerate(function(){return deltaERP({0:'a', 1:'b'});})
+  };
+
+  // EXAMPLE 1
+  var observedStateAction = [['start',1], [1,1], [1,1]]; 
+  var latentState = armToPrize;
+  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
+  
+  // Test on two different inference functions
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
+  assert.ok( sample(erp1).prizeToUtility.a == 0 && sample(erp2).prizeToUtility.a == 0, 'testbandit infer 1');
+  
+  
+  // EXAMPLE 2
+  var observedStateAction = [['start',0], [0,0], [0,0]]; 
+  var observedStates = map(first, observedStateAction);
+  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
+
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
+  assert.ok( sample(erp1).prizeToUtility.a == 1 && sample(erp2).prizeToUtility.a == 1, 'testbandit infer 2');
+
+  console.log('passed easy testBanditInferBeliefOnly tests');
+  
+  
+  // EXAMPLE 3 - INFER PRIOR AND UTILITY
+  
+  // Two arms: {0:a, 1:c}. Agent stays at 0. 
+  // Explanation: u(a) high and prior that 1:b is low.
+
+  // True armToPrize: 0:a, 1:c
+  // True priorBelief:  0:a, 1:categorical([.05,.95],[b,c])
+  // True utilities: {a:10, b:20, c:1}
+  
+  // world params
+  var numArms = 2;
+  var armToPrize = {0:'a', 1:'c'};
+  var perceivedTotalTime = 5;
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
+  
+  // agent params
+  var baseAgentParams = noDiscountBaseAgentParams;
+
+  // Prior on agent's prizeToUtility
+  var truePrizeToUtility = {a:10, b:20, c:1};
+  var priorPrizeToUtility = Enumerate(function(){
+    return {a: uniformDraw([0,3,10]), b:20, c:1};
+  });
+  
+  // Prior on agent's prior
+  var trueAgentPrior = Enumerate(function(){
+    return {0:'a', 1: categorical([.05, .95], ['b','c']) };
+  });
+  var falseAgentPrior = Enumerate(function(){
+    return {0:'a', 1: categorical([.5, .5], ['b','c']) };
+  });
+
+  var priorAgentPrior = Enumerate(function(){
+    return flip() ? trueAgentPrior : falseAgentPrior;
+  });
+  
+  var prior = {priorPrizeToUtility: priorPrizeToUtility, priorAgentPrior: priorAgentPrior};
+
+  var latentState = armToPrize;
+  var observedStateAction = [['start',0], [0,0], [0,0], [0,0], [0,0]]; 
+  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
+
+  
+  var out1 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10)});
+  var out2 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'offPolicy', 10)});
+  console.log('Time for Example 3, 2 arms and time 5: [from states, offpolicy]', out1.runtimeInMilliseconds, out2.runtimeInMilliseconds);
+  var testERP = function(erp){
+    var out = sample(erp);
+    assert.ok( out.prizeToUtility.a==10  && _.isFinite( out.priorBelief.score([], armToPrize)),
+               'testbandit inferbelief example 4' );
+  };
+  map(testERP,[out1.value,out2.value]);
+
+
+  // He goes to 1 every time => u(a)==0=
+  var observedStateAction = [['start',1], [1,1], [1,1], [1,1], [1,1]]; 
+  var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
+
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
+
+  var testERP = function(erp){
+    var out = sample(erp);
+    assert.ok( out.prizeToUtility.a == 0, 'testbandit inferbelief example 5' );
+  };
+  map(testERP,[erp1,erp2]);
+ 
+  console.log('passed ALL testBanditInferBeliefOnly tests');
+};
+
+
+
 
 
 var testBoundVOI = function(){
