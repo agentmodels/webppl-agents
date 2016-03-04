@@ -41,7 +41,7 @@ var tableToUtilityFunctionFork = function(table) {
 var startState = {manifestState: {loc: [0,0],
 				  dead: false,
 				  timeLeft: 5,
-				  digest: 1},
+				  digest: 0},
 		  latentState: {Donut: true,
 				Noodle: true}};
 var utilityTable = {Noodle: 11,
