@@ -80,11 +80,8 @@ var runSpeedTests = function(){
 
 
 var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
-
   console.log('\Run IRL Bandit Generative for agent: ', beliefOrBeliefDelay);
-  
   var simulate = getSimulateFunction(beliefOrBeliefDelay);
-
   
   // Prizes are [a,b] and agent prefers c > a > b
   
@@ -128,7 +125,6 @@ var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
   assert.ok( trajectory[1].manifestState.loc == 1 && trajectory[2].manifestState.loc == 0, 'fail banditexample 2');
   
  
-  
   
   // --------------------------------
   // Example: Each arm independently either gives a or b. Since b is better, agent keeps exploring to try
