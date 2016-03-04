@@ -1,3 +1,5 @@
+// note - this takes almost a minute to run
+
 // we see the agent start out on the bottom-left corner of a loop and go around
 // the long way to a noodle place. We can confer that they must be myopic rather
 // than normal or hyperbolic (otherwise it would go the short way or go to one
@@ -26,7 +28,7 @@ var makeSmallLoopWorld = function(options) {
   return makeGridWorld(features, myOptions);
 };
 
-var gridworldMDP = makeSmallLoopWorld();
+var gridworldMDP = makeSmallLoopWorld({noReverse: true});
 var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
 var feature = gridworldMDP.feature;
 var transition = gridworldPOMDP.transition;
@@ -117,8 +119,8 @@ var agentPosterior = function() {
     var alpha = 100;
     
     var utilityTable = {
-      // Donut: uniformDraw([1,2,3]),
-      Donut: 1,
+      Donut: uniformDraw([1,2,3]),
+      // Donut: 1,
       Veg: uniformDraw([1,2,3]),
       Noodle: uniformDraw([1,2,3]),
       timeCost: -0.1
