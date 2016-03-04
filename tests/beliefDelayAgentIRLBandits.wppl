@@ -299,12 +299,14 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   // agent params
   var baseAgentParams = noDiscountBaseAgentParams;
 
+  var agentPrior = getPriorBelief(perceivedTotalTime, function(){return {0:'a', 1:'b'};});
+  var priorAgentPrior = deltaERP(agentPrior);
   var prior = {
     priorPrizeToUtility: Enumerate(function(){
       return categorical( [.5, .5], [{a:0, b:1}, {a:1, b:0} ] );
     }),
     
-    priorAgentPrior: Enumerate(function(){return deltaERP({0:'a', 1:'b'});})
+    priorAgentPrior: priorAgentPrior
   };
 
   // EXAMPLE 1
@@ -355,10 +357,10 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   });
   
   // Prior on agent's prior
-  var trueAgentPrior = Enumerate(function(){
+  var trueAgentPrior = getPriorBelief(perceivedTotalTime, function(){
     return {0:'a', 1: categorical([.05, .95], ['b','c']) };
   });
-  var falseAgentPrior = Enumerate(function(){
+  var falseAgentPrior = getPriorBelief(perceivedTotalTime, function(){
     return {0:'a', 1: categorical([.5, .5], ['b','c']) };
   });
 
@@ -405,6 +407,8 @@ var runTestInferIRLBandit = function(){
   testInferIRLBandit('belief');
 };
 
+runTestInferIRLBandit();
+ash();
 
 
 
