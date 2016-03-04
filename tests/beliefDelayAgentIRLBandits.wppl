@@ -1,5 +1,70 @@
 /* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
 
+var getSimulateFunction = function(beliefOrBeliefDelay){
+  if ( _.isUndefined(beliefOrBeliefDelay) || 
+       beliefOrBeliefDelay == 'beliefDelay'){
+    return simulateBeliefDelayAgent;
+  } else {
+    return simulateBeliefAgent;
+  }
+};
+
+// from thunk to prior only on latents
+var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk){
+  return Enumerate(armToPrizeThunk);
+};
+
+var speedTest = function(){
+  var beliefOrBeliefDelay ='belief';
+  var simulate = getSimulateFunction(beliefOrBeliefDelay);
+
+
+  
+  var getWorld = function(perceivedTotalTime){
+    var numArms = 4;
+    var armToPrize = {0:'a', 1:'a', 2:'a', 3:'a'};
+    return makeIRLBanditWorldAndStart(numArms, armToPrize, perceivedTotalTime);
+  };
+  
+  var getAgent = function(perceivedTotalTime, worldAndStart){
+
+    var armToPrizeThunk = function(){
+      var dist = function(){return categorical([.02, 0.49, 0.49], ['a', 'b','c']);};
+      return {0:'a', 1:dist(), 2:dist(), 3:dist()};
+    };
+    var priorBelief = getPriorBelief( perceivedTotalTime, armToPrizeThunk) ;
+    
+    var baseAgentParams = {
+      priorBelief: priorBelief,
+      alpha: 100,
+    };
+    var agentParams = update(baseAgentParams, {priorBelief:priorBelief}); 
+    var prizeToUtility = {a:5, b:10, c:-8}; 
+    return makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart, beliefOrBeliefDelay);
+  };
+
+  var testTime = function(perceivedTotalTime){
+    var worldAndStart = getWorld(perceivedTotalTime);
+    var agent = getAgent(perceivedTotalTime, worldAndStart);
+    var thunk = function(){return simulate(worldAndStart.startState, worldAndStart.world,
+                                           agent, worldAndStart.actualTotalTime, 'states');};
+    var out = timeit(thunk);
+    var locs = trajectoryToLocations(out.value).slice(1,4);
+    if (perceivedTotalTime > 5){
+      assert.ok(  _.difference([1,2,3],locs).length == 0, 'fail belief bandit example 4');
+    }
+
+    console.log('\n Perceived Time: ', perceivedTotalTime, '  (locs, timeit) ', trajectoryToLocations(out.value), 
+                out.runtimeInMilliseconds);
+    return out.runtimeInMilliseconds;
+  };
+  var timeValues = [5,6,7,8];
+  var runTimes = map( testTime, timeValues);
+  console.log('\n\n [perceivedTime, runTime]: ', zip(timeValues, runTimes) );
+};  
+speedTest();
+ash();
+
 
 var testInferIRLBandit = function(){
   // Prizes are [a,b]. If agent chooses 0, then they prefer 'a'. 

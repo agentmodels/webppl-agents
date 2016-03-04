@@ -2,6 +2,15 @@
 
 // Functions for running agents and doing inference that depend on beliefDelayAgent.wppl
 
+var getMakeAgentFunction = function(beliefOrBeliefDelay){
+  if ( _.isUndefined(beliefOrBeliefDelay) || 
+       beliefOrBeliefDelay == 'beliefDelay'){
+    return makeBeliefDelayAgent;
+  } else {
+    return makeBeliefAgent;
+  }
+};
+
 
 // Multi-arm deterministic bandits.
 // Rewards of arms are fixed by the latent state. 
@@ -54,17 +63,18 @@ var noDiscountBaseAgentParams = { // doesn't contain priorBelief or utility
 };
 
 
-var makeIRLBanditAgent = function(prizeToUtility, agentParams, worldAndStart){
+var makeIRLBanditAgent = function(prizeToUtility, agentParams, worldAndStart, beliefOrBeliefDelay){
   var priorBelief = agentParams.priorBelief;
   assert.ok( _.isFinite(priorBelief.score([],worldAndStart.startState.latentState)), 
              'makeIRLBanditAgent does not have true latent in support');
   
   var utility = function(state,action){
     var loc = state.manifestState.loc;
-    if (loc=='start'){return 0;};
+    if (loc=='start'){return 0;}
     return prizeToUtility[state.latentState[loc]];
   };
-  return makeBeliefDelayAgent(update(agentParams,{utility:utility}), worldAndStart.world);
+  var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
+  return makeAgent(update(agentParams,{utility:utility}), worldAndStart.world);
 };
 
 
