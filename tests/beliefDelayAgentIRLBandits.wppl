@@ -259,7 +259,7 @@ var runIRLBanditExamples = function(){
 
 
 
-var testInferIRLBandit = function(){
+var testInferIRLBandit = function(beliefOrBeliefDelay){
   // Prizes are [a,b]. If agent chooses 0, then they prefer 'a'. 
   
   // world params
@@ -345,9 +345,9 @@ var testInferIRLBandit = function(){
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
   
-  var out1 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10)});
-  var out2 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'offPolicy', 10)});
-  console.log('Time for Example 3, 2 arms and time 5: [from states, offpolicy]', out1.runtimeInMilliseconds, out2.runtimeInMilliseconds);
+  var out1 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay)});
+  var out2 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'offPolicy', 10, beliefOrBeliefDelay)});
+  console.log('\n Time for Example 3, 2 arms and time 5: [from states, offpolicy]', out1.runtimeInMilliseconds, out2.runtimeInMilliseconds);
   var testERP = function(erp){
     var out = sample(erp);
     assert.ok( out.prizeToUtility.a==10  && _.isFinite( out.priorBelief.score([], armToPrize)),
@@ -369,9 +369,13 @@ var testInferIRLBandit = function(){
   };
   map(testERP,[erp1,erp2]);
  
-  console.log('passed ALL testBanditInferBeliefOnly tests');
+  console.log('\n-----\npassed ALL testBanditInfer tests');
 };
 
+var runTestInferIRLBandit = function(){
+  testInferIRLBandit('beliefDelay');
+  testInferIRLBandit('belief');
+};
 
 
 
@@ -640,8 +644,8 @@ var testNoObservationDependentLatents = function(){
 
 
 runSpeedTests();
-testInferIRLBandit();
 runIRLBanditExamples();
+runTestInferIRLBandit();
 testBoundVOI();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null

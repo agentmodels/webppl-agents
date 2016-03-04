@@ -84,11 +84,13 @@ var makeIRLBanditWorldAndStart = function(numArms, armToPrize, perceivedTotalTim
 
 // Inference by sampling full trajectories or by doing 'off policy' inference
 
-var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedStateAction, trajectoryOrOffPolicy, numRejectionSamples){
+var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedStateAction, trajectoryOrOffPolicy, 
+                              numRejectionSamples, beliefOrBeliefDelay){
   var world = worldAndStart.world;
   var startState = worldAndStart.startState;
   var actualTotalTime = worldAndStart.actualTotalTime;
   var observe = world.observe;
+  var simulate = getSimulateFunction(beliefOrBeliefDelay);
 
   var priorPrizeToUtility = prior.priorPrizeToUtility;
   var priorAgentPrior = prior.priorAgentPrior;
@@ -104,14 +106,15 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
     var prizeToUtility = sample(priorPrizeToUtility);
     var priorBelief = sample(priorAgentPrior);
     
-    var agent = makeIRLBanditAgent(prizeToUtility, update(baseAgentParams, {priorBelief:priorBelief}), worldAndStart);
+    var agent = makeIRLBanditAgent(prizeToUtility, update(baseAgentParams, {priorBelief:priorBelief}), 
+                                   worldAndStart, beliefOrBeliefDelay);
     var agentAct = agent.act;
     var agentUpdateBelief = agent.updateBelief;
 
     // Factor on whole sampled trajectory (SLOW IF NOT DETERMINISTIC AND NUM SAMPLES HIGH)
     var factorOnTrajectory = function(){
       var trajectoryERP = Rejection( function(){
-        return simulateBeliefDelayAgent(startState, world, agent, actualTotalTime, 'states')}, numRejectionSamples);
+        return simulate(startState, world, agent, actualTotalTime, 'states')}, numRejectionSamples);
       factor(trajectoryERP.score([], map(first, observedStateAction)));
     };
 
