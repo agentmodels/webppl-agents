@@ -1,14 +1,25 @@
 /* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
 
+var noManifest = false;
 
-// from thunk to prior only on latents
+
+
 var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk){
-  return Enumerate(armToPrizeThunk);
+  if (noManifest){
+    var startManifestState = {timeLeft: perceivedTotalTime, loc: 'start', dead: false};
+    return Enumerate( function(){
+      var getArmToPrize = armToPrizeThunk();
+      return buildState(startManifestState, getArmToPrize);
+    });
+  } else {
+    return Enumerate(armToPrizeThunk);
+  }
 };
 
 
+
 var speedTestIRLBandits = function(beliefOrBeliefDelay){
-  console.log('\n Speedtest on IRL bandits for agent: ', beliefOrBeliefDelay);
+  console.log('\nSpeedtest on IRL bandits for agent: ', beliefOrBeliefDelay);
   
   var simulate = getSimulateFunction(beliefOrBeliefDelay);
 
@@ -57,8 +68,8 @@ var speedTestIRLBandits = function(beliefOrBeliefDelay){
   };
   var timeValues = [5,6,7];
   var runTimes = map( testTime, timeValues);
-  console.log('\n\n [perceivedTime, runTime]: ', zip(timeValues, runTimes) );
-  console.log('\n completed speed test irlBandits' )
+  console.log('[perceivedTime, runTime]: ', zip(timeValues, runTimes) );
+  console.log('----completed speed test irlBandits' )
 };  
 
 var runSpeedTests = function(){
