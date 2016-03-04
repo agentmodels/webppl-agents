@@ -1,31 +1,43 @@
-// here, we observe the agent start off near donut south, but go to donut north.
-// we know that the agent knows the true state, so it must not be that the agent
-// just likes donuts. Instead, the solution is that the agent likes veg, but is
-// a hyperbolic discounter, aimed to go to veg, but got tempted by donuts
-// instead. we also can conclude that the agent is probably not an extreme
-// discounter, since they would go to donut south if they were, but it's within
-// the realm of possibility because of softmax noise.
+// we see the agent start out on the bottom-left corner of a loop and go around
+// the long way to a noodle place. We can confer that they must be myopic rather
+// than normal or hyperbolic (otherwise it would go the short way or go to one
+// of the restaurants on the way, respectively), that they must prefer noodle to
+// veg to donut (otherwise it would stop at one of the restaurants on the way),
+// and that they must not think it very likely that veg is closed (as otherwise
+// they would stop at donut).
 
-var gridworldMDP = makeDonutWorld2({big: true});
+// making a gridworld where this works
+
+var makeSmallLoopWorld = function(options) { 
+  var _ = ' '; 
+  var D = {name: 'Donut'};
+  var V = {name: 'Veg'};
+  var N = {name: 'Noodle'};
+
+  var myOptions = options || {};
+
+  var features =
+	[['#', '#',  V , '#', '#'],
+	 ['#',  _ ,  _ ,  _ , '#'],
+	 [ D ,  _ , '#',  _ ,  N ],
+	 ['#',  _ , '#',  _ , '#'],
+	 ['#',  _ ,  _ ,  _ , '#']];
+  
+  return makeGridWorld(features, myOptions);
+};
+
+var gridworldMDP = makeSmallLoopWorld();
 var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
 var feature = gridworldMDP.feature;
 var transition = gridworldPOMDP.transition;
 var observe = gridworldPOMDP.observe;
 
-// here, we define tables listing the utility of each restaurant, and a function
-// that converts these tables into utility functions.
+// here, we define a table giving the agent's true utility function
 
-var donutUtilityTable = {'Donut N': 2,
-			 'Donut S': 2,
-			 'Veg': 1,
-			 'Noodle': 0,
-			 timeCost: -0.1};
- 
-var vegUtilityTable = {'Donut N': 1,
-		       'Donut S': 1,
-		       Veg: 2,
-		       Noodle: 0,
-		       timeCost: -0.1};
+var trueUtilityTable = { Donut: 1,
+			 Veg: 2,
+			 Noodle: 3,
+			 timeCost: -0.1 };
 
 var tableToUtilityFunction = function(table) {
   return function(state, action) {
@@ -42,25 +54,32 @@ var tableToUtilityFunction = function(table) {
 };
 
 // we start the agent off near Donut South
-var startState = {manifestState: {loc: [3,1],
+var startState = {manifestState: {loc: [1,0],
 				  dead: false,
 				  timeLeft: 10,
 				  digest: 0},
-		  latentState: {'Donut N': true,
-				'Donut S': true,
-				'Veg': true,
-				'Noodle': true}};
+		  latentState: {Donut: true,
+				Veg: true,
+				Noodle: true}};
+
+// we define some beliefs that the agent could have
+var informedBelief = deltaERP(startState.latentState);
+var vegClosedBelief = Enumerate(function(){
+  return categorical([0.1, 0.9], [startState.latentState, {Donut: true,
+							   Veg: false,
+							   Noodle: true}]);
+});
 
 // making the agent
 var params = {
   alpha: 100,
   noDelays: false,
-  discount: 2,
+  discount: 0,
   sophisticatedOrNaive: 'naive',
-  myopia: {on: false, bound: 0},
-  priorBelief: deltaERP(startState.latentState),
+  myopia: {on: true, bound: 4}, 
+  priorBelief: informedBelief,
   boundVOI: {on: false, bound: 0},
-  utility: tableToUtilityFunction(vegUtilityTable)
+  utility: tableToUtilityFunction(trueUtilityTable)
 };
 var agent = makeBeliefDelayAgent(params, gridworldPOMDP);
 
@@ -94,20 +113,30 @@ var factorAlongTrajectory = function(index, trajectory, agent, belief){
 // the inference itself
 var agentPosterior = function() {
   return printERP(Enumerate(function(){
+
     var alpha = 100;
     
-    var utilityTable = uniformDraw([donutUtilityTable, vegUtilityTable]);
+    var utilityTable = {
+      // Donut: uniformDraw([1,2,3]),
+      Donut: 1,
+      Veg: uniformDraw([1,2,3]),
+      Noodle: uniformDraw([1,2,3]),
+      timeCost: -0.1
+    };
     var utility = tableToUtilityFunction(utilityTable);
-    var agentPrior = deltaERP(startState.latentState);
+    
+    var agentPrior = uniformDraw([informedBelief, vegClosedBelief]);
 
-    var isMyopic = false;
-    var myopiaBound = 0;
+    var agentType = uniformDraw(_.range(3));
 
-    var hasBoundVOI =  false;
+    var isMyopic = (agentType === 0);
+    var myopiaBound = isMyopic ? 4 : 0;
+
+    var hasBoundVOI = false;
     var voiBound = 0;
 
-    var discount = uniformDraw([0, 2, 100]);
-    var noDelays = (discount === 0);
+    var discount = (agentType === 1) ? 2 : 0;
+    var noDelays = (discount === 2);
 
     var sophisticatedOrNaive = 'naive';
 
@@ -127,6 +156,8 @@ var agentPosterior = function() {
     factorAlongTrajectory(0, observedTrajectory, agent, agentPrior);
 
     return {utilityTable: utilityTable,
+	    agentPrior: agentPrior,
+	    isMyopic: isMyopic,
 	    discount: discount};
   }));
 };
