@@ -96,4 +96,11 @@ var startState = {manifestState: {loc: 'start',
 				  timeLeft: 5},
 		  latentState: {term2: false}};
 
-console.log(myEU(startState.manifestState, params.priorBelief, 'waiting', 0));
+// console.log(myEU(startState.manifestState, params.priorBelief, 'waiting', 0));
+
+var traj = simulateBeliefDelayAgent(startState, myPOMDP, myAgent, 3, 'states');
+var locsTraj = _.pluck(_.pluck(traj, 'manifestState'), 'loc');
+
+console.log(locsTraj);
+
+
