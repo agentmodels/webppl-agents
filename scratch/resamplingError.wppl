@@ -11,7 +11,7 @@
 // get reward again. There are no observations.
 
 var locs = ['start', 'waiting', 'term1', 'term2', 'PT'];
-var exampleState = {manifestState: {loc: 'start',
+var exampleState = {manifestState: {loc: 'waiting',
 				    timeLeft: 5,
 				    dead: false},
 		    latentState: {term2: false}};
@@ -75,23 +75,25 @@ var myUtilityTable = {t1: 5,
 
 var probOpen = 0.5;
 
- var params = {
+var params = {
   alpha: 1000,
   utility: tableToUtilityFunction(myUtilityTable),
   priorBelief: Enumerate(function(){return flip(probOpen) ? {term2: true} :
-				    {term2: false};})
+				    {term2: false};}),
+  discount: 0,
+  sophisticatedOrNaive: 'sophisticated',
+  noDelays: 'false',
+  boundVOI: {on: false, bound: 0},
+  myopia: {on: false, bound: 0}
+  
 };
 
-var myAgent = makeBeliefAgent(params, myPOMDP);
+var myAgent = makeBeliefDelayAgent(params, myPOMDP);
 var myEU = myAgent.expectedUtility;
 
 var startState = {manifestState: {loc: 'start',
 				  dead: false,
-				  timeLeft: 10},
+				  timeLeft: 5},
 		  latentState: {term2: false}};
 
-console.log(myEU(startState.manifestState, params.priorBelief, 'waiting'));
-ash();
-
-var myTraj = simulateBeliefAgent(startState, myPOMDP, myAgent, 3, 'states');
-console.log(_.pluck(_.pluck(myTraj, 'manifestState'), 'loc'));
+console.log(myEU(startState.manifestState, params.priorBelief, 'waiting', 0));
