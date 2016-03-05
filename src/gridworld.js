@@ -106,7 +106,6 @@ var displayExpUtility = function(stateLRUD, xLim, yLim){
 
 
 module.exports = {
-  has : _.has,
   getGridStates: getGridStates,
   zipToObject: zipToObject,
   gridTransform: gridTransform,

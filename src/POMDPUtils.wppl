@@ -26,7 +26,7 @@ var downToOne = function(n){
 // From array of POMDP states, extract locations array
 var trajectoryToLocations = function(trajectory){
   assert.ok(_.isArray(trajectory) && isPOMDPState(trajectory[0]), 'trajectory to locations args');
-  return _.pluck( _.pluck(trajectory,'manifestState'), 'loc' );
+  return _.map(trajectory,'manifestState.loc');
 };
 
 // From array of locs, add *timeLeft* and *terminateAfterAction*

@@ -84,7 +84,7 @@ var makeBeliefDelayAgent = function (params, world){
   
   var act = dp.cache(
     function (manifestState, belief, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), 'act arguments error' + 
+      assert.ok( isERP(belief) && _.isFinite(delay), 'act arguments error ' + 
                 'act: manifestState, belief, delay' + JSON.stringify([manifestState, belief, delay]));
       
       return Enumerate(function () {
@@ -149,9 +149,6 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
 
 
   var sampleSequence = function(state, belief, actualTimeLeft) {
-    if (shouldTerminate(actualTimeLeft, state.manifestState) ) {
-      return [];
-    } else {
       var nextObservation = observe(state);
 
       // Update agent's internal state and get action
@@ -162,6 +159,9 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
       // Update world state and return output and output from recursing on updated world state, internal state, and time. 
       var nextState = transition(state, nextAction);
       var output = selectOutput(state, nextAction, belief);
+    if (shouldTerminate(actualTimeLeft, state.manifestState) ) {
+      return [output];
+    } else {
       return [output].concat(sampleSequence(nextState, nextBelief, actualTimeLeft - 1));
     }
   };

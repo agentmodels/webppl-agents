@@ -27,6 +27,7 @@ var testInferIRLBandit = function(){
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
   
   // Test on two different inference functions
+
   var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
   var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
   assert.ok( sample(erp1).prizeToUtility.a == 0 && sample(erp2).prizeToUtility.a == 0, 'testbandit infer 1');

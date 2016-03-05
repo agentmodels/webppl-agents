@@ -9,7 +9,7 @@ var makeIRLBanditWorld = function (numArms) {
   var actions = _.range(numArms);
   
   var mdpTransition = function (state, action) {
-    var terminateAfterAction = state.timeLeft - 1 == 1 ? true : false;
+    var terminateAfterAction = (state.timeLeft - 1) <= 1 ? true : false;
     return update(state, { loc:action, timeLeft:state.timeLeft - 1, terminateAfterAction:terminateAfterAction });
   };
   

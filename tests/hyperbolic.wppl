@@ -1,26 +1,28 @@
 var start = { 
   loc : [3,0],
   terminateAfterAction : false,
-  restaurantTimeLeft : 2, 
-  timeLeft : 14
+  timeLeft : 15
 };
 
-var donutUtility = makeDonutUtility(2, {
-    'Donut N' : [1, -1],
-    'Donut S' : [1, -1],
-    'Veg'   : [-1, 2],
+
+var world = makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2 });
+var donutUtility = makeDonutUtility(world, {
+    'Donut N' : [10, -10],
+    'Donut S' : [10, -10],
+    'Veg'   : [-10, 20],
     'Noodle': [0, 0]
 });
 
-var world = makeDonutWorld2({ big : true});
 var agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
       discount : 1, 
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
+
+
 var trajectory = simulate(start, world, agent, 12, 'states');
-assert.ok(gridEqual(last(trajectory).loc, [4, 7]), "sophisticated didn't end up in 3,5");
+assert.ok(gridEqual(last(trajectory).loc, [4, 7]), "sophisticated didn't end up in 4,7");
 assert.ok(trajectory[5].loc[0] == 5, "sophisticated didn't take right side");
 
 var agent2 = makeHyperbolicDiscounter(
