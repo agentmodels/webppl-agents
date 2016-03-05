@@ -1,0 +1,79 @@
+// writing toy examples where agents that do and don't use resampling do
+// different things
+
+// in my world, there are two terminal locations with potentially different
+// utility. you start out near one (T1) which you know is available, and there
+// is another (T2) which may or may not be available. you can either immediately
+// go to T1, or try to go to T2. Once you make your first step towards T2, you
+// can't go back, and must keep trying to enter. When leaving non-terminal
+// locations, you get reward 0, and when in a terminal location, you get the
+// reward for that location, and then never get reward again. There are no
+// observations, since we will only be using myopic agents
+
+var locs = ['start', 'waiting', 'term1', 'term2'];
+var exampleState = {manifestState: {loc: 'start',
+				    timeLeft: 5,
+				    dead: false},
+		    latentState: {term2: false}};
+
+var observe = function(state) {
+  return 'noObservation';
+};
+
+var manifestStateToActions = function(manifestState) {
+  if (manifestState.loc === 'term1' || manifestState.loc === 'term2') {
+    return ['die'];
+  } else if (manifestState.loc === 'start') {
+    return ['term1', 'waiting'];
+  } else {
+    return ['term2'];
+  }
+};
+
+var advanceTime = function(manifestState) {
+  var dead = manifestState.timeLeft > 2 ? manifestState.dead : true;
+  return update(manifestState, { timeLeft : manifestState.timeLeft - 1, dead : dead });
+};
+
+var transition = function(state, action) {
+  if (action === 'die') {
+    return buildState(update(state.manifestState, {timeLeft : 0, dead: true}),
+		      state.latentState);
+  } else if (state.manifestState.loc === 'start') {
+    return buildState(update(advanceTime(state.manifestState), {loc: action}),
+		      state.latentState);
+  } else if (state.latentState.term2) {
+    return buildState(update(advanceTime(state.manifestState), {loc: action}),
+		      state.latentState);
+  } else {
+    return buildState(advanceTime(state.manifestState), state.latentState);
+  }
+};
+
+var myPOMDP = {manifestStateToActions: manifestStateToActions,
+	       transition: transition,
+	       observe: observe};
+
+var tableToUtilityFunction = function(utilityTable) {
+  return function(state, action) {
+    if (state.manifestState.loc === 'term1') {
+      return utilityTable.t1;
+    } else if (state.manifestState.loc === 'term2') {
+      return utilityTable.t2;
+    } else {
+      return 0;
+    }
+  };
+};
+
+var myUtilityTable = {t1: 5,
+		      t2: 7};
+
+var params = {
+  alpha: 1000,
+  utility: tableToUtilityFunction(myUtilityTable),
+  noDelays: false,
+  discount: 0,
+  sophisticatedOrNaive: 'naive',
+  myopia: {on: false, bound: 0},
+}
