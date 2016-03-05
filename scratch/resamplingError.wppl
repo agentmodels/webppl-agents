@@ -75,14 +75,20 @@ var myUtilityTable = {t1: 5,
 
 var probOpen = 0.5;
 
- var params = {
+var params = {
   alpha: 1000,
   utility: tableToUtilityFunction(myUtilityTable),
   priorBelief: Enumerate(function(){return flip(probOpen) ? {term2: true} :
-				    {term2: false};})
+				    {term2: false};}),
+  discount: 0,
+  sophisticatedOrNaive: 'sophisticated',
+  noDelays: 'false',
+  boundedVOI: {on: false, bound: 0},
+  myopia: {on: false, bound: 0}
+  
 };
 
-var myAgent = makeBeliefAgent(params, myPOMDP);
+var myAgent = makeBeliefDelayAgent(params, myPOMDP);
 var myEU = myAgent.expectedUtility;
 
 var startState = {manifestState: {loc: 'start',
@@ -90,6 +96,5 @@ var startState = {manifestState: {loc: 'start',
 				  timeLeft: 5},
 		  latentState: {term2: false}};
 
-console.log(myEU(startState.manifestState, params.priorBelief, 'waiting'));
-// note: changing timeLeft changes the expected utility. this indicates that
-// something is wrong with the value function
+console.log(myEU(startState.manifestState, params.priorBelief, 'waiting', 0));
+// why is u sometimes NaN?

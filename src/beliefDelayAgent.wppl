@@ -130,7 +130,9 @@ var makeBeliefDelayAgent = function (params, world){
             Enumerate(function () {
               var state = buildState(manifestState, trueLatentState);            
               var u = 1.0 / (1 + params.discount * delay) * utility(state, action);
-              
+              if (_.isNaN(u)) {
+		console.log(manifestState, action, delay);
+	      }
               if (shouldTerminate(state, delay)) {
                 return u;
               } else {                
