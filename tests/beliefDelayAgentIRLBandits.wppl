@@ -3,7 +3,6 @@
 var noManifest = false;
 
 
-
 var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk){
   if (noManifest){
     var startManifestState = {timeLeft: perceivedTotalTime, loc: 'start', dead: false};
@@ -57,6 +56,7 @@ var speedTestIRLBandits = function(beliefOrBeliefDelay){
     var agent = getAgent(perceivedTotalTime, worldAndStart);
     var thunk = function(){return simulate(worldAndStart.startState, worldAndStart.world,
                                            agent, worldAndStart.actualTotalTime, 'states');};
+
     var out = timeit(thunk);
     var locs = trajectoryToLocations(out.value).slice(1,4);
     if (perceivedTotalTime > 5){
@@ -75,8 +75,6 @@ var speedTestIRLBandits = function(beliefOrBeliefDelay){
 var runSpeedTests = function(){
   map( speedTestIRLBandits, ['belief', 'beliefDelay'] );
 };
-
-
 
 
 var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
@@ -276,7 +274,7 @@ var IRLBanditGenerativeDelay = function(){
   testBoundVOI(2,'explore');
   testBoundVOI(2,'explore');
 
-  console.log('\n All runIRLBanditExamples passed');
+  console.log('\n Passed IRLBanditGenerativeDelay');
 };
 
 var IRLBanditGenerativeAll = function(){
@@ -288,6 +286,8 @@ var IRLBanditGenerativeAll = function(){
 
 
 var testInferIRLBandit = function(beliefOrBeliefDelay){
+  console.log('started testInferIRLBandit, beliefOrBeliefDelay? ', beliefOrBeliefDelay);
+  
   // Prizes are [a,b]. If agent chooses 0, then they prefer 'a'. 
   
   // world params
@@ -315,8 +315,8 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
   
   // Test on two different inference functions
-  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
-  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10, beliefOrBeliefDelay);
   assert.ok( sample(erp1).prizeToUtility.a == 0 && sample(erp2).prizeToUtility.a == 0, 'testbandit infer 1');
   
   
@@ -325,8 +325,8 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   var observedStates = map(first, observedStateAction);
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
-  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
-  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10, beliefOrBeliefDelay);
   assert.ok( sample(erp1).prizeToUtility.a == 1 && sample(erp2).prizeToUtility.a == 1, 'testbandit infer 2');
 
   console.log('passed easy testBanditInferBeliefOnly tests');
@@ -390,8 +390,8 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   var observedStateAction = [['start',1], [1,1], [1,1], [1,1], [1,1]]; 
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
-  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10); 
-  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10);
+  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay); 
+  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10, beliefOrBeliefDelay);
 
   var testERP = function(erp){
     var out = sample(erp);
@@ -407,13 +407,10 @@ var runTestInferIRLBandit = function(){
   testInferIRLBandit('belief');
 };
 
-runTestInferIRLBandit();
-ash();
-
-
 
 var testBoundVOI = function(){
-
+  console.log('\n Start test BoundVOI');
+  
   // Three paths:
   // There are three paths from 'start', each of length 2.
   // 1. *immediate*: Immediate payoff (which is low).
@@ -446,11 +443,11 @@ var testBoundVOI = function(){
     
     var transition = function(state, action){
       var newTimeLeft = state.manifestState.timeLeft - 1;
-      var dead = (newTimeLeft ==1);
+      var terminateAfterAction = (newTimeLeft ==1);
       var newLoc = action;
       assert.ok(newLoc === transitionTable[state.manifestState.loc][action], 'transition' );
       
-      var newManifestState = {loc:newLoc, timeLeft:newTimeLeft, dead:dead };
+      var newManifestState = {loc:newLoc, timeLeft:newTimeLeft, terminateAfterAction:terminateAfterAction };
       return buildState(newManifestState, state.latentState);
     };
 
@@ -470,7 +467,7 @@ var testBoundVOI = function(){
 
 
     var world = {manifestStateToActions: manifestStateToActions, transition:transition, observe:observe};
-    var start = buildState({timeLeft:perceivedTime, loc:'start', dead:false}, 'gotoA');
+    var start = buildState({timeLeft:perceivedTime, loc:'start', terminateAfterAction:false}, 'gotoA');
     return {world:world, startState:start, transitionTable:transitionTable};
   };
   
@@ -681,6 +678,7 @@ runTestInferIRLBandit();
 testBoundVOI();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null
+
 
 
 

@@ -9,8 +9,9 @@ var makeIRLBanditWorld = function (numArms) {
   var actions = _.range(numArms);
   
   var mdpTransition = function (state, action) {
-    var dead = state.timeLeft - 1 == 1 ? true : false;
-    return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
+    var newTimeLeft = state.timeLeft - 1;
+    var terminateAfterAction = (newTimeLeft == 1);
+    return update(state, { loc:action, timeLeft:newTimeLeft, terminateAfterAction: terminateAfterAction});
   };
   
   var manifestStateToActions = function (manifestState) {return actions;};
@@ -75,7 +76,7 @@ var makeIRLBanditWorldAndStart = function(numArms, armToPrize, perceivedTotalTim
   
   var actualTotalTime = perceivedTotalTime;
   var world = makeIRLBanditWorld(numArms);
-  var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, dead:false}, 
+  var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, terminateAfterAction:false}, 
                     latentState: armToPrize};
 
   return {world:world, startState: startState, actualTotalTime:actualTotalTime};
@@ -144,3 +145,5 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
     return {prizeToUtility: prizeToUtility, priorBelief:priorBelief};
   });
 };
+
+
