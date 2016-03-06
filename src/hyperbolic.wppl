@@ -56,7 +56,7 @@ var makeHyperbolicDiscounter = function (agentParams, world) {
   };
 };
 
-var simulate = function(state, world, agent, actualTotalTime, statesOrActions) { 
+var simulateHyperbolic = function(state, world, agent, actualTotalTime, outputType) { 
   var perceivedTotalTime = state.timeLeft;
   assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work');
 
@@ -68,7 +68,7 @@ var simulate = function(state, world, agent, actualTotalTime, statesOrActions) {
   var sampleSequence = function (state, actualTimeLeft) {
       var action = sample(agentAction(state, 0));
       var nextState = transition(state, action); 
-      var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
+      var out = {states:state, actions:action, both:[state,action]}[outputType];
     if (actualTimeLeft==0 || state.terminateAfterAction){
       return [out];
     } else {
@@ -81,7 +81,7 @@ var simulate = function(state, world, agent, actualTotalTime, statesOrActions) {
 
 // TODO merge with simulate, use a more descriptive name. It seems that
 // ideally we'd use the MAP path, and the 
-var likelyPath = function(state, world, agent, actualTotalTime, statesOrActions) { 
+var MAPActionPath = function(state, world, agent, actualTotalTime, statesOrActions) { 
   var perceivedTotalTime = state.timeLeft;
   assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work' + JSON.stringify(state));
 
@@ -116,7 +116,7 @@ var mdpSim = function(start, world, agent, actualTotalTime) {
   var trajectory = simulate(start, world, agent, actualTotalTime, 'states');
 
   var trajectoryPlans = map(function (state) {
-    var currentPlan = likelyPath(state, world, agent, state.timeLeft, 'states');
+    var currentPlan = MAPActionPath(state, world, agent, state.timeLeft, 'states');
     return getExpectedUtilities(currentPlan, agent, world.actions);
   }, trajectory);
 
