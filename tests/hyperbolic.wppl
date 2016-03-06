@@ -21,7 +21,7 @@ var agent = makeHyperbolicDiscounter(
     }, world);
 
 
-var trajectory = simulate(start, world, agent, 12, 'states');
+var trajectory = simulateHyperbolic(start, world, agent, 12, 'states');
 assert.ok(gridEqual(last(trajectory).loc, [4, 7]), "sophisticated didn't end up in 4,7");
 assert.ok(trajectory[5].loc[0] == 5, "sophisticated didn't take right side");
 
@@ -31,7 +31,7 @@ var agent2 = makeHyperbolicDiscounter(
       discount : 1, 
       sophisticatedOrNaive  : 'naive' 
     }, world);
-var trajectory = simulate(start, world, agent2, 12, 'states');
+var trajectory = simulateHyperbolic(start, world, agent2, 12, 'states');
 assert.ok(gridEqual(last(trajectory).loc, [2, 5]), "naive didn't end up in 1,3");
 assert.ok(trajectory[4].loc[0] == 3, "naive didn't take left side");
 
