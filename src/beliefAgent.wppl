@@ -106,9 +106,6 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   };
 
   var sampleSequence = function(state, belief, actualTimeLeft) {
-    if (shouldTerminate(actualTimeLeft, state.manifestState) ) {
-      return [];
-    } else {
       var nextObservation = observe(state);
 
       // update agent's internal state and get action
@@ -120,6 +117,10 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
       // on updated world state, agent belief, and time.
       var nextState = transition(state, nextAction);
       var output = selectOutput(state, nextAction, belief);
+
+    if (shouldTerminate(actualTimeLeft, state.manifestState) ) {
+      return [output];
+    } else {
 
       return [output].concat( sampleSequence(nextState, nextBelief,
 					     actualTimeLeft - 1));
