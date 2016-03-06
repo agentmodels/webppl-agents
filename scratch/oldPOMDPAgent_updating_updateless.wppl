@@ -696,7 +696,7 @@ var testKArmBandits = function(pomdpSimulateVersion){
 // (except for the time cost of not being in a terminal grid position). The agent also knows which grid positions
 // are blocked. The agent observes the utility of leaving the grid position that they are currently in.
 // After leaving a terminal grid position, the agent enters a postTerminal state, whose manifest state is the
-// string 'dead'.
+// string 'terminateAfterAction'.
 
 // xLim and yLim refer to the size of the grid in the x and y directions. xLim and yLim must both be less than
 // or equal to 10, so that all components of all grid positions are single digits.
@@ -760,7 +760,7 @@ var makeBlockedGridPOMDPParams = function(xLim, yLim, openGridPositions, startGr
     };
 
     var isPostTerminal = function(state) {
-	return state.manifestState==='dead';
+	return state.manifestState==='terminateAfterAction';
     };
     
     var utility = function(state, action) {
@@ -798,7 +798,7 @@ var makeBlockedGridPOMDPParams = function(xLim, yLim, openGridPositions, startGr
 				      d: [gridPos[0], gridPos[1]-1]};
 
 		if (isTerminal(state)) {
-		    return buildState('dead', state.latentState);
+		    return buildState('terminateAfterAction', state.latentState);
 		} else {
 		    var possibleNextGridPos = gridTransition[action];
 		    return isAllowedGridPos(possibleNextGridPos) ? buildState(stringify(possibleNextGridPos),
@@ -948,17 +948,17 @@ var testGridWorlds = function(pomdpSimulateVersion) {
     
     // with miniTerminalEvenPrior, just go to the most likely terminal, since if you're wrong you aren't stuck
     var startLatentState1 = ["[0,1]"];
-    assert.ok(arraysEqual(['[0,1]', 'dead', 'dead', 'dead'], runMiniTest(startLatentState1, miniUtilityFunction,
+    assert.ok(arraysEqual(['[0,1]', 'terminateAfterAction', 'terminateAfterAction', 'terminateAfterAction'], runMiniTest(startLatentState1, miniUtilityFunction,
 									  miniTerminalEvenPrior(0.7), numberRejectionSamples)),
 	      'testMiniGrid1');
     var startLatentState2 = ["[1,0]"];
-    assert.ok(arraysEqual(["[1,0]", "dead", "dead", "dead"], runMiniTest(startLatentState2, miniUtilityFunction,
+    assert.ok(arraysEqual(["[1,0]", "terminateAfterAction", "terminateAfterAction", "terminateAfterAction"], runMiniTest(startLatentState2, miniUtilityFunction,
 									  miniTerminalEvenPrior(0.3), numberRejectionSamples)),
 	      'testMiniGrid2');
 
     // with miniTerminalUnevenPrior, go up even if it's unlikely to be terminal, since if you go right you're definitely stuck
     var startLatentState3 = ["[0,1]", "[1,0]"];
-    assert.ok(arraysEqual(["[0,1]", "dead", "dead", "dead"], runMiniTest(startLatentState3, miniUtilityFunction,
+    assert.ok(arraysEqual(["[0,1]", "terminateAfterAction", "terminateAfterAction", "terminateAfterAction"], runMiniTest(startLatentState3, miniUtilityFunction,
 									  miniTerminalUnevenPrior(0.1), numberRejectionSamples)),
 	      'testMiniGrid3');
 

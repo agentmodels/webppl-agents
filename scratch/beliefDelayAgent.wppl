@@ -34,8 +34,8 @@ var getLocs = function(trajectory){
 
 var locsToManifestStates = function(locs){
   return map( function(locTime){ 
-    var dead = locTime[1]==1;
-    return {loc: locTime[0], timeLeft:locTime[1], dead: dead};
+    var terminateAfterAction = locTime[1]==1;
+    return {loc: locTime[0], timeLeft:locTime[1], terminateAfterAction: terminateAfterAction};
   }, zip( locs, downToOne(locs.length) ) );
 };
 
@@ -107,7 +107,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
           var latentState = sample(currentBelief);
           var state = buildState(manifestState, latentState);
           var u = 1.0 / (1 + agentParams.discount * delay) * utility(state, action);
-          if (state.manifestState.dead) {
+          if (state.manifestState.terminateAfterAction) {
             return u;
           } else {
             var nextState = transition(state, action);
@@ -127,7 +127,7 @@ var makeBeliefDelayAgent = function (agentParams, world){
 var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTime, outputStatesOrActions) {
   var perceivedTotalTime = startState.manifestState.timeLeft;
   assert.ok( actualTotalTime <= perceivedTotalTime && isState(startState), 'simulate args');
-  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
+  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work');
 
   var agentAction = agent.agent;
   var priorBelief = agent.agentParams.priorBelief;
@@ -142,7 +142,7 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
   };
 
   
-  var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {return actualTimeLeft == 0 || state.dead;} :
+  var cutoffCondition = isGridworld(world) ? function (actualTimeLeft, state) {return actualTimeLeft == 0 || state.terminateAfterAction;} :
       function (actualTimeLeft, state) {return actualTimeLeft == 0;};
 
 
@@ -226,8 +226,8 @@ var makeIRLBanditWorld = function (numArms) {
   var actions = _.range(numArms);
   
   var mdpTransition = function (state, action) {
-    var dead = state.timeLeft - 1 == 1 ? true : false;
-    return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
+    var terminateAfterAction = state.timeLeft - 1 == 1 ? true : false;
+    return update(state, { loc:action, timeLeft:state.timeLeft - 1, terminateAfterAction:terminateAfterAction });
   };
   
   var manifestStateToActions = function (manifestState) {return actions;};
@@ -290,7 +290,7 @@ var makeIRLBanditWorldAndStart = function(numArms, armToPrize, perceivedTotalTim
   
   var actualTotalTime = perceivedTotalTime;
   var world = makeIRLBanditWorld(numArms);
-  var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, dead:false}, 
+  var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, terminateAfterAction:false}, 
                     latentState: armToPrize};
 
   return {world:world, startState: startState, actualTotalTime:actualTotalTime};

@@ -69,15 +69,12 @@ var testAgent = function(){
   
   // gridworld tests
 
-  var gridworldMDP = makeDonutWorld2({big: true});
+  var gridworldMDP = makeDonutWorld2({big: true, maxTimeAtRestaurant : 1});
   var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
   var feature = gridworldMDP.feature;
 
   var tableToUtilityFunction = function(table) {
     return function(state, action) {
-      if (state.manifestState.dead) {
-	return 0;
-      }
       var stateFeatureName = feature(state.manifestState).name;
       if (stateFeatureName) {
   	return table[stateFeatureName];
@@ -91,9 +88,8 @@ var testAgent = function(){
   // restaurant that they like
 
   var startState1 = {manifestState: {loc: [3,1],
-  				     dead: false,
-  				     timeLeft: 10,
-				     digest: 0},
+  				     terminateAfterAction: false,
+  				     timeLeft: 10},
   		     latentState: {'Donut N': true,
   				   'Donut S': true,
   				   Veg: true,
@@ -115,9 +111,8 @@ var testAgent = function(){
   // learn that donut south is closed, they should go to their favourite
   // non-donut restaurant
   var startState2 = {manifestState: {loc: [3,1],
-  				     dead: false,
-  				     timeLeft: 20,
-				     digest: 0},
+  				     terminateAfterAction: false,
+  				     timeLeft: 20},
   		     latentState: {'Donut N': false,
   				   'Donut S': false,
   				   Veg: true,
@@ -147,9 +142,8 @@ var testAgent = function(){
   // expected utility than going directly to the noodle shop
 
   var startState3 = {manifestState: {loc: [3,4],
-				     dead: false,
-				     timeLeft: 10,
-				     digest: 0},
+				     terminateAfterAction: false,
+				     timeLeft: 10},
 		     latentState: {'Donut N': false,
 				   'Donut S': false,
 				   Veg: true,
@@ -209,9 +203,6 @@ var testAgent = function(){
 
   var tableToUtilityFunctionFork = function(table) {
     return function(state, action) {
-      if (state.manifestState.dead) {
-	return 0;
-      }
       var stateFeatureName = forkFeature(state.manifestState).name;
       if (stateFeatureName) {
   	return table[stateFeatureName];
@@ -222,9 +213,8 @@ var testAgent = function(){
   };
 
   var startState4 = {manifestState: {loc: [0,0],
-				     dead: false,
-				     timeLeft: 20,
-				     digest: 1},
+				     terminateAfterAction: false,
+				     timeLeft: 20},
 		     latentState: {Donut: true,
 				   Noodle: true}};
   var utilityTable4 = {Noodle: 4,
@@ -242,9 +232,8 @@ var testAgent = function(){
   // if one restaurant would be excellent but is too far for the agent to reach,
   // the agent should go to the closer restaurant
   var startState5 = {manifestState: {loc: [0,0],
-				     dead: false,
-				     timeLeft: 3,
-				     digest: 1},
+				     terminateAfterAction: false,
+				     timeLeft: 3},
 		     latentState: {Donut: true,
 				   Noodle: true}};
   var utilityTable5 = {Noodle: 4,

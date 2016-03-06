@@ -56,10 +56,10 @@ var assertHas = function(object, params, message) {
 
 
 var hasProperties = function(object, listProperties){
-  return _.all( 
-    map( function(property){ 
+  return _.every(listProperties,
+    function(property){ 
       return _.has(object, property);
-    }, listProperties));
+    });
 };
 
        
@@ -89,7 +89,7 @@ var stateInArray = function(state,ar){
 };
 
 // After entering a terminal, agent goes to "postTerminal" for rest of time
-var isPostTerminal = function(state){return state[0]=='dead';};
+var isPostTerminal = function(state){return state[0]=='terminateAfterAction';};
 
 var inGrid = function(xLim, yLim, state){ 
   return (indexOf(state[0],range(xLim)) != undefined) & (indexOf(state[1],range(yLim)) != undefined);
@@ -125,7 +125,7 @@ var makeGridTransition = function(xLim, yLim, blockedStates, terminals){
                           d: [state[0], state[1]-1]};
 
     // terminals: ignore action
-    if (stateInArray(state, terminals)){return ['dead', state[0], state[1]];}
+    if (stateInArray(state, terminals)){return ['terminateAfterAction', state[0], state[1]];}
     if (isPostTerminal(state)){return state;}
 
     var possibleNextState = gridTransition[action];
@@ -452,7 +452,7 @@ var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, mdpP
   // this is equivalent in terms of the agent's plans but means sequences of states are longer)
 
   // At a terminal, agent takes a single action and then transitions to a "postTerminal" state
-  // which has form [ 'dead', [x,y] ] where [x,y] is terminal's coordinates.
+  // which has form [ 'terminateAfterAction', [x,y] ] where [x,y] is terminal's coordinates.
   var isTerminal = function(state){return terminalCheck & isPostTerminal(state);}; 
 
 
@@ -572,7 +572,7 @@ var mdpSimulateGridworld = function(startState, totalTime, params, numRejectionS
   var transition = params.transition;
   var utility = params.utility;
   var actions = params.actions;
-  var isTerminal = function(state){return state[0]=='dead';};
+  var isTerminal = function(state){return state[0]=='terminateAfterAction';};
 
 
   var agent = dp.cache(function(state, timeLeft){
@@ -603,11 +603,11 @@ var mdpSimulateGridworld = function(startState, totalTime, params, numRejectionS
   var simulate = function(startState, totalTime){
   
     var sampleSequence = function(state, timeLeft){
-      if (timeLeft == 0 | isTerminal(state)){
-        return [];
-      } else {
       var action = sample(agent(state, timeLeft));
         var nextState = transition(state,action); 
+      if (timeLeft == 0 | isTerminal(state)){
+        return [[state,action]];
+      } else {
         return [[state,action]].concat( sampleSequence(nextState,timeLeft-1 ))
       }
     };

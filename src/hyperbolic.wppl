@@ -1,10 +1,9 @@
-var makeDonutUtility = function (max_digest, rewards) { 
-  return function(world, state, action) {
+var makeDonutUtility = function (world, rewards) { 
+  return function(state, action) {
     var getFeature = world.feature;
     var feature = getFeature(state);
 
-    if (state.dead)   { return 0; }
-    if (feature.name) { return rewards[feature.name][max_digest - state.digest]; }
+    if (feature.name) { return rewards[feature.name][state.timeAtRestaurant]; }
     return -0.01;
   };
 };
@@ -33,14 +32,15 @@ var makeHyperbolicDiscounter = function (agentParams, world) {
   
   var expectedUtility = dp.cache(
     function(state, action, delay){
-      var u = 1.0/(1 + agentParams.discount*delay) * utility(world, state, action);
+      var u = 1.0/(1 + agentParams.discount*delay) * utility(state, action);
       
-      assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state) + " " + action + " " + delay + ' ' + utility(world, state, action));
-      if (state.dead){
+      assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state) + " " + action + " " + delay + ' ' + utility(state, action));
+      if (state.terminateAfterAction){
         return u; 
       } else {                     
         return u + expectation( Enumerate(function(){
           var nextState = transition(state, action); 
+
           var perceivedDelay = { naive : delay + 1, sophisticated : 0}[agentParams.sophisticatedOrNaive]; 
           var nextAction = sample(agent(nextState, perceivedDelay));
           return expectedUtility(nextState, nextAction, delay+1);  
@@ -58,7 +58,7 @@ var makeHyperbolicDiscounter = function (agentParams, world) {
 
 var simulate = function(state, world, agent, actualTotalTime, statesOrActions) { 
   var perceivedTotalTime = state.timeLeft;
-  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
+  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work');
 
 
   var agentAction = agent.agent;
@@ -66,12 +66,12 @@ var simulate = function(state, world, agent, actualTotalTime, statesOrActions) {
   var transition = world.transition;
 
   var sampleSequence = function (state, actualTimeLeft) {
-    if (actualTimeLeft==0 || state.dead){
-      return [];
-    } else {
       var action = sample(agentAction(state, 0));
       var nextState = transition(state, action); 
       var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
+    if (actualTimeLeft==0 || state.terminateAfterAction){
+      return [out];
+    } else {
       return [ out ].concat( sampleSequence(nextState, actualTimeLeft-1));
     }
 
@@ -83,19 +83,19 @@ var simulate = function(state, world, agent, actualTotalTime, statesOrActions) {
 // ideally we'd use the MAP path, and the 
 var likelyPath = function(state, world, agent, actualTotalTime, statesOrActions) { 
   var perceivedTotalTime = state.timeLeft;
-  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work' + JSON.stringify(state));
+  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work' + JSON.stringify(state));
 
   var agentAction = agent.agent;
   var expectedUtility = agent.expectedUtility;
   var transition = world.transition;
 
   var sampleSequence = function (state, actualTimeLeft) {
-    if (actualTimeLeft==0 || state.dead){
-      return [];
-    } else {
       var action = agentAction(state, actualTotalTime-actualTimeLeft).MAP().val;
       var nextState = transition(state, action); 
       var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
+    if (actualTimeLeft==0 || state.terminateAfterAction){
+      return [out];
+    } else {
       return [ out ].concat( sampleSequence(nextState, actualTimeLeft-1));
     }
   };

@@ -582,8 +582,8 @@ var testNoObservationDependentLatents = function(){
     
     // next state is simply current action
     var mdpTransition = function (state, action) {
-      var dead = state.timeLeft - 1 == 1 ? true : false;
-      return update(state, { loc:action, timeLeft:state.timeLeft - 1, dead:dead });
+      var terminateAfterAction = state.timeLeft - 1 == 1 ? true : false;
+      return update(state, { loc:action, timeLeft:state.timeLeft - 1, terminateAfterAction:terminateAfterAction });
     };
     
     var manifestStateToActions = function(manifestState){
@@ -607,7 +607,7 @@ var testNoObservationDependentLatents = function(){
   var trueLatentState = {0:'a', 1:'bad', 2:'bad'};
   var perceivedTotalTime = 3;
   var actualTotalTime = perceivedTotalTime;
-  var startState = buildState( {loc:'start', timeLeft:perceivedTotalTime, dead:false}, trueLatentState);  
+  var startState = buildState( {loc:'start', timeLeft:perceivedTotalTime, terminateAfterAction:false}, trueLatentState);  
   
   // Agent params:
   

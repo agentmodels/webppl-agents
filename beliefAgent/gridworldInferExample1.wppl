@@ -25,7 +25,7 @@ var vegUtilityTable = {'Donut N': 1,
 
 var tableToUtilityFunction = function(table) {
   return function(state, action) {
-    if (state.manifestState.dead) {
+    if (state.manifestState.terminateAfterAction) {
       return 0;
     }
     var stateFeatureName = feature(state.manifestState).name;
@@ -61,9 +61,9 @@ var informedPrior = deltaERP({'Donut N': true,
 
 // we start the agent off near Donut South
 var startState = {manifestState: {loc: [2,1],
-				  dead: false,
+				  terminateAfterAction: false,
 				  timeLeft: 10,
-				  digest: 1},
+				  },
 		  latentState: {'Donut N': true,
 				'Donut S': true,
 				'Veg': true,

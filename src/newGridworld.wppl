@@ -14,12 +14,26 @@ var isAllowedState_ = function(gridMap, loc) {
 };
 
 var advanceStateTime = function(state) { 
-  var dead = state.timeLeft > 2 ? state.dead : true;
-  return update(state, { timeLeft : state.timeLeft - 1, dead : dead, previousLoc : state.loc});
+  return update(state, { 
+    timeLeft : state.timeLeft - 1, 
+    terminateAfterAction : state.timeLeft - 1> 1 ? state.terminateAfterAction : true, 
+    previousLoc : state.loc
+  });
 };
 
 var addPrevious = function(state) { 
   return update(state, { previousLoc : state.loc });
+};
+
+var advanceRestaurant = function(state, maxTimeAtRestaurant) { 
+  var timeAtRestaurant = (state.timeAtRestaurant === undefined) ? 0 : state.timeAtRestaurant + 1 ;
+  var state = update(state, { timeAtRestaurant : timeAtRestaurant }); 
+
+  if (state.timeAtRestaurant < maxTimeAtRestaurant - 1) {
+    return state;
+  } else {
+    return update(state, { terminateAfterAction : true });
+  }
 };
 
 var moveState = function(gridMap, state, action) { 
@@ -39,19 +53,13 @@ var moveState = function(gridMap, state, action) {
 var makeGridTransition_ = function(gridMap, options) {
   return function(state,action){
     var getFeature = gridMap.feature;
-    var state1_5 = options.noReverse ? addPrevious(state) : state;
-    var state2 = advanceStateTime(state1_5);
+    var state = options.noReverse ? addPrevious(state) : state;
+    var state = advanceStateTime(state);
 
+    var state = !getFeature(state).name ? moveState(gridMap, state, action) : state;
+    var state = getFeature(state).name ? advanceRestaurant(state, options.maxTimeAtRestaurant) : state;
 
-    if ( getFeature(state2).name ) { // there's a restaurant here
-      var state3 =  update(state2, { digest : state2.digest -1}); 
-      if (state3.digest <= 0) {
-        return update(state3, { dead : true });
-      }
-      return state3;
-    }
-
-    return moveState(gridMap, state2, action);
+    return state;
   };
 };
 
@@ -108,7 +116,9 @@ var makeDonutWorld2 = function(options) {
 
 
 var makeGridWorld = function(features, options) {
-  var options = options || {};
+  var defaults = { noReverse : false, maxTimeAtRestaurant : 1 };
+
+  var options = update(defaults, options);
   var gridMap = makeGridMap(features); 
 
   var transition = makeGridTransition_(gridMap, options);

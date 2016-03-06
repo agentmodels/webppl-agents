@@ -7,8 +7,8 @@
 // Start at bottom. 
 var start = { 
   loc : [3,0],
-  dead : false,
-  digest : 2, 
+  terminateAfterAction : false,
+   
   timeLeft : 13
 };
 
@@ -16,8 +16,8 @@ var start = {
 // Create trajectory that we'll use to condition on
 
 // TODO: have *options* argument for makeDonutUtility
-// so that *max_digest* is a property of options. Could
-// also use this to have a default value for max_digest. 
+// so that *max_restaurantTimeLeft* is a property of options. Could
+// also use this to have a default value for max_restaurantTimeLeft. 
 var donutUtility = makeDonutUtility(2, {
     'Donut N' : [10, -10],
     'Donut S' : [10, -10],

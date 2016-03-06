@@ -1,18 +1,19 @@
 var start = { 
   loc : [3,0],
-  dead : false,
-  digest : 2, 
+  terminateAfterAction : false,
   timeLeft : 14
 };
 
-var donutUtility = makeDonutUtility(2, {
+
+var world = makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2});
+
+var donutUtility = makeDonutUtility(world, {
     'Donut N' : [10, -10],
     'Donut S' : [10, -10],
     'Veg'   : [-10, 20],
     'Noodle': [0, 0]
 });
 
-var world = makeDonutWorld2({ big : true});
 var agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
