@@ -30,7 +30,7 @@ var downToOne = function(n){
 // From array of POMDP states, extract locations array
 var getLocs = function(trajectory){
   assert.ok(_.isArray(trajectory) && isState(trajectory[0]), 'getLocs args');
-  return _.pluck( _.pluck(trajectory,'manifestState'), 'loc' );
+  return _.map(trajectory,'manifestState.loc');
 };
 
 // From array of locs, add *timeLeft* and *terminateAfterAction*
@@ -185,9 +185,6 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
 
 
   var sampleSequence = function(state, belief, actualTimeLeft) {
-    if (shouldTerminate(actualTimeLeft, state.manifestState) ) {
-      return [];
-    } else {
       var nextObservation = observe(state);
 
       // Update agent's internal state and get action
@@ -197,6 +194,9 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
       // Update world state and return output and output from recursing on updated world state, internal state, and time. 
       var nextState = transition(state, nextAction);
       var output = selectOutput(state, nextAction, belief);
+    if (shouldTerminate(actualTimeLeft, state.manifestState) ) {
+      return [output];
+    } else {
       return [output].concat(sampleSequence(nextState, nextBelief, actualTimeLeft - 1));
     }
   };

@@ -56,10 +56,10 @@ var assertHas = function(object, params, message) {
 
 
 var hasProperties = function(object, listProperties){
-  return _.all( 
-    map( function(property){ 
+  return _.every(listProperties,
+    function(property){ 
       return _.has(object, property);
-    }, listProperties));
+    });
 };
 
        
@@ -603,11 +603,11 @@ var mdpSimulateGridworld = function(startState, totalTime, params, numRejectionS
   var simulate = function(startState, totalTime){
   
     var sampleSequence = function(state, timeLeft){
-      if (timeLeft == 0 | isTerminal(state)){
-        return [];
-      } else {
       var action = sample(agent(state, timeLeft));
         var nextState = transition(state,action); 
+      if (timeLeft == 0 | isTerminal(state)){
+        return [[state,action]];
+      } else {
         return [[state,action]].concat( sampleSequence(nextState,timeLeft-1 ))
       }
     };

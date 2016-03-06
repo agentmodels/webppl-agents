@@ -10,4 +10,4 @@ for testfile in $TEST_FILES
 do
   webppl $testfile $REQUIRES || { echo "$testfile failed" ; exit 1; }
 done
-
+echo "tests passed"

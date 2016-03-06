@@ -86,9 +86,6 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
   };
 
   var sampleSequence = function(state, currentBelief, actualTimeLeft) {
-    if (cutoffCondition(actualTimeLeft, state.manifestState) ) {
-      return [];
-    } else {
       var nextAction = sample(agentAction(state.manifestState, currentBelief,
 					  observe(state)));
       var nextState = transition(state, nextAction.action);
@@ -97,6 +94,9 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
                  stateBelief: [state, currentBelief]}[outputStatesOrActions];
       // could return observations
       
+    if (cutoffCondition(actualTimeLeft, state.manifestState) ) {
+      return [out];
+    } else {
       return [out].concat( sampleSequence(nextState, nextAction.belief,
 					  actualTimeLeft - 1));
     }
