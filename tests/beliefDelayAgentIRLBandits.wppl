@@ -5,7 +5,7 @@ var noManifest = true;
 
 var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk){
   if (noManifest){
-    var startManifestState = {timeLeft: perceivedTotalTime, loc: 'start', dead: false};
+    var startManifestState = {timeLeft: perceivedTotalTime, loc: 'start', terminateAfterAction: false};
     return Enumerate( function(){
       var getArmToPrize = armToPrizeThunk();
       return buildState(startManifestState, getArmToPrize);
