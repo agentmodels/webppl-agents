@@ -671,8 +671,10 @@ var testNoObservationDependentLatents = function(){
 
 };
 
-speedTestIRLBandits('belief');
+IRLBanditGenerativeNoDelay('belief');
 testInferIRLBandit('belief')
+//speedTestIRLBandits('belief');
+
 ash();
 
 runSpeedTests();
