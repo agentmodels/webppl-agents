@@ -73,7 +73,7 @@ var makeBeliefAgent = function(params, world) {
   
   
   var updateBeliefLatent = dp.cache(
-    function(belief, observation, action){
+    function(belief, observation, action){        
 
       // If belief has form of "ERP over {manifest:, latent:}" then we convert
       // to form of "{manifest:, ERP over latent}". 
@@ -104,11 +104,10 @@ var makeBeliefAgent = function(params, world) {
 	  var state = buildState( belief.manifestState, latentState);    
           var predictedNextState = isNullAction(action) ? state : transition(state, action);
           var predictedObservation = observe(predictedNextState);
+          
 	  condition(_.isEqual(predictedObservation, observation));
 	  return latentState;});
-        var out =  {manifestState: newManifestState, latentStateERP: newLatentERP};
-        
-        return out;
+        return {manifestState: newManifestState, latentStateERP: newLatentERP};
       }
     });
       

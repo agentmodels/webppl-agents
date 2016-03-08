@@ -93,7 +93,9 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
                               numRejectionSamples, beliefOrBeliefDelay){
   var world = worldAndStart.world;
   var startState = worldAndStart.startState;
-  var observe = world.observe;
+  var worldObserve = world.observe;
+  var observe = getFullObserve(worldObserve);
+
   var simulate = getSimulateFunction(beliefOrBeliefDelay);
 
   var priorPrizeToUtility = prior.priorPrizeToUtility;
@@ -123,15 +125,20 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
     // Move agent through observed sequence 
     var factorSequenceOffPolicy = function(currentBelief, previousAction, timeIndex){
       if (timeIndex < observedStateAction.length) { 
-        
+
         // Go to next world state and sample observation from that state
         var state = observedStateAction[timeIndex][0];
         var observation = observe(state);
 
         // Update agent's internal state and get action ERP
-        var delay = 0;
-        var nextBelief = agentUpdateBelief(currentBelief, observation, previousAction, delay);
-        var nextActionERP = agentAct(nextBelief, delay);
+        var delay = 0;     
+        var nextBelief = beliefOrBeliefDelay == 'belief' ?
+            agentUpdateBelief(currentBelief, observation, previousAction) :
+            agentUpdateBelief(currentBelief, observation, previousAction, delay);
+
+
+        var nextActionERP = beliefOrBeliefDelay == 'belief' ? 
+            agentAct(nextBelief) : agentAct(nextBelief, delay); 
 
         var observedAction = observedStateAction[timeIndex][1];
         factor(nextActionERP.score([], observedAction));
