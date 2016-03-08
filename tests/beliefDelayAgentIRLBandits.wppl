@@ -671,7 +671,7 @@ var testNoObservationDependentLatents = function(){
 
 IRLBanditGenerativeNoDelay('belief');
 testInferIRLBandit('belief')
-//speedTestIRLBandits('belief');
+speedTestIRLBandits('belief');
 
 ash();
 

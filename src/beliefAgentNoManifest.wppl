@@ -1,5 +1,5 @@
 
-var recurseOnStateOrBelief = 'belief';
+var recurseOnStateOrBelief = 'state';
 var fastUpdateBelief = true;
 console.log(' Recurse on belief or state?  ', recurseOnStateOrBelief);
 console.log(' Fast update belief? ', fastUpdateBelief);
