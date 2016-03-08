@@ -57,8 +57,8 @@ var noDiscountBaseAgentParams = { // doesn't contain priorBelief or utility
 
 var makeIRLBanditAgent = function(prizeToUtility, agentParams, worldAndStart, beliefOrBeliefDelay){
   var priorBelief = agentParams.priorBelief;
-  assert.ok( _.isFinite(priorBelief.score([],worldAndStart.startState.latentState)), 
-             'makeIRLBanditAgent does not have true latent in support');
+  assert.ok( _.isEqual(sample(priorBelief).manifestState, worldAndStart.startState.manifestState),
+             'makeIRLBanditAgent: priorBelief has wrong start manifestState');
   
   var utility = function(state,action){
     var loc = state.manifestState.loc;

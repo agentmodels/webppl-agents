@@ -1,6 +1,6 @@
 /* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
 
-var noManifest = false;
+var noManifest = true;
 
 
 var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk){
@@ -671,6 +671,9 @@ var testNoObservationDependentLatents = function(){
 
 };
 
+speedTestIRLBandits('belief');
+testInferIRLBandit('belief')
+ash();
 
 runSpeedTests();
 IRLBanditGenerativeAll();
