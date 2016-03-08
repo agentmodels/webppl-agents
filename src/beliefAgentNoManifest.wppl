@@ -214,12 +214,12 @@ var makeBeliefAgent = function(params, world) {
 
 var simulateBeliefAgent = function (startState, world, agent, outputType) {
 
-  var perceivedTotalTime = startState.manifestState.timeLeft;
-  assert.ok( isPOMDPWorld(world),
-	     'world argument lacks transition, stateToActions, or observe');
-  assert.ok( actualTotalTime <= perceivedTotalTime && isPOMDPState(startState),
-	     'simulate args: ' + [actualTotalTime, perceivedTotalTime]);
-  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work');
+  var totalTime = startState.manifestState.timeLeft;
+  assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
+  assert.ok( _.contains(['states','actions','stateAction','stateBelief'], outputType), 
+             "outputType key not in ['states', 'actions', 'stateAction', 'stateBelief']");
+  assert.ok(totalTime > 1 || startState.manifestState.terminateAfterAction, 
+            'if totalTime==1, must also terminateAfterAction');
 
   var agentAct = agent.act;
   var agentUpdateBelief = agent.updateBelief;
@@ -237,10 +237,11 @@ var simulateBeliefAgent = function (startState, world, agent, outputType) {
 
   var shouldTerminate = function (manifestState) { return manifestState.terminateAfterAction; };
 
+  
   var sampleSequence = function(state, priorBelief, action) {
     var observation = observe(state);
     
-    var belief = agentUpdateBelief(priorBelief, observation action);
+    var belief = agentUpdateBelief(priorBelief, observation, action);
     var action = sample(agentAct(belief));
     var output = [selectOutput(state, action, belief)];
     
@@ -248,7 +249,7 @@ var simulateBeliefAgent = function (startState, world, agent, outputType) {
       return output;
     } else {   
       var nextState = transition(state, action);
-      return output.concat(sampleSequence(nextState, belief, nextAction));
+      return output.concat(sampleSequence(nextState, belief, action));
     }
   };
   var startAction = 'noAction';

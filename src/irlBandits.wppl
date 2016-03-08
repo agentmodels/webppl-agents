@@ -57,6 +57,11 @@ var noDiscountBaseAgentParams = { // doesn't contain priorBelief or utility
 
 var makeIRLBanditAgent = function(prizeToUtility, agentParams, worldAndStart, beliefOrBeliefDelay){
   var priorBelief = agentParams.priorBelief;
+  // console.log('all makeIRL bandit args prizeToUtility, agentParams, worldAndStart, beliefOrBeliefDelay', 
+  //             prizeToUtility, agentParams, worldAndStart, beliefOrBeliefDelay);
+  // console.log( 'sample(priorBelief).manifestState, worldAndStart.startState.manifestState),', 
+  //              sample(priorBelief).manifestState, worldAndStart.startState.manifestState);
+
   assert.ok( _.isEqual(sample(priorBelief).manifestState, worldAndStart.startState.manifestState),
              'makeIRLBanditAgent: priorBelief has wrong start manifestState');
   
