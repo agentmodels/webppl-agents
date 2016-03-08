@@ -74,12 +74,11 @@ var makeIRLBanditWorldAndStart = function(numArms, armToPrize, perceivedTotalTim
   map( function(i){assert.ok( _.isString(armToPrize[i]), 'makeIRLBanditWorld args' );},
        _.range(numArms));
   
-  var actualTotalTime = perceivedTotalTime;
   var world = makeIRLBanditWorld(numArms);
   var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, terminateAfterAction:false}, 
                     latentState: armToPrize};
 
-  return {world:world, startState: startState, actualTotalTime:actualTotalTime};
+  return {world:world, startState: startState};
 };
 
 
@@ -89,7 +88,6 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
                               numRejectionSamples, beliefOrBeliefDelay){
   var world = worldAndStart.world;
   var startState = worldAndStart.startState;
-  var actualTotalTime = worldAndStart.actualTotalTime;
   var observe = world.observe;
   var simulate = getSimulateFunction(beliefOrBeliefDelay);
 
@@ -98,7 +96,6 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
 
   assert.ok(isPOMDPWorld(world) && isPOMDPState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args');
   assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 'trajectoryOrOffPolicy bad');
-  if (actualTotalTime != observedStateAction.length){console.log( 'Warning: actualTotalTime is not observed trajectory length');}
   assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferirlbandit');
 
   
@@ -114,7 +111,7 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
     // Factor on whole sampled trajectory (SLOW IF NOT DETERMINISTIC AND NUM SAMPLES HIGH)
     var factorOnTrajectory = function(){
       var trajectoryERP = Rejection( function(){
-        return simulate(startState, world, agent, actualTotalTime, 'states')}, numRejectionSamples);
+        return simulate(startState, world, agent, 'states')}, numRejectionSamples);
       factor(trajectoryERP.score([], map(first, observedStateAction)));
     };
 

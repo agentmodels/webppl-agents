@@ -145,7 +145,7 @@ var makeBeliefAgent = function(params, world) {
 	Enumerate(function(){
 	  var state = sampleBelief(belief);
 	  var u = utility(state, action);
-	  if (state.manifestState.dead) {
+	  if (state.manifestState.terminateAfterAction) {
 	    return u;
 	  } else {
 	    var nextState = transition(state, action);
@@ -186,7 +186,7 @@ var makeBeliefAgent = function(params, world) {
       return expectation(  // need this for caching
         Enumerate( function(){
           var u = utility(state, action);
-          if (state.manifestState.dead) {
+          if (state.manifestState.terminateAfterAction) {
 	    return u;
           } else {
 	    var nextState = transition(state, action);
@@ -212,59 +212,47 @@ var makeBeliefAgent = function(params, world) {
 
 
 
-var simulateBeliefAgent = function (startState, world, agent, actualTotalTime,
-				    outputType) {
+var simulateBeliefAgent = function (startState, world, agent, outputType) {
 
   var perceivedTotalTime = startState.manifestState.timeLeft;
   assert.ok( isPOMDPWorld(world),
 	     'world argument lacks transition, stateToActions, or observe');
   assert.ok( actualTotalTime <= perceivedTotalTime && isPOMDPState(startState),
 	     'simulate args: ' + [actualTotalTime, perceivedTotalTime]);
-  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.dead, but then simulate wont work');
+  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work');
 
   var agentAct = agent.act;
-  var priorBelief = agent.params.priorBelief;
   var agentUpdateBelief = agent.updateBelief;
+  var priorBelief = agent.params.priorBelief;
   var transition = world.transition;
   var worldObserve = world.observe;
   var observe = getFullObserve(worldObserve);
 
-  var selectOutput = function(state, nextAction, currentBelief){
-    var table =  {
-      states:state,
-      actions:nextAction,
-      stateAction:[state, nextAction], 
-      stateBelief: [state, currentBelief]
-    };
-    assert.ok( _.has(table,outputType), "outputType key not in ['states', 'actions', 'stateAction', 'stateBelief']");
+  
+  var selectOutput = function(state, action, belief){
+    var table =  {states:state, actions:action, stateAction:[state, action], 
+                  stateBelief: [state, belief]};
     return table[outputType];
   };
-  
-  var shouldTerminate = (isGridworld(world) ?
-                       function (actualTimeLeft, state) { return actualTimeLeft === 0 || state.dead; } :
-                         function (actualTimeLeft, state) { return actualTimeLeft === 0; });
 
-  var sampleSequence = function(state, belief, action, actualTimeLeft) {
-    if (shouldTerminate(actualTimeLeft, state.manifestState) ) {
-      return [];
-    } else {
-      var nextObservation = observe(state);
+  var shouldTerminate = function (manifestState) { return manifestState.terminateAfterAction; };
 
-      // update agent's internal state and get action
-      var nextBelief = agentUpdateBelief(belief, nextObservation, action);
-      var nextAction = sample(agentAct(nextBelief));
-
-      // update world state, return immediate output and output from recursing
-      // on updated world state, agent belief, and time.
-      var nextState = transition(state, nextAction);
-      var output = selectOutput(state, nextAction, belief);
-      
-      return [output].concat( sampleSequence(nextState, nextBelief, nextAction,
-					     actualTimeLeft - 1));
+  var sampleSequence = function(state, priorBelief, action) {
+    var observation = observe(state);
+    
+    var belief = agentUpdateBelief(priorBelief, observation action);
+    var action = sample(agentAct(belief));
+    var output = [selectOutput(state, action, belief)];
+    
+    if (shouldTerminate(state.manifestState)) {
+      return output;
+    } else {   
+      var nextState = transition(state, action);
+      return output.concat(sampleSequence(nextState, belief, nextAction));
     }
   };
   var startAction = 'noAction';
-  return sampleSequence(startState, priorBelief, startAction, actualTotalTime);
+  return sampleSequence(startState, priorBelief, startAction);
 };
 
 

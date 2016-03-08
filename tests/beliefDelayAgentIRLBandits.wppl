@@ -54,8 +54,7 @@ var speedTestIRLBandits = function(beliefOrBeliefDelay){
   var testTime = function(perceivedTotalTime){
     var worldAndStart = getWorld(perceivedTotalTime);
     var agent = getAgent(perceivedTotalTime, worldAndStart);
-    var thunk = function(){return simulate(worldAndStart.startState, worldAndStart.world,
-                                           agent, worldAndStart.actualTotalTime, 'states');};
+    var thunk = function(){return simulate(worldAndStart.startState, worldAndStart.world, agent, 'states');};
 
     var out = timeit(thunk);
     var locs = trajectoryToLocations(out.value).slice(1,4);
@@ -106,7 +105,7 @@ var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
   var getTrajectory = function(priorBelief){
     var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
     var agent = makeIRLBanditAgent(prizeToUtility, agentParams, worldAndStart, beliefOrBeliefDelay);
-    return simulate(startState, world, agent, worldAndStart.actualTotalTime, 'states');
+    return simulate(startState, world, agent, 'states');
   };
 
   // Agent knows armToPrize, picks arm with best prize
@@ -156,7 +155,7 @@ var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
   
   var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
   var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart, beliefOrBeliefDelay);
-  var trajectory = simulate(startState, world, agent, worldAndStart.actualTotalTime, 'states');
+  var trajectory = simulate(startState, world, agent, 'states');
   
   var locs = trajectoryToLocations(trajectory).slice(1,5);
   assert.ok( _.difference(_.range(4),locs).length == 0, 'fail bandit example 3');
@@ -166,7 +165,7 @@ var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
   var startState = update(startState, {manifestState: update(startState.manifestState,{loc:0})});
   var worldAndStart = update(worldAndStart, {startState:startState});
   var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart, beliefOrBeliefDelay);
-  var trajectory = simulate(startState, world, agent, worldAndStart.actualTotalTime, 'states');
+  var trajectory = simulate(startState, world, agent,'states');
   
   var locs = trajectoryToLocations(trajectory).slice(1,4);
   assert.ok( _.difference([1,2,3],locs).length == 0, 'fail bandit example 3.5');
@@ -209,7 +208,7 @@ var IRLBanditGenerativeDelay = function(){
   // No discounting
   var agentParams = update(baseAgentParams, {priorBelief:priorBelief});
   var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
-  var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
+  var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, 'states');};
   var out = timeit(thunk);
   var locs = trajectoryToLocations(out.value).slice(1,4);
   assert.ok(  _.difference([1,2,3],locs).length == 0, 'fail bandit example 4');
@@ -220,7 +219,7 @@ var IRLBanditGenerativeDelay = function(){
   var replaceParams = {discount:4, noDelays:false, priorBelief:priorBelief};
   var agentParams = update(baseAgentParams, replaceParams);
   var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
-  var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
+  var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, 'states');};
   var out = timeit(thunk);
   var locs = trajectoryToLocations(out.value).slice(1,4);
   assert.ok(  _.difference([0,0,0],locs).length == 0, 'fail bandit example 5');
@@ -238,7 +237,7 @@ var IRLBanditGenerativeDelay = function(){
     };
     var agentParams = update(baseAgentParams, replaceParams);
     var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
-    var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
+    var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, 'states');};
     var out = timeit(thunk);
     var locs = trajectoryToLocations(out.value).slice(1,4);
     var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
@@ -262,7 +261,7 @@ var IRLBanditGenerativeDelay = function(){
     };
     var agentParams = update(baseAgentParams, replaceParams);
     var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart);
-    var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');};
+    var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, 'states');};
     var out = timeit(thunk);
     var locs = trajectoryToLocations(out.value).slice(1,4);
     var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
@@ -606,7 +605,6 @@ var testNoObservationDependentLatents = function(){
   var world = makeLineWorld();
   var trueLatentState = {0:'a', 1:'bad', 2:'bad'};
   var perceivedTotalTime = 3;
-  var actualTotalTime = perceivedTotalTime;
   var startState = buildState( {loc:'start', timeLeft:perceivedTotalTime, terminateAfterAction:false}, trueLatentState);  
   
   // Agent params:
@@ -647,7 +645,7 @@ var testNoObservationDependentLatents = function(){
 
     var agentParams = update(baseAgentParams, {priorBelief: priorBelief, utility:getUtility(prizeToUtility)});
     var agent = makeBeliefDelayAgent(params, world);
-    return simulateBeliefDelayAgent(startState, world, agent, worldAndStart.actualTotalTime, 'states');
+    return simulateBeliefDelayAgent(startState, world, agent,  'states');
   };
 
   // AGENT'S UTILITIES
