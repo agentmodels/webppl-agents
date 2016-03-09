@@ -1,10 +1,3 @@
-// here, we observe the agent in a gridworld, going past a nearby donut shop
-// and towards a further away donut shop. we can conclude that the agent likes
-// donuts, but thinks that the nearby donut shop is closed.
-
-// assume that the agent is not a discounter, does not have bounded VOI, etc
-
-
 
 // Make big gridworld
 var getWorld = function(){
@@ -201,52 +194,3 @@ var erp = inferGridWorld(world, startState, baseParams, trueAgentParams, prior, 
 console.log('erp');
 printERP(erp);
 ash();
-
-
-
-
-// helper function for inference
-var factorAlongTrajectory = function(index, trajectory, agent, belief){
-  if (index >= trajectory.length) {
-    return [];
-  } else {
-
-    var agentAct = agent.act;
-    var agentUpdateBelief = agent.updateBelief;
-    
-    var state = trajectory[index][0];
-    var observedAction = trajectory[index][1];
-
-    var observation = observe(state);
-    var nextBelief = agentUpdateBelief(state.manifestState, belief, observation, 0);
-    var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
-
-    factor(nextActionERP.score([], observedAction));
-    
-    return factorAlongTrajectory(index + 1, trajectory, agent, nextBelief);
-  }
-};
-
-
-// the inference itself
-var getPosterior = function(priorUtilityTable, priorAgentPrior) {
-  return printERP(Enumerate(function(){
-    
-    var utilityTable = priorUtilityTable();
-    var utility = tableToUtilityFunction(utilityTable, feature);
-    var priorBelief = priorAgentPrior();
-
-
-    var params = update(baseParams, {priorBelief: priorBelief, utility: utility});
-    
-    var agent = makeAgent(params, gridworldPOMDP);
-
-    
-    factorAlongTrajectory(0, observedTrajectory, agent, priorBelief);
-
-    return {utilityTable: utilityTable,
-	    priorBelief: priorBelief};
-  }));
-};
-
-timeit( function(){return getPosterior(priorUtilityTable, priorAgentPrior)});
