@@ -1,26 +1,31 @@
 
-var recurseOnStateOrBelief = 'belief';
-var fastUpdateBelief = true;
-//console.log(' Recurse on belief or state?  ', recurseOnStateOrBelief);
-//console.log(' Fast update belief? ', fastUpdateBelief);
-
-
 
 // POMDP AGENT WITHOUT DELAYS
-
 // Test script by running:
 //webppl tests/beliefDelayAgentIRLBandits.wppl --require webppl-timeit --require webppl-dp --require .
 
 
 
-// Helper functions
+// BELIEF AGENT HELPER FUNCTIONS: should be moved to utilsForBeliefAgent.wppl once beliefDelayAgent
+// has had manifest states removed.
+
+
+// Optimizations that work in bandits and gridworld (not for boundVOI agent)
+var recurseOnStateOrBelief = 'belief';
+var fastUpdateBelief = true;
+
+
+
+// HELPER FUNCTIONS
+
+// Observe both manifestState and the observation of the latent
 var getFullObserve = function(observeLatent){
   return function(state){
     return {manifestState: state.manifestState, observation: observeLatent(state)};
   };
 };
 
-// Generally, we might take the union of actions for all possible states
+// (Generally, we might take the union of actions for all possible states)
 var getBeliefToActions = function(manifestStateToActions){
   return function(belief){
     var manifestState = ERPOverLatent(belief) ? belief.manifestState : 
@@ -33,13 +38,16 @@ var getBeliefToActions = function(manifestStateToActions){
 var isNullAction = function(action){return action=='noAction';};
 
 
-// Helpers for fastUpdateBelief
+// Helper functions for fastUpdateBelief
 var isDeltaERP = function(erp){return erp.support().length===1;};
 
+// Test whether belief has right form for fastUpdateBelief, i.e. it's not
+// an ERP but an object with 'manifestState' and 'latentStateERP' properties
 var ERPOverLatent = function(belief){
   return _.has(belief,'manifestState') && !_.has(belief,'support');
 };
 
+// Convert to form for fastUpdateBelief
 var ToERPOverLatent = function(belief){
   var manifestState = belief.support()[0].manifestState;
   var latentStateERP = Enumerate(function(){return sample(belief).latentState;});
@@ -47,7 +55,7 @@ var ToERPOverLatent = function(belief){
           latentStateERP: latentStateERP};
 };
 
-
+// Sample a state from belief: works for both fast and slow updateBelief
 var sampleBelief = function(belief){
   if (ERPOverLatent(belief)){
     return buildState(belief.manifestState, sample(belief.latentStateERP) );
@@ -58,6 +66,7 @@ var sampleBelief = function(belief){
 
 
 
+// MAKE AGENT
 
 var makeBeliefAgent = function(params, world) {
   map(function(s){assert.ok(params.hasOwnProperty(s),'makeBeliefAgent args');}, 
@@ -129,7 +138,6 @@ var makeBeliefAgent = function(params, world) {
   // RECURSE ON BELIEF (BELLMAN STYLE)
   var act = dp.cache(
     function(belief) {
-      //assert.ok(isERP(belief.latentStateERP), 'agent args fail');
     
       return Enumerate(function(){
 	var action = uniformDraw(beliefToActions(belief));
@@ -159,10 +167,10 @@ var makeBeliefAgent = function(params, world) {
 	}));
     });
 
+  
   // RECURSE ON STATE (FIXES THE LATENT STATE)
   var act_recState = dp.cache(
     function(belief) {
-//      assert.ok(isERP(belief), 'act args fail');
       
       return Enumerate(function(){
 	var action = uniformDraw(beliefToActions(belief));
@@ -215,6 +223,7 @@ var makeBeliefAgent = function(params, world) {
 var simulateBeliefAgent = function (startState, world, agent, outputType) {
 
   var totalTime = startState.manifestState.timeLeft;
+  
   assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
   assert.ok( _.contains(['states','actions','stateAction','stateBelief'], outputType), 
              "outputType key not in ['states', 'actions', 'stateAction', 'stateBelief']");
