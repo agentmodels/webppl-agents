@@ -29,6 +29,17 @@ var _getPriorBelief = function(perceivedTotalTime, startingLocation, latentState
   }
 };
 
+var getPriorBeliefGridworld = function(startManifestState, latentStateSampler, noManifest){
+  if (noManifest){
+    return Enumerate( function(){
+      var latentState = latentStateSampler();
+      return buildState(startManifestState, latentState);
+    });
+  } else {
+    return Enumerate(latentStateSampler);
+  }
+};
+
 
 
 

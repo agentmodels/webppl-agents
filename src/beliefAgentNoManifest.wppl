@@ -105,10 +105,7 @@ var makeBeliefAgent = function(params, world) {
           var predictedNextState = isNullAction(action) ? state : transition(state, action);
           var predictedObservation = observe(predictedNextState);
 
-          // TODO add something to deal with mismatch for timeAtRestaurant. 
-          console.log('\n\n-----\n belief update: predictedObservation, observation', 
-                      predictedObservation, ' \n\n',  observation);
-	  condition(_.isEqual(predictedObservation, observation));
+	   condition(_.isEqual(predictedObservation, observation));
 	  return latentState;});
         return {manifestState: newManifestState, latentStateERP: newLatentERP};
       }
