@@ -21,7 +21,6 @@
       "src/beliefAgentNoManifest.wppl",
       "src/deterministicBandits.wppl",
       "src/beliefDelayAgent.wppl",
-      "src/utilsForTestingPOMDP.wppl",
       "src/irlBandits.wppl" 
     ]
   },
