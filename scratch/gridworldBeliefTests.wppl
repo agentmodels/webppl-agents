@@ -9,14 +9,7 @@
 // Make big gridworld
 var getWorld = function(){
   var gridworldMDP = makeDonutWorld2({big: true});
-  var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
-  var feature = gridworldMDP.feature;
-
-  var transition = gridworldPOMDP.transition;
-  var worldObserve = gridworldPOMDP.observe;
-  var observe = worldObserve // TODO CHANGE BACK getFullObserve(worldObserve);
-
-  return {gridworldPOMDP: gridworldPOMDP, observe:observe, transition:transition, feature:feature};
+  return makeGridworldPOMDP(gridworldMDP);
 };
 
 var tableToUtilityFunction = function(table, feature ) {
@@ -49,29 +42,39 @@ var getPriorBelief = function(totalTime, startingLocation, latentStateSampler){
 };
 
 
-var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedStateAction, trajectoryOrOffPolicy, 
+var inferGridWorld = function(world, startState, baseParams, trueAgentParams, prior, trajectoryOrOffPolicy, 
                               numRejectionSamples, beliefOrBeliefDelay){
-  var world = worldAndStart.world;
-  var startState = worldAndStart.startState;
+  
   var worldObserve = world.observe;
   var observe = getFullObserve(worldObserve);
+  var feature = world.feature;
 
+  var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
   var simulate = getSimulateFunction(beliefOrBeliefDelay);
 
-  var priorPrizeToUtility = prior.priorPrizeToUtility;
+  var priorUtilityTable = prior.priorUtilityTable
   var priorAgentPrior = prior.priorAgentPrior;
 
-  assert.ok(isPOMDPWorld(world) && isPOMDPState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args');
+  assert.ok(isPOMDPState(startState) && isERP(priorUtilityTable) && isERP(priorAgentPrior), 'inferGridworld args');
   assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 'trajectoryOrOffPolicy bad');
-  assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferirlbandit');
+  assert.ok(_.isNumber(numRejectionSamples) && isPOMDPWorld(world), 'inferGridWorld args' );
 
+  // get observations
+  var agent = makeAgent(trueAgentParams, world);
+  var observedStateAction = simulate(startState, world, agent, 'stateAction');
+  assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferGridWorld args');
+  
   
   return Enumerate(function(){
     // priors and makeAgent are specific to IRL Bandits
-    var prizeToUtility = sample(priorPrizeToUtility);
+    var utilityTable = sample(priorUtilityTable);
+    var utility = tableToUtilityFunction(utilityTable, feature);
+
     var priorBelief = sample(priorAgentPrior);
     
-    var agent = makeIRLBanditAgent(prizeToUtility, update(baseAgentParams, {priorBelief:priorBelief}), worldAndStart, beliefOrBeliefDelay);
+    var params = update(baseParams, {utility:utility, priorBelief: priorBelief});
+    
+    var agent = makeAgent(params, world);
     var agentAct = agent.act;
     var agentUpdateBelief = agent.updateBelief;
 
@@ -111,7 +114,8 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
     var doInfer = (trajectoryOrOffPolicy=='trajectory') ? factorOnTrajectory() : 
         factorSequenceOffPolicy(priorBelief,'noAction', 0);
     
-    return {prizeToUtility: prizeToUtility, priorBelief:priorBelief};
+    return {utilityTable: utilityTable,
+	    priorBelief: priorBelief};
   });
 };
 
@@ -119,9 +123,7 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
 
 
 // Global makeAgent and simulate functions
-var beliefOrBeliefDelay = 'beliefDelay';
-var makeAgent  = getMakeAgentFunction(beliefOrBeliefDelay);
-var simulate = getSimulateFunction(beliefOrBeliefDelay);
+var beliefOrBeliefDelay = 'belief';
 
 
 
@@ -157,13 +159,8 @@ var vegUtilityTable = {'Donut N': 1,
 
 // Make world
 var world = getWorld();
-var gridworldPOMDP = world.gridworldPOMDP;
-var observe = world.observe;
-var transition = world.transition;
 var feature = world.feature;
-
-
-// Scenario parameters
+var gridworldPOMDP = world.gridworldPOMDP;
 var perceivedTotalTime = 10;
 var startingLocation = [2,1];
 var trueLatentState = allOpenLatentState;
@@ -194,15 +191,25 @@ var baseParams = {
   myopia: {on: false, bound: 0},
   boundVOI: {on: false, bound: 0},
 };
-var params = update(baseParams, 
+var trueAgentParams = update(baseParams, 
                     {priorBelief: truePriorBelief,
                      utility: tableToUtilityFunction(donutUtilityTable, feature)});
 
 
+var priorUtilityTable = function(){return uniformDraw([donutUtilityTable, vegUtilityTable]);};
+var priorAgentPrior = function(){return uniformDraw([truePriorBelief, alternativePriorBelief]);};
 
-var agent = makeAgent(params, gridworldPOMDP);
+var prior = {priorUtilityTable: Enumerate(priorUtilityTable),
+             priorAgentPrior: Enumerate(priorAgentPrior)};
 
-var observedTrajectory = simulate(startState, gridworldPOMDP, agent, perceivedTotalTime, 'stateAction');
+
+var erp = inferGridWorld(world, startState, baseParams, trueAgentParams, prior, 'trajectory', 
+                         10, beliefOrBeliefDelay);
+console.log('erp');
+printERP(erp);
+ash();
+
+
 
 
 // helper function for inference
@@ -226,9 +233,6 @@ var factorAlongTrajectory = function(index, trajectory, agent, belief){
     return factorAlongTrajectory(index + 1, trajectory, agent, nextBelief);
   }
 };
-
-var priorUtilityTable = function(){return uniformDraw([donutUtilityTable, vegUtilityTable]);};
-var priorAgentPrior = function(){return uniformDraw([truePriorBelief, alternativePriorBelief]);};
 
 
 // the inference itself
