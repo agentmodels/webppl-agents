@@ -506,7 +506,7 @@ var testBoundVOI = function(){
     
     var params = update(baseAgentParams, paramsUpdate);
     var agent = makeThreePathsAgent(utilityTable, params, worldAndStart);
-    return simulateBeliefDelayAgent(worldAndStart.startState, worldAndStart.world, agent, totalTime, 'states');
+    return simulateBeliefDelayAgent(worldAndStart.startState, worldAndStart.world, agent, 'states');
   };
 
   
@@ -537,130 +537,6 @@ var testBoundVOI = function(){
 };
 
 
-    
-
-    
-
-// Meant to test whether dependencies between elements of the latent
-// state are treated correctly. Abandonded for now, since all the
-// agents we've considered perform the same on this particular task. 
-var testNoObservationDependentLatents = function(){
-
-  var getEUs = function(actionSequences, prizeToUtility, priorArmToPrize){
-    var actionSequenceToUtility = function(actionSequence, armToPrize){
-      return sum( map( function(action){
-        return prizeToUtility[ armToPrize[action] ];
-      }, actionSequence));
-    };
-    
-    var actionSequenceToEU = function(actionSequence){
-      return sum(map( function(probArmToPrize){
-        var prob = probArmToPrize[0];
-        var armToPrize = probArmToPrize[1];
-        return prob*actionSequenceToUtility(actionSequence,armToPrize);
-      }, priorArmToPrize));
-    };
-    
-    return zip(actionSequences,  map(actionSequenceToEU,actionSequences));
-  };
-  
-
-  var makeLineWorld = function() {
-    // This is a bandit world, but with a custom observation function, and a 
-    
-    // From start, you go to zero or 1 (start is like 0, but with no reward)
-    // Then 0,1,2 lie on a line. You can't stay put. At 2, you must go back to zero. 
-    
-    
-    // next state is simply current action
-    var mdpTransition = function (state, action) {
-      var terminateAfterAction = state.timeLeft - 1 == 1 ? true : false;
-      return update(state, { loc:action, timeLeft:state.timeLeft - 1, terminateAfterAction:terminateAfterAction });
-    };
-    
-    var manifestStateToActions = function(manifestState){
-      var loc = manifestState.loc;
-      if (loc=='start' || loc==0){ return [0,1]; } 
-      if (loc==1){return [0,2];}
-      if (loc==2){return [0];}
-    };
-    
-    var transition = function(state, action){
-      return buildState( mdpTransition(state.manifestState, action), state.latentState);
-    };
-    
-    var observe = function(state){return 'noObservation';};
-    
-    return {manifestStateToActions: manifestStateToActions, transition:transition, observe:observe};
-  };
-  
-  // World
-  var world = makeLineWorld();
-  var trueLatentState = {0:'a', 1:'bad', 2:'bad'};
-  var perceivedTotalTime = 3;
-  var startState = buildState( {loc:'start', timeLeft:perceivedTotalTime, terminateAfterAction:false}, trueLatentState);  
-  
-  // Agent params:
-  
-  var baseAgentParams = {
-    priorBelief: null,
-    alpha: 100,
-    noDelays: true,
-    discount: 0,
-    sophisticatedOrNaive: 'naive',
-    myopia: {on:false, bound:0},
-    boundVOI: {on:false, bound:0}
-  };
-
-  
-  var getUtility = function(prizeToUtility){
-    return function(state,action){
-      var loc = state.manifestState.loc;
-      if (loc=='start'){return 0;};
-      return prizeToUtility[state.latentState[loc]];
-    };
-  };
-
-  var isPrizeToUtility = function(x){
-    return hasProperties(prizeToUtility,['a','open1', 'open2', 'closed1', 'closed2', 'bad']);
-  };
-  
-  var getTrajectory = function(prizeToUtility, priorComponents){
-    assert.ok(isPrizeToUtility(prizeToUtility), 'args getTraj');
-
-    var priorStateToPrize = zip(priorComponents.probs, priorComponents.stateToPrizeValues);
-    var actionSequences = [ [1,2], [0,0], [0,1], [1,0] ];
-    console.log('\n\n action to EU, computed direction: ', getEUs(actionSequences, prizeToUtility, priorStateToPrize) );  
-
-    var priorBelief = Enumerate(function(){
-      return categorical(priorComponents.probs, priorComponents.stateToPrizeValues);                         
-    });
-
-    var agentParams = update(baseAgentParams, {priorBelief: priorBelief, utility:getUtility(prizeToUtility)});
-    var agent = makeBeliefDelayAgent(params, world);
-    return simulateBeliefDelayAgent(startState, world, agent,  'states');
-  };
-
-  // AGENT'S UTILITIES
-  // For state 0, the prize is 0, for state 1 the prize is open1 or open2, etc.
-  var prizeToUtility = {a:5, open1:11, open2:12, closed1:0, closed2:0, bad:-1};
-  
-  // AGENT'S PRIOR ON STATE TO PRIZES
-  // Agent prior on latent states
-  var priorComponents = {
-    probs: [.3333333333, .333333333, .3333333333],
-    stateToPrizeValues: [ {0:'a', 1:'open1', 2:'closed2'},  
-                          {0:'a', 1:'closed1', 2:'open2'}, 
-                          {0:'a', 1:'bad', 2:'bad'} ]
-  };
-  
-  var traj = getTrajectory(prizeToUtility, priorComponents);
-  console.log('\n\n Params:  prizeToUtility  ', prizeToUtility);
-  console.log('Prior Belief: ');
-  printERP(priorBelief);
-  console.log('Trajectory: ', traj, ' \n\n',trajectoryToLocations(traj));
-
-};
 
 
 var beliefAgentTests = function(){
@@ -678,7 +554,8 @@ var beliefDelayAgentTests = function(){
   speedTestIRLBandits('beliefDelay');
 };
 
-beliefAgentTests();
+//beliefAgentTests();
+beliefDelayAgentTests();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null
 

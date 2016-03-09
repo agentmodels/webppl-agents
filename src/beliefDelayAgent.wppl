@@ -124,9 +124,8 @@ var makeBeliefDelayAgent = function (params, world){
   return { act:act, updateBelief:updateBelief, expectedUtility : expectedUtility, params: params};
 };
 
-var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTime, outputType) {
-  // TODO remove actualTotalTime argument
-
+var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
+  
   var totalTime = startState.manifestState.timeLeft;
   assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
   assert.ok( _.contains(['states','actions','stateAction','stateBelief'], outputType), 
@@ -165,6 +164,8 @@ var simulateBeliefDelayAgent = function (startState, world, agent, actualTotalTi
   };
   return sampleSequence(startState, priorBelief);
 };
+
+
 
 
 
