@@ -15,3 +15,21 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
     return simulateBeliefAgent;
   }
 };
+
+var noManifest = false;
+var _getPriorBelief = function(perceivedTotalTime, startingLocation, latentStateSampler){
+  if (noManifest){
+    var startManifestState = {timeLeft: perceivedTotalTime, loc: startingLocation, terminateAfterAction: false};
+    return Enumerate( function(){
+      var latentState = latentStateSampler();
+      return buildState(startManifestState, latentState);
+    });
+  } else {
+    return Enumerate(latentStateSampler);
+  }
+};
+
+
+
+
+

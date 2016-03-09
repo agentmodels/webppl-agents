@@ -4,34 +4,17 @@
 
 // assume that the agent is not a discounter, does not have bounded VOI, etc
 
-var gridworldMDP = makeDonutWorld2({big: true});
-var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
-var feature = gridworldMDP.feature;
-var transition = gridworldPOMDP.transition;
-var observe = gridworldPOMDP.observe;
-
-// here, we define tables listing the utility of each restaurant, and a function
-// that converts these tables into utility functions.
-
-var donutUtilityTable = {'Donut N': 5,
-			 'Donut S': 5,
-			 'Veg': 1,
-			 'Noodle': 1,
-			 timeCost: -0.1};
- 
-var vegUtilityTable = {'Donut N': 1,
-		       'Donut S': 1,
-		       Veg: 3,
-		       Noodle: 1,
-		       timeCost: -0.1};
-
-var tableToUtilityFunction = function(table) {
+var tableToUtilityFunction = function(table, feature ) {
+  
   return function(state, action) {
-    if (state.manifestState.dead) {
+    if (state.manifestState.terminateAfterAction) {
       return 0;
     }
+    
     var stateFeatureName = feature(state.manifestState).name;
+    
     if (stateFeatureName) {
+      
       return table[stateFeatureName];
     } else {
       return table.timeCost;
@@ -39,55 +22,94 @@ var tableToUtilityFunction = function(table) {
   };
 };
 
+// TODO should timeAtRestaurant be 0 or 1?
+var getStartState = function(startingLocation, perceivedTotalTime, latentState){
+  return buildState({loc: startingLocation,
+		     terminateAfterAction: false,
+		     timeLeft: perceivedTotalTime,
+		     timeAtRestaurant: 1},
+	            latentState);
+};
+
+
+var allOpenLatentState = {
+  'Donut N': true,
+  'Donut S': true,
+  'Veg': true,
+  'Noodle': true
+};
+
+var onlyDonutSouthClosedLatentState = {
+  'Donut N': true,
+  'Donut S': false,
+  'Veg': true,
+  'Noodle': true
+};
+
+// Make big gridworld
+var gridworldMDP = makeDonutWorld2({big: true});
+var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
+var feature = gridworldMDP.feature;
+
+var transition = gridworldPOMDP.transition;
+var worldObserve = gridworldPOMDP.observe;
+var observe = worldObserve // TODO CHANGE BACK getFullObserve(worldObserve);
+
+// Time, start location, true latent state and full start state
+var perceivedTotalTime = 10;
+var startingLocation = [2,1];
+var trueLatentState = allOpenLatentState;
+var startState = getStartState(startingLocation, perceivedTotalTime, trueLatentState);
+
+// define tables listing the utility of each restaurant, and a function
+// that converts these tables into utility functions.
+
+var donutUtilityTable = {'Donut N': 5,
+			 'Donut S': 5,
+			 'Veg': 1,
+			 'Noodle': 1,
+			 'timeCost': -0.1};
+ 
+var vegUtilityTable = {'Donut N': 1,
+		       'Donut S': 1,
+		       'Veg': 10,
+		       'Noodle': 1,
+		       'timeCost': -0.1};
+
+
+
 // here, we define the agent's actual prior, as well as an informed prior that
 // knows the true latent state.
 
-var uninformedPrior = Enumerate(function(){
-  if (flip(0.8)) {
-    return {'Donut N': true,
-	    'Donut S': false,
-	    'Veg': true,
-	    'Noodle': true};
-  } else {
-    return {'Donut N': true,
-	    'Donut S': true,
-	    'Veg': true,
-	    'Noodle': true};
-  }
-});
+var uninformedLatentStateSampler = function(){
+  return flip(.8) ? onlyDonutSouthClosedLatentState : trueLatentState;
+};
 
-var informedPrior = deltaERP({'Donut N': true,
-			      'Donut S': true,
-			      'Veg': true,
-			      'Noodle': true});
-
-// we start the agent off near Donut South
-var startState = {manifestState: {loc: [2,1],
-				  dead: false,
-				  timeLeft: 10,
-				  digest: 0},
-		  latentState: {'Donut N': true,
-				'Donut S': true,
-				'Veg': true,
-				'Noodle': true}};
+var truePriorBelief = _getPriorBelief(perceivedTotalTime, startingLocation, 
+                                      uninformedLatentStateSampler);
+var alternativePriorBelief = _getPriorBelief(perceivedTotalTime, startingLocation,
+                                             function(){return trueLatentState;});
 
 // making the agent
 var params = {
+  priorBelief: truePriorBelief,
+  utility: tableToUtilityFunction(donutUtilityTable, feature),
   alpha: 100,
   noDelays: true,
   discount: 0,
   sophisticatedOrNaive: 'sophisticated',
   myopia: {on: false, bound: 0},
-  priorBelief: uninformedPrior,
   boundVOI: {on: false, bound: 0},
-  utility: tableToUtilityFunction(donutUtilityTable)
 };
-var agent = makeBeliefDelayAgent(params, gridworldPOMDP);
 
-// generating the agent's trajectory
-var observedTrajectory = simulateBeliefDelayAgent(startState, gridworldPOMDP,
-						  agent, 10, 'stateAction');
-// (visualise trajectory in codebox)
+
+var beliefOrBeliefDelay = 'beliefDelay';
+var makeAgent  = getMakeAgentFunction(beliefOrBeliefDelay);
+var simulate = getSimulateFunction(beliefOrBeliefDelay);
+var agent = makeAgent(params, gridworldPOMDP);
+
+var observedTrajectory = simulate(startState, gridworldPOMDP, agent, 10, 'stateAction');
+console.log( 'blah', observedTrajectory, ' \n', trajectoryToLocations( map(first, observedTrajectory) ) );
 
 // helper function for inference
 var factorAlongTrajectory = function(index, trajectory, agent, belief){
@@ -117,8 +139,8 @@ var agentPosterior = function() {
     var alpha = 100;
     
     var utilityTable = uniformDraw([donutUtilityTable, vegUtilityTable]);
-    var utility = tableToUtilityFunction(utilityTable);
-    var agentPrior = uniformDraw([uninformedPrior, informedPrior]);
+    var utility = tableToUtilityFunction(utilityTable, feature);
+    var agentPrior = uniformDraw([truePriorBelief, alternativePriorBelief]);
 
     var isMyopic = false;
     var myopiaBound = 0;
@@ -142,7 +164,7 @@ var agentPosterior = function() {
       boundVOI: {on: hasBoundVOI, bound: voiBound}
     };
     
-    var agent = makeBeliefDelayAgent(params, gridworldPOMDP);
+    var agent = makeAgent(params, gridworldPOMDP);
 
     factorAlongTrajectory(0, observedTrajectory, agent, agentPrior);
 
