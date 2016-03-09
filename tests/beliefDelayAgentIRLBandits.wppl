@@ -1,9 +1,10 @@
 /* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
 
-var noManifest = false;
 
 
-var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk){
+// TODO currently we only have noManifest for belief. When we fix this, change this function
+var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk, beliefOrBeliefDelay){
+  var noManifest = beliefOrBeliefDelay == 'belief' ? true : false;
   return _getPriorBelief(perceivedTotalTime, 'start', armToPrizeThunk, noManifest);
 };
 
@@ -25,7 +26,7 @@ var speedTestIRLBandits = function(beliefOrBeliefDelay){
       var dist = function(){return categorical([.02, 0.49, 0.49], ['a', 'b','c']);};
       return {0:'a', 1:dist(), 2:dist(), 3:dist()};
     };
-    var priorBelief = getPriorBelief( perceivedTotalTime, armToPrizeThunk) ;
+    var priorBelief = getPriorBelief( perceivedTotalTime, armToPrizeThunk, beliefOrBeliefDelay) ;
     
     var baseAgentParams = {
       priorBelief: priorBelief,
@@ -100,14 +101,15 @@ var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
   };
 
   // Agent knows armToPrize, picks arm with best prize
-  var priorBelief = getPriorBelief( perceivedTotalTime, function(){return armToPrize;});
+  var priorBelief = getPriorBelief( perceivedTotalTime, function(){return armToPrize;}, beliefOrBeliefDelay);
+//  console.log('prior: ', sample(priorBelief), sample(priorBelief), sample(priorBelief)); ash();
   var trajectory = getTrajectory( priorBelief );
   assert.ok( trajectory[1].manifestState.loc == 0, 'fail banditexample 1');
 
   // Agent has .5 chance on arm 1 having best prize c, and so tries 1 before switching to 0. 
   var priorBelief = getPriorBelief( perceivedTotalTime, function(){
     return categorical( [.5, .5], [armToPrize, {0:'a', 1:'c'}]);
-  });
+  }, beliefOrBeliefDelay);
   var trajectory = getTrajectory( priorBelief );
   
   assert.ok( trajectory[1].manifestState.loc == 1 && trajectory[2].manifestState.loc == 0, 'fail banditexample 2');
@@ -142,7 +144,7 @@ var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
   var priorBelief = getPriorBelief(perceivedTotalTime, function(){
       var dist = function(){return categorical([0.5, 0.5], ['a','b']);};
       return {0:dist(), 1:dist(), 2:dist(), 3:dist()};
-    });
+    }, beliefOrBeliefDelay);
   
   var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
   var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart, beliefOrBeliefDelay);
@@ -182,7 +184,7 @@ var IRLBanditGenerativeDelay = function(){
     function(){
       var dist = function(){return categorical([.02, 0.49, 0.49], ['a', 'b','c']);};
       return {0:'a', 1:dist(), 2:dist(), 3:dist()};
-    });
+    }, beliefOrBeliefDelay);
 
   var baseAgentParams = {
     priorBelief: priorBelief,
@@ -289,7 +291,7 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   // agent params
   var baseAgentParams = noDiscountBaseAgentParams;
 
-  var agentPrior = getPriorBelief(perceivedTotalTime, function(){return {0:'a', 1:'b'};});
+  var agentPrior = getPriorBelief(perceivedTotalTime, function(){return {0:'a', 1:'b'};}, beliefOrBeliefDelay);
   var priorAgentPrior = deltaERP(agentPrior);
   var prior = {
     priorPrizeToUtility: Enumerate(function(){
@@ -349,10 +351,10 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   // Prior on agent's prior
   var trueAgentPrior = getPriorBelief(perceivedTotalTime, function(){
     return {0:'a', 1: categorical([.05, .95], ['b','c']) };
-  });
+  }, beliefOrBeliefDelay);
   var falseAgentPrior = getPriorBelief(perceivedTotalTime, function(){
     return {0:'a', 1: categorical([.5, .5], ['b','c']) };
-  });
+  }, beliefOrBeliefDelay);
 
   var priorAgentPrior = Enumerate(function(){
     return flip() ? trueAgentPrior : falseAgentPrior;
@@ -667,6 +669,7 @@ var beliefAgentTests = function(){
   speedTestIRLBandits('belief');
 };
 
+// TODO currently these tests are broken because beliefDelay still uses actualTotalTime
 var beliefDelayAgentTests = function(){
   IRLBanditGenerativeNoDelay('beliefDelay');
   IRLBanditGenerativeDelay();
@@ -675,7 +678,7 @@ var beliefDelayAgentTests = function(){
   speedTestIRLBandits('beliefDelay');
 };
 
-beliefDelayAgentTests();
+beliefAgentTests();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null
 
