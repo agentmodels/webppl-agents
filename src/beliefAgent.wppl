@@ -1,81 +1,218 @@
-// TODO: port refactoring of beliefDelayAgent?
+
+var recurseOnStateOrBelief = 'belief';
+var fastUpdateBelief = true;
+//console.log(' Recurse on belief or state?  ', recurseOnStateOrBelief);
+//console.log(' Fast update belief? ', fastUpdateBelief);
+
+
 
 // POMDP AGENT WITHOUT DELAYS
-// basically the same as makeBeliefDelayAgent without delays or discounting
+
+// Test script by running:
+//webppl tests/beliefDelayAgentIRLBandits.wppl --require webppl-timeit --require webppl-dp --require .
+
+
+
+// Helper functions
+var getFullObserve = function(observeLatent){
+  return function(state){
+    return {manifestState: state.manifestState, observation: observeLatent(state)};
+  };
+};
+
+// Generally, we might take the union of actions for all possible states
+var getBeliefToActions = function(manifestStateToActions){
+  return function(belief){
+    var manifestState = ERPOverLatent(belief) ? belief.manifestState : 
+        sample(belief).manifestState;
+    return manifestStateToActions( manifestState );
+  };
+};
+
+// Agent gets an obervation in starting state without having taken an action
+var isNullAction = function(action){return action=='noAction';};
+
+
+// Helpers for fastUpdateBelief
+var isDeltaERP = function(erp){return erp.support().length===1;};
+
+var ERPOverLatent = function(belief){
+  return _.has(belief,'manifestState') && !_.has(belief,'support');
+};
+
+var ToERPOverLatent = function(belief){
+  var manifestState = belief.support()[0].manifestState;
+  var latentStateERP = Enumerate(function(){return sample(belief).latentState;});
+  return {manifestState: manifestState,
+          latentStateERP: latentStateERP};
+};
+
+
+var sampleBelief = function(belief){
+  if (ERPOverLatent(belief)){
+    return buildState(belief.manifestState, sample(belief.latentStateERP) );
+  } else {
+    return sample(belief);
+  };
+};
+
+
+
 
 var makeBeliefAgent = function(params, world) {
   map(function(s){assert.ok(params.hasOwnProperty(s),'makeBeliefAgent args');}, 
       ['utility','alpha', 'priorBelief']);
   assert.ok( isPOMDPWorld(world),
 	     'world argument lacks transition, stateToActions, or observe');
-
+  
   var utility = params.utility;
   var manifestStateToActions = world.manifestStateToActions;
   var transition = world.transition;
-  var observe = world.observe;
+  var worldObserve = world.observe;
+  var observe = getFullObserve(worldObserve);
+  var beliefToActions = getBeliefToActions( manifestStateToActions );
+  
+  
+  var updateBeliefLatent = dp.cache(
+    function(belief, observation, action){        
 
-  // *belief* is ERP on latent states, returns posterior ERP on latent states
-  var updateBelief = dp.cache(
-    function(manifestState, belief, observation){
-      return observation === 'noObservation' ? belief :
-	Enumerate(function(){
-	  var latentState = sample(belief);
-	  var state = buildState(manifestState, latentState);
-	  condition(_.isEqual(observe(state), observation));
-	  return latentState;
+      // If belief has form of "ERP over {manifest:, latent:}" then we convert
+      // to form of "{manifest:, ERP over latent}". 
+      var belief = ERPOverLatent(belief) ? belief : ToERPOverLatent(belief);
+
+      // To get the manifestState transition, we need a latent state and would
+      // like to choose the latent state in a determinstic way
+      
+      // NB: Assumes that if the transition of manifestStates depends on
+      // the latentState, then we always know the relevant equivalence class of
+      // latent states. 
+      var firstLatentState = belief.latentStateERP.support()[0];
+      var state = buildState(belief.manifestState, firstLatentState);
+
+      // For the initial 'noAction' action, don't update manifest, otherwise update it. 
+      var newManifestState = isNullAction(action) ? belief.manifestState :
+          transition(state,action).manifestState;
+      
+      // Don't update latent when you don't need to
+      if (observation=='noObservation' || isDeltaERP(belief.latentStateERP) ){
+        return update(belief, {manifestState: newManifestState});
+      } else {
+
+        // Sample latent, update state, compare predicted observation from state
+        // to actual observation. 
+        var newLatentERP = Enumerate(function(){
+          var latentState = sample(belief.latentStateERP);
+	  var state = buildState( belief.manifestState, latentState);    
+          var predictedNextState = isNullAction(action) ? state : transition(state, action);
+          var predictedObservation = observe(predictedNextState);
+
+	   condition(_.isEqual(predictedObservation, observation));
+	  return latentState;});
+        return {manifestState: newManifestState, latentStateERP: newLatentERP};
+      }
+    });
+      
+  var updateBeliefSimple = dp.cache(
+    function(belief, observation, action){
+      return Enumerate(function(){
+	var state = sample(belief);
+        var predictedNextState = isNullAction(action) ? state : transition(state, action);
+        var predictedObservation = observe(predictedNextState);
+	condition(_.isEqual(predictedObservation, observation));
+	return predictedNextState;
 	});
     });
 
-  var act = dp.cache(
-    function(manifestState, belief) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief),
-		'agent args fail');
+  var updateBelief = fastUpdateBelief ? updateBeliefLatent : updateBeliefSimple;
 
+  
+  // RECURSE ON BELIEF (BELLMAN STYLE)
+  var act = dp.cache(
+    function(belief) {
+      //assert.ok(isERP(belief.latentStateERP), 'agent args fail');
+    
       return Enumerate(function(){
-	var action = uniformDraw(manifestStateToActions(manifestState));
-	var eu = expectedUtility(manifestState, belief, action);
+	var action = uniformDraw(beliefToActions(belief));
+	var eu = expectedUtilityBelief(belief, action);
 	factor(params.alpha * eu);
 	return action;
       });
     });
-
-  var expectedUtility = dp.cache(
-    function(manifestState, belief, action) {
+  
+  var expectedUtilityBelief = dp.cache(
+    function(belief, action) {
       return expectation(
 	Enumerate(function(){
-	  var latentState = sample(belief);
-	  var state = buildState(manifestState, latentState);
+	  var state = sampleBelief(belief);
 	  var u = utility(state, action);
 	  if (state.manifestState.terminateAfterAction) {
 	    return u;
 	  } else {
-	    // change state and get an observation based on *latentState*
 	    var nextState = transition(state, action);
 	    var nextObservation = observe(nextState);
-
-	    // update agent's beliefs, and have them choose an action
-	    var nextBelief = updateBelief(nextState.manifestState, belief,
-					  nextObservation);
-	    var nextAction = sample(act(nextState.manifestState, nextBelief));
-
-	    // compute utility given the next manifest state, the agent's new
-	    // belief, and the agent's new action
-	    var futureU = expectedUtility(nextState.manifestState, nextBelief,
-					  nextAction);
+	    var nextBelief = updateBelief(belief, nextObservation, action);            
+	    var nextAction = sample(act(nextBelief));
+            
+	    var futureU = expectedUtilityBelief(nextBelief, nextAction);
 	    return u + futureU;
 	  }
 	}));
     });
 
+  // RECURSE ON STATE (FIXES THE LATENT STATE)
+  var act_recState = dp.cache(
+    function(belief) {
+//      assert.ok(isERP(belief), 'act args fail');
+      
+      return Enumerate(function(){
+	var action = uniformDraw(beliefToActions(belief));
+	var eu = expectedUtilityBelief_recState(belief, action);
+	factor(params.alpha * eu);
+	return action;
+      });
+    });
+
+  var expectedUtilityBelief_recState = dp.cache(
+    function(belief, action){
+      return expectation(
+        Enumerate( function(){
+          var state = sampleBelief(belief);
+          return expectedUtilityState_recState(belief,state, action);
+        }));
+    });
+  
+  var expectedUtilityState_recState = dp.cache(
+    function(belief, state, action){
+      return expectation(  // need this for caching
+        Enumerate( function(){
+          var u = utility(state, action);
+          if (state.manifestState.terminateAfterAction) {
+	    return u;
+          } else {
+	    var nextState = transition(state, action);
+	    var nextObservation = observe(nextState);
+	    var nextBelief = updateBelief(belief, nextObservation, action);            
+	    var nextAction = sample(act(nextBelief));
+            var futureU = expectedUtilityState_recState(nextBelief, nextState, nextAction);
+	    return u + futureU; 
+          }
+        }));
+    });
+
+  var act = recurseOnStateOrBelief === 'belief' ? act : act_recState;
+  var expectedUtilityBelief = recurseOnStateOrBelief === 'belief' ? 
+      expectedUtilityBelief : expectedUtilityBelief_recState;
+
   return {
     act: act,
-    expectedUtility: expectedUtility,
+    expectedUtilityBelief: expectedUtilityBelief,
     params: params,
     updateBelief: updateBelief};
 };
 
-var simulateBeliefAgent = function (startState, world, agent, actualTotalTime, outputType) {
-  // TODO remove actualTotalTime argument
+
+
+var simulateBeliefAgent = function (startState, world, agent, outputType) {
 
   var totalTime = startState.manifestState.timeLeft;
   assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
@@ -88,7 +225,9 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime, o
   var agentUpdateBelief = agent.updateBelief;
   var priorBelief = agent.params.priorBelief;
   var transition = world.transition;
-  var observe = world.observe;
+  var worldObserve = world.observe;
+  var observe = getFullObserve(worldObserve);
+
   
   var selectOutput = function(state, action, belief){
     var table =  {states:state, actions:action, stateAction:[state, action], 
@@ -98,22 +237,23 @@ var simulateBeliefAgent = function (startState, world, agent, actualTotalTime, o
 
   var shouldTerminate = function (manifestState) { return manifestState.terminateAfterAction; };
 
-  var sampleSequence = function(state, priorBelief) {
+  
+  var sampleSequence = function(state, priorBelief, action) {
     var observation = observe(state);
     
-    var delay = 0;
-    var belief = agentUpdateBelief(state.manifestState, priorBelief, observation, delay);
-    var action = sample(agentAct(state.manifestState, belief, delay));       
+    var belief = agentUpdateBelief(priorBelief, observation, action);
+    var action = sample(agentAct(belief));
     var output = [selectOutput(state, action, belief)];
-
+    
     if (shouldTerminate(state.manifestState)) {
       return output;
     } else {   
       var nextState = transition(state, action);
-      return output.concat(sampleSequence(nextState, belief));
+      return output.concat(sampleSequence(nextState, belief, action));
     }
   };
-  return sampleSequence(startState, priorBelief);
+  var startAction = 'noAction';
+  return sampleSequence(startState, priorBelief, startAction);
 };
 
 
