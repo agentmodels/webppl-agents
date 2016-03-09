@@ -144,6 +144,11 @@ var agentPosterior = function() {
     
     var agent = makeBeliefDelayAgent(params, gridworldPOMDP);
 
+    console.log('before inf: observedTrajectory, utilityTable, priorBelief, params, ', 
+                observedTrajectory, ' \n', trajectoryToLocations( map(first, observedTrajectory) ), ' \n',
+                utilityTable,'\n \n SAMPLE PRIOR BELIEF', sample(agentPrior),'\n \n PARAMS', params);
+    ash();
+    
     factorAlongTrajectory(0, observedTrajectory, agent, agentPrior);
 
     return {utilityTable: utilityTable,

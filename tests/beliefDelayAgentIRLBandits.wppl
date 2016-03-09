@@ -4,7 +4,7 @@ var noManifest = true;
 
 
 var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk){
-  return _getPriorBelief(perceivedTotalTime, 'start', armToPrizeThunk);
+  return _getPriorBelief(perceivedTotalTime, 'start', armToPrizeThunk, noManifest);
 };
 
 

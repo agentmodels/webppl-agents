@@ -16,8 +16,8 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
   }
 };
 
-var noManifest = false;
-var _getPriorBelief = function(perceivedTotalTime, startingLocation, latentStateSampler){
+
+var _getPriorBelief = function(perceivedTotalTime, startingLocation, latentStateSampler, noManifest){
   if (noManifest){
     var startManifestState = {timeLeft: perceivedTotalTime, loc: startingLocation, terminateAfterAction: false};
     return Enumerate( function(){
