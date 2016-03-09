@@ -122,10 +122,6 @@ var inferGridWorld = function(world, startState, baseParams, trueAgentParams, pr
 
 
 
-// Global makeAgent and simulate functions
-var beliefOrBeliefDelay = 'belief';
-
-
 
 // Possible latent states
 var allOpenLatentState = {
@@ -160,7 +156,6 @@ var vegUtilityTable = {'Donut N': 1,
 // Make world
 var world = getWorld();
 var feature = world.feature;
-var gridworldPOMDP = world.gridworldPOMDP;
 var perceivedTotalTime = 10;
 var startingLocation = [2,1];
 var trueLatentState = allOpenLatentState;
@@ -168,11 +163,9 @@ var startState = getStartState(startingLocation, perceivedTotalTime, trueLatentS
 
 
 // agent's true prior and alternative hypothesis about agent's prior
-
 var uninformedLatentStateSampler = function(){
   return flip(.8) ? onlyDonutSouthClosedLatentState : trueLatentState;
 };
-
 
 var truePriorBelief = getPriorBelief(perceivedTotalTime, startingLocation, 
                                       uninformedLatentStateSampler);
@@ -204,7 +197,7 @@ var prior = {priorUtilityTable: Enumerate(priorUtilityTable),
 
 
 var erp = inferGridWorld(world, startState, baseParams, trueAgentParams, prior, 'trajectory', 
-                         10, beliefOrBeliefDelay);
+                         10, 'belief');
 console.log('erp');
 printERP(erp);
 ash();
