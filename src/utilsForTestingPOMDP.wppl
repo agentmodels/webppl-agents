@@ -1,0 +1,17 @@
+var getMakeAgentFunction = function(beliefOrBeliefDelay){
+  if ( _.isUndefined(beliefOrBeliefDelay) || 
+       beliefOrBeliefDelay == 'beliefDelay'){
+    return makeBeliefDelayAgent;
+  } else {
+    return makeBeliefAgent;
+  }
+};
+
+var getSimulateFunction = function(beliefOrBeliefDelay){
+  if ( _.isUndefined(beliefOrBeliefDelay) || 
+       beliefOrBeliefDelay == 'beliefDelay'){
+    return simulateBeliefDelayAgent;
+  } else {
+    return simulateBeliefAgent;
+  }
+};
