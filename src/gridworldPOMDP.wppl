@@ -150,15 +150,16 @@ var baseParamsNoDiscount = {
 
 
 
-var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParams, prior, trajectoryOrOffPolicy, 
-                              numRejectionSamples, beliefOrBeliefDelay){
+var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParams, prior, agentTypeAndFunctions,
+                                   trajectoryOrOffPolicy, numRejectionSamples){
   
   var worldObserve = world.observe;
   var observe = getFullObserve(worldObserve);
   var feature = world.feature;
   
-  var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
-  var simulate = getSimulateFunction(beliefOrBeliefDelay);
+  var makeAgent = agentTypeAndFunctions.makeAgent;
+  var simulate = agentTypeAndFunctions.simulate;
+  var beliefOrBeliefDelay = agentTypeAndFunctions.type;
 
   var priorUtilityTable = prior.priorUtilityTable
   var priorAgentPrior = prior.priorAgentPrior;
@@ -173,6 +174,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   // get observations using trueAgentParams
   var agent = makeAgent(trueAgentParams, world);
   var observedStateAction = simulate(startState, world, agent, 'stateAction');
+  
   assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferGridWorld');
   
   

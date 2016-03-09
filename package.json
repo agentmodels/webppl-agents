@@ -19,8 +19,9 @@
       "src/POMDPUtils.wppl",
       "src/gridworldPOMDP.wppl",
       "src/beliefAgent.wppl",
-      "src/deterministicBandits.wppl",
       "src/beliefDelayAgent.wppl",
+      "src/utilsForTestingPOMDP.wppl",
+      "src/deterministicBandits.wppl",
       "src/irlBandits.wppl" 
     ]
   },

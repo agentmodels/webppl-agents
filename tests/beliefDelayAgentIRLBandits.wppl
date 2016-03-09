@@ -1,6 +1,6 @@
 /* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
 
-var noManifest = true;
+var noManifest = false;
 
 
 var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk){
@@ -660,16 +660,22 @@ var testNoObservationDependentLatents = function(){
 
 };
 
-IRLBanditGenerativeNoDelay('belief');
-testInferIRLBandit('belief')
-speedTestIRLBandits('belief');
 
-ash();
+var beliefAgentTests = function(){
+  IRLBanditGenerativeNoDelay('belief');
+  testInferIRLBandit('belief')
+  speedTestIRLBandits('belief');
+};
 
-runSpeedTests();
-IRLBanditGenerativeAll();
-runTestInferIRLBandit();
-testBoundVOI();
+var beliefDelayAgentTests = function(){
+  IRLBanditGenerativeNoDelay('beliefDelay');
+  IRLBanditGenerativeDelay();
+  testInferIRLBandit('beliefDelay');
+  testBoundVOI();
+  speedTestIRLBandits('beliefDelay');
+};
+
+beliefDelayAgentTests();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null
 

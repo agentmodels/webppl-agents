@@ -35,7 +35,7 @@ var donutUtilityTable = {'Donut N': 5,
  
 var vegUtilityTable = {'Donut N': 1,
 		       'Donut S': 1,
-		       'Veg': 3,
+		       'Veg': 10,
 		       'Noodle': 1,
 		       'timeCost': -0.1};
 
@@ -54,6 +54,11 @@ var trueAgentParams = update(baseParamsNoDiscount,
 
 // PRIOR FOR INFERENCE PARAMS
 
+var beliefOrBeliefDelay = 'belief';
+var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
+var simulate = getSimulateFunction(beliefOrBeliefDelay);
+var agentTypeAndFunctions = {type: beliefOrBeliefDelay, makeAgent:makeAgent, simulate: simulate};
+
 var alternativePriorBelief = getPriorBeliefGridworld( startState.manifestState, function(){return trueLatentState;});
 var priorUtilityTable = function(){return uniformDraw([donutUtilityTable, vegUtilityTable]);};
 var priorAgentPrior = function(){return uniformDraw([truePriorBelief, alternativePriorBelief]);};
@@ -66,8 +71,8 @@ var prior = {priorUtilityTable: Enumerate(priorUtilityTable),
 var numRejectionSamples = 10;
 
 map( function(trajectoryOrOffPolicy){
-  var erp = inferGridWorldPOMDP(world, startState, baseParamsNoDiscount, trueAgentParams, prior, trajectoryOrOffPolicy, 
-                                numRejectionSamples, 'belief');
+  var erp = inferGridWorldPOMDP(world, startState, baseParamsNoDiscount, trueAgentParams, prior, agentTypeAndFunctions,
+                                trajectoryOrOffPolicy, numRejectionSamples);
   console.log('\n\n Erp for ' + trajectoryOrOffPolicy);
   printERP(erp);
 }, ['trajectory', 'offPolicy']);
