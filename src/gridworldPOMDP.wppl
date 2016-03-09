@@ -123,9 +123,6 @@ var getBigDonutWorld = function(){
 
 var tableToUtilityFunction = function(table, feature) {  
   return function(state, action) {
-    if (state.manifestState.terminateAfterAction) {
-      return 0;
-    }
     var stateFeatureName = feature(state.manifestState).name;
     if (stateFeatureName) {  
       return table[stateFeatureName];
@@ -174,7 +171,8 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   // get observations using trueAgentParams
   var agent = makeAgent(trueAgentParams, world);
   var observedStateAction = simulate(startState, world, agent, 'stateAction');
-  
+  // console.log('observed trajectory: ', JSON.stringify(observedStateAction));
+  // ash();
   assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferGridWorld');
   
   
