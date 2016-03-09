@@ -57,8 +57,10 @@ var noDiscountBaseAgentParams = { // doesn't contain priorBelief or utility
 
 var makeIRLBanditAgent = function(prizeToUtility, agentParams, worldAndStart, beliefOrBeliefDelay){
   var priorBelief = agentParams.priorBelief;
-  assert.ok( _.isFinite(priorBelief.score([],worldAndStart.startState.latentState)), 
-             'makeIRLBanditAgent does not have true latent in support');
+
+  // TODO reinstate an assert of this kind
+  // assert.ok( _.isEqual(sample(priorBelief).manifestState, worldAndStart.startState.manifestState),
+  //            'makeIRLBanditAgent: priorBelief has wrong start manifestState');
   
   var utility = function(state,action){
     var loc = state.manifestState.loc;
@@ -74,12 +76,11 @@ var makeIRLBanditWorldAndStart = function(numArms, armToPrize, perceivedTotalTim
   map( function(i){assert.ok( _.isString(armToPrize[i]), 'makeIRLBanditWorld args' );},
        _.range(numArms));
   
-  var actualTotalTime = perceivedTotalTime;
   var world = makeIRLBanditWorld(numArms);
   var startState = {manifestState:{loc:'start', timeLeft: perceivedTotalTime, terminateAfterAction:false}, 
                     latentState: armToPrize};
 
-  return {world:world, startState: startState, actualTotalTime:actualTotalTime};
+  return {world:world, startState: startState};
 };
 
 
@@ -89,8 +90,9 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
                               numRejectionSamples, beliefOrBeliefDelay){
   var world = worldAndStart.world;
   var startState = worldAndStart.startState;
-  var actualTotalTime = worldAndStart.actualTotalTime;
-  var observe = world.observe;
+  var worldObserve = world.observe;
+  var observe = getFullObserve(worldObserve);
+
   var simulate = getSimulateFunction(beliefOrBeliefDelay);
 
   var priorPrizeToUtility = prior.priorPrizeToUtility;
@@ -98,7 +100,6 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
 
   assert.ok(isPOMDPWorld(world) && isPOMDPState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args');
   assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 'trajectoryOrOffPolicy bad');
-  if (actualTotalTime != observedStateAction.length){console.log( 'Warning: actualTotalTime is not observed trajectory length');}
   assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferirlbandit');
 
   
@@ -107,40 +108,45 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
     var prizeToUtility = sample(priorPrizeToUtility);
     var priorBelief = sample(priorAgentPrior);
     
-    var agent = makeIRLBanditAgent(prizeToUtility, update(baseAgentParams, {priorBelief:priorBelief}), 
-                                   worldAndStart, beliefOrBeliefDelay);
+    var agent = makeIRLBanditAgent(prizeToUtility, update(baseAgentParams, {priorBelief:priorBelief}), worldAndStart, beliefOrBeliefDelay);
     var agentAct = agent.act;
     var agentUpdateBelief = agent.updateBelief;
 
     // Factor on whole sampled trajectory (SLOW IF NOT DETERMINISTIC AND NUM SAMPLES HIGH)
     var factorOnTrajectory = function(){
       var trajectoryERP = Rejection( function(){
-        return simulate(startState, world, agent, actualTotalTime, 'states')}, numRejectionSamples);
+        return simulate(startState, world, agent, 'states')}, numRejectionSamples);
       factor(trajectoryERP.score([], map(first, observedStateAction)));
     };
 
     // Move agent through observed sequence 
-    var factorSequenceOffPolicy = function(currentBelief, timeIndex){
+    var factorSequenceOffPolicy = function(currentBelief, previousAction, timeIndex){
       if (timeIndex < observedStateAction.length) { 
-        var observedAction = observedStateAction[timeIndex][1];
-        
+
         // Go to next world state and sample observation from that state
         var state = observedStateAction[timeIndex][0];
-        var observation = observe(state);  // assuming that observations are deterministic?
+        var observation = observe(state);
 
         // Update agent's internal state and get action ERP
-        var delay = 0;
-        var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation, delay);
-        var nextActionERP = agentAct(state.manifestState, nextBelief, delay);
+        var delay = 0;     
+        var nextBelief = beliefOrBeliefDelay == 'belief' ?
+            agentUpdateBelief(currentBelief, observation, previousAction) :
+            agentUpdateBelief(currentBelief, observation, previousAction, delay);
 
+
+        var nextActionERP = beliefOrBeliefDelay == 'belief' ? 
+            agentAct(nextBelief) : agentAct(nextBelief, delay); 
+
+        var observedAction = observedStateAction[timeIndex][1];
         factor(nextActionERP.score([], observedAction));
 
         // condition on next world state, passing through updated internal state
-        factorSequenceOffPolicy(nextBelief, timeIndex + 1);
+        factorSequenceOffPolicy(nextBelief, observedAction, timeIndex + 1);
       }
     };
 
-    var doInfer = (trajectoryOrOffPolicy=='trajectory') ? factorOnTrajectory() : factorSequenceOffPolicy(priorBelief, 0);
+    var doInfer = (trajectoryOrOffPolicy=='trajectory') ? factorOnTrajectory() : 
+        factorSequenceOffPolicy(priorBelief,'noAction', 0);
     
     return {prizeToUtility: prizeToUtility, priorBelief:priorBelief};
   });

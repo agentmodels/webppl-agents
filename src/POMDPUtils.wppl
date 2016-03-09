@@ -51,3 +51,22 @@ var stateActionPairsToFullStates = function(locAction, latentState){
 
 
 
+
+var _getPriorBelief = function(perceivedTotalTime, startingLocation, latentStateSampler, noManifest){
+  if (noManifest){
+    var startManifestState = {timeLeft: perceivedTotalTime, loc: startingLocation, terminateAfterAction: false};
+    return Enumerate( function(){
+      var latentState = latentStateSampler();
+      return buildState(startManifestState, latentState);
+    });
+  } else {
+    return Enumerate(latentStateSampler);
+  }
+};
+
+var getPriorBeliefGridworld = function(startManifestState, latentStateSampler){
+  return Enumerate( function(){
+    var latentState = latentStateSampler();
+    return buildState(startManifestState, latentState);
+  });
+};
