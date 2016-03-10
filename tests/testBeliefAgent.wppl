@@ -87,11 +87,18 @@ var testAgent = function(){
   var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
   var feature = gridworldMDP.feature;
 
+  var makePriorGridworld = function(manifestState, latentStateERP) {
+    return Enumerate(function(){
+      return buildState(manifestState, sample(latentStateERP));
+    });
+  };
+  
   // if the agent knows the latent state, they should go to the closest
   // restaurant that they like
 
   var startState1 = {manifestState: {loc: [3,1],
   				     terminateAfterAction: false,
+				     timeAtRestaurant: 1,
   				     timeLeft: 10},
   		     latentState: {'Donut N': true,
   				   'Donut S': true,
@@ -102,12 +109,15 @@ var testAgent = function(){
   		       Veg: 0,
   		       Noodle: 0,
   		       timeCost: -0.1};
-  var prior1 = deltaERP(startState1.latentState);
-  var agent1 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable1),
-  				alpha: 100,
-  				priorBelief: prior1}, gridworldPOMDP);
+  var latentPrior1 = deltaERP(startState1.latentState);
+  var prior1 = makePriorGridworld(startState1.manifestState, latentPrior1);
+  var agent1 = makeBeliefAgent({
+    utility: tableToUtilityFunction(utilityTable1, feature),
+    alpha: 100,
+    priorBelief: prior1
+  }, gridworldPOMDP);
   var gridLocs1 = trajectoryToLocations(simulateBeliefAgent(startState1, gridworldPOMDP,
-  							    agent1, 2, 'states'));
+  							    agent1, 'states'));
   assert.ok(_.isEqual(gridLocs1[1],[2,1]), 'gridTest1');
 
   // if the agent knows that both donuts are either open or closed, and they
@@ -115,6 +125,7 @@ var testAgent = function(){
   // non-donut restaurant
   var startState2 = {manifestState: {loc: [3,1],
   				     terminateAfterAction: false,
+				     timeAtRestaurant: 1,
   				     timeLeft: 20},
   		     latentState: {'Donut N': false,
   				   'Donut S': false,
@@ -125,18 +136,21 @@ var testAgent = function(){
   		       Veg: 0,
   		       Noodle: 3,
   		       timeCost: -0.1};
-  var prior2 = Enumerate(function(){
+  var latentPrior2 = Enumerate(function(){
     return categorical([0.2, 0.8], [startState2.latentState,
   				    startState1.latentState]);
   });
-  var agent2 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable2),
-  				alpha: 200,
-  				priorBelief: prior2}, gridworldPOMDP);
+  var prior2 = makePriorGridworld(startState2.manifestState, latentPrior2);
+  var agent2 = makeBeliefAgent({
+    utility: tableToUtilityFunction(utilityTable2, feature),
+    alpha: 200,
+    priorBelief: prior2
+  }, gridworldPOMDP);
   var gridLocs2 = trajectoryToLocations(simulateBeliefAgent(startState2, gridworldPOMDP,
-  							    agent2, 12, 'states'));
+  							    agent2, 'states'));
   assert.ok(_.isEqual(gridLocs2[3], [0,1]) && _.isEqual(gridLocs2[9], [4,3]),
   	    'gridTest2');
-
+  
   // even if a restaurant has low expected utility, maybe you should go there
   // anyway for value of information purposes. For instance, you don't like
   // donuts, love noodles, think veg is ok, and think that the donut shop is
@@ -146,6 +160,7 @@ var testAgent = function(){
 
   var startState3 = {manifestState: {loc: [3,4],
 				     terminateAfterAction: false,
+				     timeAtRestaurant: 1,
 				     timeLeft: 10},
 		     latentState: {'Donut N': false,
 				   'Donut S': false,
@@ -156,14 +171,15 @@ var testAgent = function(){
 		       Veg: 1,
 		       Noodle: 3,
 		       timeCost: -0.1};
-  var prior3 = Enumerate(function(){
+  var latentPrior3 = Enumerate(function(){
     return uniformDraw([startState1.latentState, startState3.latentState]);
   });
-  var agent3 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable3),
+  var prior3 = makePriorGridworld(startState3.manifestState, latentPrior3);
+  var agent3 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable3, feature),
 				alpha: 300,
 				priorBelief: prior3}, gridworldPOMDP);
   var gridLocs3 = trajectoryToLocations(simulateBeliefAgent(startState3, gridworldPOMDP,
-  							    agent3, 10, 'states'));
+  							    agent3, 'states'));
 
   assert.ok(_.isEqual(gridLocs3[1], [3,5]) && _.isEqual(gridLocs3[3], [4,6]),
   	    'gridTest3');
@@ -203,51 +219,45 @@ var testAgent = function(){
   var forkyGridworldMDP = makeForkRoad({noReverse: true});
   var forkyGridworldPOMDP = makeGridworldPOMDP(forkyGridworldMDP);
   var forkFeature = forkyGridworldMDP.feature;
-
-  var tableToUtilityFunctionFork = function(table) {
-    return function(state, action) {
-      var stateFeatureName = forkFeature(state.manifestState).name;
-      if (stateFeatureName) {
-  	return table[stateFeatureName];
-      } else {
-  	return table.timeCost;
-      }
-    };
-  };
-
+  
   var startState4 = {manifestState: {loc: [0,0],
 				     terminateAfterAction: false,
+				     timeAtRestaurant: 1,
 				     timeLeft: 20},
 		     latentState: {Donut: true,
 				   Noodle: true}};
   var utilityTable4 = {Noodle: 4,
 		       Donut: 4.6,
 		       timeCost: -0.1};
-  var prior4 = deltaERP(startState4.latentState);
-  var agent4 = makeBeliefAgent({utility: tableToUtilityFunctionFork(utilityTable4),
+  var latentPrior4 = deltaERP(startState4.latentState);
+  var prior4 = makePriorGridworld(startState4.manifestState, latentPrior4);
+  var agent4 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable4, forkFeature),
 				alpha: 100,
 				priorBelief: prior4}, forkyGridworldPOMDP);
   var gridLocs4 = trajectoryToLocations(simulateBeliefAgent(startState4, forkyGridworldPOMDP,
-							    agent4, 20, 'states'));
+							    agent4,'states'));
 
   assert.ok(_.isEqual(gridLocs4[1], [1,0]), 'gridTest4');
+
 
   // if one restaurant would be excellent but is too far for the agent to reach,
   // the agent should go to the closer restaurant
   var startState5 = {manifestState: {loc: [0,0],
 				     terminateAfterAction: false,
+				     timeAtRestaurant: 1,
 				     timeLeft: 3},
 		     latentState: {Donut: true,
 				   Noodle: true}};
   var utilityTable5 = {Noodle: 4,
 		       Donut: 50,
 		       timeCost: -0.1};
-  var prior5 = deltaERP(startState5.latentState);
-  var agent5 = makeBeliefAgent({utility: tableToUtilityFunctionFork(utilityTable5),
+  var latentPrior5 = deltaERP(startState5.latentState);
+  var prior5 = makePriorGridworld(startState5.manifestState, latentPrior5);
+  var agent5 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable5, forkFeature),
 				alpha: 100,
 				priorBelief: prior5}, forkyGridworldPOMDP);
   var gridLocs5 = trajectoryToLocations(simulateBeliefAgent(startState5, forkyGridworldPOMDP,
-							    agent5, 3, 'states'));
+							    agent5, 'states'));
 
   assert.ok(_.isEqual(gridLocs5[1], [1,0]), 'gridTest5');
   
