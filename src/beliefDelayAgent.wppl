@@ -37,6 +37,7 @@ var makeBeliefDelayAgent = function (params, world){
   }
 
   // Variables for methods
+  var transition = world.transition;
   var utility = params.utility;
   var manifestStateToActions = world.manifestStateToActions;
 
@@ -67,8 +68,7 @@ var makeBeliefDelayAgent = function (params, world){
   }
 
   
-  var _updateBelief = 
-    function(belief, observation, action){
+  var _updateBelief = function(belief, observation, action){
       return Enumerate(function(){
 	var state = sample(belief);
         var predictedNextState = isNullAction(action) ? state : transition(state, action);
@@ -79,19 +79,23 @@ var makeBeliefDelayAgent = function (params, world){
     };
   
   var updateBelief = dp.cache(
-    function (belief, observation, delay) {
+    function (belief, observation, action, delay) {
       if (params.boundVOI.on && (delay >= params.boundVOI.bound)){
-        return belief;
+        // you do update your belief about manifestState
+        return Enumerate(function(){
+          var state = sample(belief);
+          return isNullAction(action) ? state : transition(state, action);
+        });
+
       } else {
-        return _updateBelief(manifestState, belief, observation)
+        return _updateBelief(belief, observation, action)
       }
     });
 
-  
   var act = dp.cache(
     function (belief, delay) {
       assert.ok( isERP(belief) && _.isFinite(delay), 'act arguments error' + 
-                'act: manifestState, belief, delay' + JSON.stringify([manifestState, belief, delay]));
+                'act: manifestState, belief, delay' + JSON.stringify([belief, delay]));
 
       return Enumerate(function () {
         var action = uniformDraw(beliefToActions(belief));
@@ -117,7 +121,7 @@ var makeBeliefDelayAgent = function (params, world){
 	    var nextBelief = updateBelief(belief, nextObservation, action, transformedDelay);            
 	    var nextAction = sample(act(nextBelief, transformedDelay));
             
-	    var futureU = expectedUtilityBelief(nextBelief, nextAction, incremenetDelay(delay));
+	    var futureU = expectedUtility(nextBelief, nextAction, incrementDelay(delay));
 	    return u + futureU;
           }
         }));
@@ -157,9 +161,10 @@ var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
   
   var sampleSequence = function(state, priorBelief, action) {
     var observation = observe(state);
-    
-    var belief = agentUpdateBelief(priorBelief, observation, action);
-    var action = sample(agentAct(belief));
+
+    var delay = 0;
+    var belief = agentUpdateBelief(priorBelief, observation, action, delay);
+    var action = sample(agentAct(belief, delay));
     var output = [selectOutput(state, action, belief)];
     
     if (shouldTerminate(state.manifestState)) {

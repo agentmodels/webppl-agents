@@ -114,6 +114,7 @@ var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
   var trajectory = getTrajectory( priorBelief );
   
   assert.ok( trajectory[1].manifestState.loc == 1 && trajectory[2].manifestState.loc == 0, 'fail banditexample 2');
+
   
  
   
