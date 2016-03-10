@@ -70,22 +70,22 @@ var makeBeliefDelayAgent = function (params, world){
   var _updateBelief = fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
       getUpdateBeliefSimple(transition, observe);
 
-
   
   var updateBelief = function (belief, observation, action, delay) {
     if (params.boundVOI.on && (delay >= params.boundVOI.bound)){
             
       // update manifestState (assuming no possibility that isNullAction(action))
-      var newBelief = Enumerate(function(){  
+      var nextBelief = Enumerate(function(){  
         var state = sampleBelief(belief);
         return transition(state,action); 
       });
-      return fastUpdate ? toERPOverLatent(newBelief) : newBelief;
+      return fastUpdate ? toERPOverLatent(nextBelief) : nextBelief;
       
     } else {
       return _updateBelief(belief, observation, action)
     }
   };
+
   
   var act = dp.cache(
     function (belief, delay) {
@@ -126,7 +126,8 @@ var makeBeliefDelayAgent = function (params, world){
 };
 
 
-
+// TODO: use same simulate as belief agent. 
+// TODO: check running on gridworld
 var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
 
   var totalTime = startState.manifestState.timeLeft;
