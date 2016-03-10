@@ -65,6 +65,60 @@ var sampleBelief = function(belief){
 };
 
 
+var getUpdateBeliefSimple = function(transition, observe){
+  return dp.cache(
+    function(belief, observation, action){
+      return Enumerate(function(){
+	var state = sample(belief);
+        var predictedNextState = isNullAction(action) ? state : transition(state, action);
+        var predictedObservation = observe(predictedNextState);
+	condition(_.isEqual(predictedObservation, observation));
+	return predictedNextState;
+	});
+    });
+};
+
+var getUpdateBeliefLatent = function(transition, observe){
+  return dp.cache(
+    function(belief, observation, action){        
+
+      // If belief has form of "ERP over {manifest:, latent:}" then we convert
+      // to form of "{manifest:, ERP over latent}". 
+      var belief = ERPOverLatent(belief) ? belief : ToERPOverLatent(belief);
+
+      // To get the manifestState transition, we need a latent state and would
+      // like to choose the latent state in a determinstic way
+      
+      // NB: Assumes that if the transition of manifestStates depends on
+      // the latentState, then we always know the relevant equivalence class of
+      // latent states. 
+      var firstLatentState = belief.latentStateERP.support()[0];
+      var state = buildState(belief.manifestState, firstLatentState);
+
+      // For the initial 'noAction' action, don't update manifest, otherwise update it. 
+      var newManifestState = isNullAction(action) ? belief.manifestState :
+          transition(state,action).manifestState;
+      
+      // Don't update latent when you don't need to
+      if (observation=='noObservation' || isDeltaERP(belief.latentStateERP) ){
+        return update(belief, {manifestState: newManifestState});
+      } else {
+
+        // Sample latent, update state, compare predicted observation from state
+        // to actual observation. 
+        var newLatentERP = Enumerate(function(){
+          var latentState = sample(belief.latentStateERP);
+	  var state = buildState( belief.manifestState, latentState);    
+          var predictedNextState = isNullAction(action) ? state : transition(state, action);
+          var predictedObservation = observe(predictedNextState);
+
+	   condition(_.isEqual(predictedObservation, observation));
+	  return latentState;});
+        return {manifestState: newManifestState, latentStateERP: newLatentERP};
+      }
+    });
+};
+
 
 // MAKE AGENT
 
@@ -131,7 +185,9 @@ var makeBeliefAgent = function(params, world) {
 	return predictedNextState;
 	});
     });
-
+  var updateBeliefSimple = getUpdateBeliefSimple(transition, observe);
+  var updateBeliefLatent = getUpdateBeliefLatent(transition, observe);
+  
   var updateBelief = fastUpdateBelief ? updateBeliefLatent : updateBeliefSimple;
 
   
