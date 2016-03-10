@@ -23,20 +23,6 @@ var noodleUtilityTable = {'Donut N': 2,
 			  Noodle: 5,
 			  timeCost: -0.1};
 
-var tableToUtilityFunction = function(table) {
-  return function(state, action) {
-    if (state.manifestState.terminateAfterAction) {
-      return 0;
-    }
-    var stateFeatureName = feature(state.manifestState).name;
-    if (stateFeatureName) {
-      return table[stateFeatureName];
-    } else {
-      return table.timeCost;
-    }
-  };
-};
-
 var uninformedPrior = Enumerate(function(){
   if (flip(0.8)) {
     return {'Donut N': true,
@@ -65,7 +51,7 @@ var startState = {manifestState: {loc: [3,1],
 				'Veg': true,
 				'Noodle': true}};
 
-var agent = makeBeliefAgent({utility: tableToUtilityFunction(noodleUtilityTable),
+var agent = makeBeliefAgent({utility: tableToUtilityFunction(noodleUtilityTable, feature),
 			     alpha: 100,
 			     priorBelief: uninformedPrior}, gridworldPOMDP);
 
@@ -79,12 +65,13 @@ var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 
 var startState2 = {manifestState: {loc: [5,4],
 				   terminateAfterAction: false,
 				   timeLeft: 10,
+				   timeAtRestaurant: 1
 				   },
 		   latentState: {'Donut N': true,
 				 'Donut S': true,
 				 'Veg': true,
 				 'Noodle': true}};
-var observedTrajectory2 = simulateBeliefAgent(startState2, gridworldPOMDP, agent, 10,
+var observedTrajectory2 = simulateBeliefAgent(startState2, gridworldPOMDP, agent,
 					      'stateAction');
 // GridWorld.draw(gridworldMDP, {trajectory: observedTrajectory2});
 // TODO: labels
