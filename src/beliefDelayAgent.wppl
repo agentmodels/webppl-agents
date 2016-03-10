@@ -4,9 +4,8 @@
 //webppl tests/beliefDelayAgentIRLBandits.wppl --require webppl-timeit --require webppl-dp --require .
 
 
-// Agent with beliefs and delays: for hyperbolic discounting, false beliefs
-// myopia, boundVOI, and various combinations. 
-
+// Use fast belief update (which puts ERP only on latentState)
+var fastUpdate = true;
 
 
 // Example of well-formed *params* argument for makeBeliefDelayAgent.
@@ -67,20 +66,20 @@ var makeBeliefDelayAgent = function (params, world){
     return false;
   }
 
-  var fastUpdate = false;
+  
   var _updateBelief = fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
       getUpdateBeliefSimple(transition, observe);
 
-  
+
   
   var updateBelief = function (belief, observation, action, delay) {
     if (params.boundVOI.on && (delay >= params.boundVOI.bound)){
             
-      var newBelief = Enumerate(function(){  // update manifestState
+      // update manifestState (assuming no possibility that isNullAction(action))
+      var newBelief = Enumerate(function(){  
         var state = sampleBelief(belief);
-        return transition(state,action); // since boundVOI applies after startState, no nullAction
+        return transition(state,action); 
       });
-      
       return fastUpdate ? toERPOverLatent(newBelief) : newBelief;
       
     } else {
@@ -94,13 +93,13 @@ var makeBeliefDelayAgent = function (params, world){
                 
       return Enumerate(function () {
         var action = uniformDraw(beliefToActions(belief));
-        var eu = expectedUtility(belief, action, delay);
+        var eu = expectedUtilityBelief(belief, action, delay);
         factor(params.alpha * eu);
         return action;
       });
     });
 
-  var expectedUtility = dp.cache(
+  var expectedUtilityBelief = dp.cache(
     function (belief, action, delay) {
       return expectation(
         Enumerate(function () {
@@ -117,13 +116,13 @@ var makeBeliefDelayAgent = function (params, world){
 	    var nextBelief = updateBelief(belief, nextObservation, action, transformedDelay);            
 	    var nextAction = sample(act(nextBelief, transformedDelay));
             
-	    var futureU = expectedUtility(nextBelief, nextAction, incrementDelay(delay));
+	    var futureU = expectedUtilityBelief(nextBelief, nextAction, incrementDelay(delay));
 	    return u + futureU;
           }
         }));
     });
 
-  return { act:act, updateBelief:updateBelief, expectedUtility : expectedUtility, params: params};
+  return { act:act, updateBelief:updateBelief, expectedUtility : expectedUtilityBelief, params: params};
 };
 
 

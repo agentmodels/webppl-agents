@@ -243,10 +243,10 @@ var IRLBanditGenerativeDelay = function(){
     assert.ok(  _.difference(prediction,locs).length == 0, 'fail bandit example myopia');
   };
   console.log( '\n MYOPIA \n Myopia should be faster than discount')
-  // TODO CHANGE BACK TODO
-  // testMyopia(1,'not');
-  // testMyopia(2,'not');
-  // testMyopia(3,'explore');
+  
+  testMyopia(1,'not');
+  testMyopia(2,'not');
+  testMyopia(3,'explore');
 
   // BoundVOI (faster than discounting)
   var testBoundVOI = function(boundVOIBound, exploreOrNot){
@@ -455,7 +455,6 @@ var testBoundVOI = function(){
     };
     
     var observe = function(state){
-      console.log('\n\n observe in definition of boundVOI test: ', state);
       if (state.manifestState.loc=='eitherAorB_0'){return state.latentState;}
       else {return 'noObservation';}
     };
@@ -556,7 +555,7 @@ var beliefDelayAgentTests = function(){
   testInferIRLBandit('beliefDelay');   // TODO note that inference won't work
   
   speedTestIRLBandits('beliefDelay');
-//  testBoundVOI(); ash();
+  // testBoundVOI(); FIX THIS TEST
 };
 
 //beliefAgentTests(); ash()
