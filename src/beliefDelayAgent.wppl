@@ -9,7 +9,6 @@
 
 
 
-
 // Example of well-formed *params* argument for makeBeliefDelayAgent.
 // See more examples in ../beliefDelayAgent/irlBanditTests.wppl
 var exampleMakeAgentParams = {
@@ -67,17 +66,22 @@ var makeBeliefDelayAgent = function (params, world){
 
   
   // *belief* is ERP on latent states, returns posterior ERP on latent states
+  var _updateBelief =
+    function (manifestState, belief, observation) {
+      return Enumerate(function () {
+        var latentState = sample(belief);
+        var state = buildState(manifestState, latentState);
+        condition(_.isEqual(observe(state), observation));
+        return latentState;
+      });
+    };
+  
   var updateBelief = dp.cache(
     function (manifestState, belief, observation, delay) {
       if (params.boundVOI.on && (delay >= params.boundVOI.bound)){
         return belief;
       } else {
-        return Enumerate(function () {
-          var latentState = sample(belief);
-          var state = buildState(manifestState, latentState);
-          condition(_.isEqual(observe(state), observation));
-          return latentState;
-      });
+        return _updateBelief(manifestState, belief, observation)
       }
     });
 
