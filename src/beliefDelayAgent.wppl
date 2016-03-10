@@ -125,7 +125,7 @@ var makeBeliefDelayAgent = function (params, world){
 };
 
 var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
-  
+
   var totalTime = startState.manifestState.timeLeft;
   assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
   assert.ok( _.contains(['states','actions','stateAction','stateBelief'], outputType), 

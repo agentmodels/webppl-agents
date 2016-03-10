@@ -62,5 +62,5 @@ var params = {alpha: 1000,
 
 var agent = makeBeliefDelayAgent(params, forkyGridworldPOMDP);
 var gridLocs = trajectoryToLocations(simulateBeliefDelayAgent(startState, forkyGridworldPOMDP,
-							      agent, 4, 'states'));
+							      agent, 'states'));
 console.log(gridLocs);

@@ -69,6 +69,6 @@ var agent = makeBeliefDelayAgent(params, gridworldPOMDP);
 // generating the agent's trajectory
 var observedTrajectory = simulateBeliefDelayAgent(startState, gridworldPOMDP,
 						  // agent, 10, 'stateAction');
-						  agent, 10, 'states');
+						  agent, 'states');
 // (visualise trajectory in codebox)
 console.log(JSON.stringify(_.pluck(_.pluck(observedTrajectory, 'manifestState'), 'loc')));
