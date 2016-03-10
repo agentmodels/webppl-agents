@@ -48,7 +48,8 @@ var ERPOverLatent = function(belief){
 };
 
 // Convert to form for fastUpdateBelief
-var ToERPOverLatent = function(belief){
+var toERPOverLatent = function(belief){
+  console.log('t
   var manifestState = belief.support()[0].manifestState;
   var latentStateERP = Enumerate(function(){return sample(belief).latentState;});
   return {manifestState: manifestState,
@@ -84,7 +85,7 @@ var getUpdateBeliefLatent = function(transition, observe){
 
       // If belief has form of "ERP over {manifest:, latent:}" then we convert
       // to form of "{manifest:, ERP over latent}". 
-      var belief = ERPOverLatent(belief) ? belief : ToERPOverLatent(belief);
+      var belief = ERPOverLatent(belief) ? belief : toERPOverLatent(belief);
 
       // To get the manifestState transition, we need a latent state and would
       // like to choose the latent state in a determinstic way
@@ -141,7 +142,7 @@ var makeBeliefAgent = function(params, world) {
 
       // If belief has form of "ERP over {manifest:, latent:}" then we convert
       // to form of "{manifest:, ERP over latent}". 
-      var belief = ERPOverLatent(belief) ? belief : ToERPOverLatent(belief);
+      var belief = ERPOverLatent(belief) ? belief : toERPOverLatent(belief);
 
       // To get the manifestState transition, we need a latent state and would
       // like to choose the latent state in a determinstic way
