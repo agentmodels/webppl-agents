@@ -549,15 +549,15 @@ var beliefAgentTests = function(){
 var beliefDelayAgentTests = function(){
   
   IRLBanditGenerativeNoDelay('beliefDelay');
-  IRLBanditGenerativeDelay();
+  //IRLBanditGenerativeDelay();
   testInferIRLBandit('beliefDelay');   // TODO note that inference won't work
   
   speedTestIRLBandits('beliefDelay');
 //  testBoundVOI(); ash();
 };
 
-beliefAgentTests();
-//beliefDelayAgentTests();
+beliefAgentTests(); ash()
+beliefDelayAgentTests();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null
 
