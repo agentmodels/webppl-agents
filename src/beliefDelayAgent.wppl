@@ -211,17 +211,3 @@ var getExpectedUtilitiesBeliefDelayAgent = function (startState, world, agent, a
   return {trajectory: trajectory, expectedUtilities: expectedUtilities};
   
 };
-
-
-// Helper functions to display outputs of *simulate* and *getExpectedUtilities*
-var displayTrajectory = function ( trajectory ) {
-  console.log('trajectory (locations only)',
-              map( function (state) {return state.manifestState.loc;}, trajectory) );
-};
-
-var displayExpectedUtilities = function(timeToEUs){
-  map( function(EUs){
-    console.log('\n\n Next timestep: ');
-    map(function(s){console.log(s[0].manifestState.loc, s[1]);}, EUs);
-  }, timeToEUs);
-};
