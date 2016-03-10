@@ -1,12 +1,15 @@
 // Helper functions for testing argument types (warning: heuristics only)
 
 var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
-var isERP = function (x) {return hasProperties(x,['sample', 'support']);};
-var isPOMDPState = function (x) {x.hasOwnProperty('latentState') && _.isFinite(x.manifestState.timeLeft);};
+var isERP = function (x) {return _.has(x,'sample') && _.has(x,'support');};
+var isPOMDPState = function (x) {return _.has(x,'latentState') && _.isFinite(x.manifestState.timeLeft);};
 var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
 
 
-var isPOMDPWorld = function(world){ hasProperties(world, ['transition', 'manifestStateToActions', 'observe']);};
+var isPOMDPWorld = function(world){ 
+  return hasProperties(world, ['transition', 'manifestStateToActions', 'observe']);
+};
+
 
 var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
                    

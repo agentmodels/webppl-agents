@@ -87,9 +87,8 @@ var makeBeliefDelayAgent = function (params, world){
   
   var act = dp.cache(
     function (belief, delay) {
-      assert.ok( isERP(belief) && _.isFinite(delay), 'act arguments error' + 
-                'act: manifestState, belief, delay' + JSON.stringify([belief, delay]));
-
+      assert.ok( _.isFinite(delay), 'act: delay non-finite');
+                
       return Enumerate(function () {
         var action = uniformDraw(beliefToActions(belief));
         var eu = expectedUtility(belief, action, delay);
