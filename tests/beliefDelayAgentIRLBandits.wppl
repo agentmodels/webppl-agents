@@ -452,15 +452,11 @@ var testBoundVOI = function(){
     };
     
     var observe = function(state){
+      console.log('\n\n observe in definition of boundVOI test: ', state);
       if (state.manifestState.loc=='eitherAorB_0'){return state.latentState;}
       else {return 'noObservation';}
     };
     
-    // var observe = !noisyObserve ? observe :
-    //     function(state){
-    //       if (state.manifestState.loc=='eitherAorB_0'){
-    //         if (flip .6){return state.latentState;}
-
 
     var world = {manifestStateToActions: manifestStateToActions, transition:transition, observe:observe};
     var start = buildState({timeLeft:perceivedTime, loc:'start', terminateAfterAction:false}, 'gotoA');
@@ -499,7 +495,7 @@ var testBoundVOI = function(){
     var worldAndStart = makeThreePathsWorldAndStart(totalTime);
     
     var baseAgentParams = {
-      alpha: 100,
+      alpha: 101,
       noDelays: false,
       discount: 0.1,
       sophisticatedOrNaive: 'naive',
@@ -551,11 +547,13 @@ var beliefAgentTests = function(){
 
 // TODO currently these tests are broken because beliefDelay still uses actualTotalTime
 var beliefDelayAgentTests = function(){
+  
   IRLBanditGenerativeNoDelay('beliefDelay');
   IRLBanditGenerativeDelay();
   //testInferIRLBandit('beliefDelay');   // TODO note that inference won't work
-  testBoundVOI();
+  
   speedTestIRLBandits('beliefDelay');
+//  testBoundVOI(); ash();
 };
 
 //beliefAgentTests();

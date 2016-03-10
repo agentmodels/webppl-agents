@@ -249,7 +249,7 @@ var simulateBeliefAgent = function (startState, world, agent, outputType) {
   
   var sampleSequence = function(state, priorBelief, action) {
     var observation = observe(state);
-    
+  
     var belief = agentUpdateBelief(priorBelief, observation, action);
     var action = sample(agentAct(belief));
     var output = [selectOutput(state, action, belief)];

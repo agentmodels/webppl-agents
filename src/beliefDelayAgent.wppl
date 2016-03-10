@@ -81,7 +81,7 @@ var makeBeliefDelayAgent = function (params, world){
   var updateBelief = dp.cache(
     function (belief, observation, action, delay) {
       if (params.boundVOI.on && (delay >= params.boundVOI.bound)){
-        // you do update your belief about manifestState
+       // need to update manifest state
         return Enumerate(function(){
           var state = sample(belief);
           return isNullAction(action) ? state : transition(state, action);
@@ -115,6 +115,7 @@ var makeBeliefDelayAgent = function (params, world){
             return u;
           } else {
             var nextState = transition(state, action);
+
 	    var nextObservation = observe(nextState);
             var transformedDelay = transformDelay(delay);
 
@@ -142,6 +143,10 @@ var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
   assert.ok(totalTime > 1 || startState.manifestState.terminateAfterAction, 
             'if totalTime==1, must also terminateAfterAction');
 
+  if (agent.params.alpha==101){
+    console.log('startState, ', startState);
+  }
+  
   var agentAct = agent.act;
   var agentUpdateBelief = agent.updateBelief;
   var priorBelief = agent.params.priorBelief;
@@ -160,6 +165,7 @@ var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
 
   
   var sampleSequence = function(state, priorBelief, action) {
+    
     var observation = observe(state);
 
     var delay = 0;
