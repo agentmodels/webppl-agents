@@ -67,16 +67,10 @@ var makeBeliefDelayAgent = function (params, world){
     return false;
   }
 
-  
-  var _updateBelief = function(belief, observation, action){
-      return Enumerate(function(){
-	var state = sample(belief);
-        var predictedNextState = isNullAction(action) ? state : transition(state, action);
-        var predictedObservation = observe(predictedNextState);
-	condition(_.isEqual(predictedObservation, observation));
-	return predictedNextState;
-      });
-    };
+  var fastUpdate = true;
+  var _updateBeliefSimple = getUpdateBeliefSimple(transition, observe);
+  var _updateBeliefLatent = getUpdateBeliefLatent(transition, observe);
+  var _updateBelief = fastUpdate ? _updateBeliefLatent : _updateBeliefSimple;
   
   var updateBelief = dp.cache(
     function (belief, observation, action, delay) {
