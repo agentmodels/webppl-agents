@@ -1,3 +1,9 @@
+// note: currently, most tests are focussing on the inference via enumeration,
+// since that's deterministic and easier to write tests for.
+// TODO: fix that.
+
+var myInSupport = function(x, erp){return erp.score([], x) > -100; };
+
 var test1 = function() {
 
   // WORLD PARAMS
@@ -66,6 +72,8 @@ var test1 = function() {
   var prior = {priorUtilityTable: Enumerate(priorUtilityTable),
                priorAgentPrior: Enumerate(priorAgentPrior)};
 
+  // INFERENCE
+  
   var numRejectionSamples = 10;
   var erps = map( function(trajectoryOrOffPolicy){
     return inferGridWorldPOMDP(world, startState, baseParamsNoDiscount, trueAgentParams, prior, agentTypeAndFunctions,
@@ -86,6 +94,8 @@ var test1 = function() {
   // // donuts and not knowing that donut south is open
   // console.log(erps[1].support());
   // assert.ok(isDeltaERP(erps[1]), 'posterior ERP not delta ERP');
+
+  // TESTS FOR INFERENCE
 
   // we expect both ERPs to be delta ERPs
   assert.ok(_.isEqual(sample(erps[0]), sample(erps[1])), 'posterior erps not equal');
@@ -112,7 +122,7 @@ var test2 = function() {
   // they like noodles, and if they do, this will imply that they initially
   // thought that the noodle shop was closed.
 
-  // world params
+  // WORLD PARAMS
   var world = getBigDonutWorld();
   var feature = world.feature;
   var perceivedTotalTime = 10;
@@ -128,10 +138,159 @@ var test2 = function() {
 			'Noodle': true};
 
   var trueLatentState = everythingOpen;
-  // write start state
   
-  // possible utility functions
+  // start states
+  var startState1 = {manifestState: {loc: [3,1],
+				     terminateAfterAction: false,
+				     timeLeft: 6,
+				     timeAtRestaurant: 1},
+		     latentState: trueLatentState};
+
+  var startState2 = {manifestState: {loc: [5,4],
+				     terminateAfterAction: false,
+				     timeLeft: 10,
+				     timeAtRestaurant: 1},
+		     latentState: trueLatentState};
+
+  // TRUE AGENT PARAMS
   
+  // possible utility functions (agent has noodleUtilityTable)
+  var donutUtilityTable = {'Donut N': 5,
+			   'Donut S': 5,
+			   'Veg': 1,
+			   'Noodle': 1,
+			   timeCost: -0.1};
+  
+  var noodleUtilityTable = {'Donut N': 2,
+			    'Donut S': 2,
+			    Veg: 1,
+			    Noodle: 5,
+			    timeCost: -0.1};
+
+  // possible priors that the agent could have (actual prior is uninformed)
+  var uninformedLatentStateSampler = function(){
+    return flip(.8) ? noodleClosed : trueLatentState;
+  };
+
+  var truePriorBelief1 = getPriorBeliefGridworld( startState1.manifestState,
+						 uninformedLatentStateSampler);
+
+
+  var trueAgentParams1 = update(baseParamsNoDiscount, 
+				{priorBelief: truePriorBelief1,
+				 utility: tableToUtilityFunction(donutUtilityTable,
+								 feature)});
+  // PRIOR FOR INFERENCE PARAMS
+
+  var beliefOrBeliefDelay = 'belief';
+  var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
+  var simulate = getSimulateFunction(beliefOrBeliefDelay);
+  var agentTypeAndFunctions = {type: beliefOrBeliefDelay,
+			       makeAgent:makeAgent,
+			       simulate: simulate};
+
+  var alternativePriorBelief1 = getPriorBeliefGridworld( startState1.manifestState,
+							 function(){return trueLatentState;});
+  var priorUtilityTable = function(){
+    return uniformDraw([donutUtilityTable, noodleUtilityTable]);
+  };
+  var priorAgentPrior1 = function(){
+    return uniformDraw([truePriorBelief1, alternativePriorBelief1]);
+  };
+
+  var prior1 = {priorUtilityTable: Enumerate(priorUtilityTable),
+		priorAgentPrior: Enumerate(priorAgentPrior1)};
+
+  // INFERENCE
+  
+  var numRejectionSamples = 20;
+
+  var erps1 = map( function(trajectoryOrOffPolicy){
+    return inferGridWorldPOMDP(world, startState1, baseParamsNoDiscount,
+			       trueAgentParams1, prior1, agentTypeAndFunctions,
+			       trajectoryOrOffPolicy, numRejectionSamples);
+  }, ['trajectory', 'offPolicy']);
+
+  // INFERENCE TESTS
+
+  // support of trajectory should be contained in support of offPolicy (since
+  // trajectory is rejection sampled and offPolicy is rejection sampled)
+  // need to filter 'support' for things which actually have positive
+  // probability
+  // NB: this is generally applicable
+  var erp10ActualSupport = filter(function(paramSetting){
+    return erps1[0].score([], paramSetting) > -100;
+  }, erps1[0].support());
+  
+  var erp11ActualSupport = filter(function(paramSetting){
+    return erps1[1].score([], paramSetting) > -100;
+  }, erps1[1].support());
+
+  map(function(index){
+    assert.ok( myInSupport(erp10ActualSupport[index], erps1[1]),
+  	   'support of trajectory ERP not contained in support of offPolicy ERP');
+  }, range(erp10ActualSupport.length));
+
+  // inference should be unsure of whether the agent likes noodles
+
+  assert.ok(Math.abs(erps1[1].score([], {utilityTable: noodleUtilityTable,
+					 priorBelief: truePriorBelief1})
+		     - erps1[1].score([], {utilityTable: donutUtilityTable,
+					   priorBelief: truePriorBelief1})) < 0.5,
+	    'inference improperly sure about whether agent likes noodles');
+
+  assert.ok(Math.abs(erps1[1].score([], {utilityTable: noodleUtilityTable,
+					 priorBelief: truePriorBelief1})
+		     - erps1[1].score([], {utilityTable: donutUtilityTable,
+					   priorBelief: alternativePriorBelief1})) < 0.5,
+	    'inference improperly sure about whether agent likes noodles');
+  
+  // inference should think that if agent likes noodles, that agent thinks
+  // noodles are closed, but if agent doesn't like noodles, then unsure about
+  // agent's beliefs
+
+  assert.ok(myInSupport({utilityTable: noodleUtilityTable,
+			 priorBelief: truePriorBelief1}, erps1[1]),
+	    'Enumeration incorrectly rules out true explanation');
+
+  assert.ok(myInSupport({utilityTable: noodleUtilityTable,
+			 priorBelief: truePriorBelief1}, erps1[0]),
+	    'Rejection sampling incorrectly rules out true explanation');
+  
+  assert.ok(!myInSupport({utilityTable: noodleUtilityTable,
+			  priorBelief: alternativePriorBelief1}, erps1[1]),
+	    'incorrect inference that agent could like noodles and know latent state');
+
+  console.log('passed second test part 1');
+  
+  // // condition on second trajectory
+
+  // var erps2 = map( function(trajectoryOrOffPolicy){
+  //   return inferGridWorldPOMDP(world, startState1, baseParamsNoDiscount,
+  // 			       trueAgentParams1, erps1[1], agentTypeAndFunctions,
+  // 			       trajectoryOrOffPolicy, numRejectionSamples);
+  // }, ['trajectory', 'offPolicy']);
+
+  // // check if inference functions are working as expected
+  // var erp20ActualSupport = filter(function(paramSetting){
+  //   return erps2[0].score([], paramSetting) > -100;
+  // }, erps2[0].support());
+  
+  // var erp21ActualSupport = filter(function(paramSetting){
+  //   return erps2[1].score([], paramSetting) > -100;
+  // }, erps2[1].support());
+
+  // map(function(index){
+  //   assert.ok( myInSupport(erp20ActualSupport[index], erps1[1]),
+  // 	       'support of trajectory ERP not contained in support of offPolicy ERP');
+  // }, range(erp20ActualSupport.length));
+
+
+  // inference should think that agent likes noodles and thought noodles were closed
+
+
+  console.log('passed second test part 2');
 };
 
-test1();
+// test1();
+test2();
