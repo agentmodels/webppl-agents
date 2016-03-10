@@ -237,7 +237,6 @@ var simulateBeliefAgent = function (startState, world, agent, outputType) {
   var worldObserve = world.observe;
   var observe = getFullObserve(worldObserve);
 
-  
   var selectOutput = function(state, action, belief){
     var table =  {states:state, actions:action, stateAction:[state, action], 
                   stateBelief: [state, belief]};
@@ -246,10 +245,9 @@ var simulateBeliefAgent = function (startState, world, agent, outputType) {
 
   var shouldTerminate = function (manifestState) { return manifestState.terminateAfterAction; };
 
-  
   var sampleSequence = function(state, priorBelief, action) {
+
     var observation = observe(state);
-    
     var belief = agentUpdateBelief(priorBelief, observation, action);
     var action = sample(agentAct(belief));
     var output = [selectOutput(state, action, belief)];
