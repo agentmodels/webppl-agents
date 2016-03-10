@@ -49,9 +49,10 @@ var ERPOverLatent = function(belief){
 
 // Convert to form for fastUpdateBelief
 var toERPOverLatent = function(belief){
-  console.log('t
+
   var manifestState = belief.support()[0].manifestState;
   var latentStateERP = Enumerate(function(){return sample(belief).latentState;});
+ 
   return {manifestState: manifestState,
           latentStateERP: latentStateERP};
 };
@@ -107,6 +108,9 @@ var getUpdateBeliefLatent = function(transition, observe){
 
         // Sample latent, update state, compare predicted observation from state
         // to actual observation. 
+
+        //console.log('before enum: belief, observation, action', belief, observation, action);
+
         var newLatentERP = Enumerate(function(){
           var latentState = sample(belief.latentStateERP);
 	  var state = buildState( belief.manifestState, latentState);    
@@ -115,6 +119,8 @@ var getUpdateBeliefLatent = function(transition, observe){
 
 	   condition(_.isEqual(predictedObservation, observation));
 	  return latentState;});
+  //      console.log('after enum: belief, observation, action', belief, observation, action);
+        
         return {manifestState: newManifestState, latentStateERP: newLatentERP};
       }
     });

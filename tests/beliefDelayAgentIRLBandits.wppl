@@ -325,7 +325,7 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10, beliefOrBeliefDelay);
   assert.ok( sample(erp1).prizeToUtility.a == 1 && sample(erp2).prizeToUtility.a == 1, 'testbandit infer 2');
 
-  console.log('passed easy testBanditInferBeliefOnly tests');
+  console.log('passed easy inferIRLBandit tests');
   
   
   // EXAMPLE 3 - INFER PRIOR AND UTILITY
@@ -395,7 +395,7 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   };
   map(testERP,[erp1,erp2]);
  
-  console.log('\n-----\npassed ALL testBanditInfer tests');
+  console.log('\n-----\npassed ALL inferIRLBandit tests');
 };
 
 var runTestInferIRLBandit = function(){
@@ -550,7 +550,7 @@ var beliefDelayAgentTests = function(){
   
   IRLBanditGenerativeNoDelay('beliefDelay');
   IRLBanditGenerativeDelay();
-  //testInferIRLBandit('beliefDelay');   // TODO note that inference won't work
+  testInferIRLBandit('beliefDelay');   // TODO note that inference won't work
   
   speedTestIRLBandits('beliefDelay');
 //  testBoundVOI(); ash();

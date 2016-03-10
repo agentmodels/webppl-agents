@@ -67,7 +67,7 @@ var makeBeliefDelayAgent = function (params, world){
     return false;
   }
 
-  var fastUpdate = true;
+  var fastUpdate = false;
   var updateBeliefSimple = getUpdateBeliefSimple(transition, observe);
   var updateBeliefLatent = getUpdateBeliefLatent(transition, observe);
   var _updateBelief = fastUpdate ? updateBeliefLatent : updateBeliefSimple;
