@@ -8,11 +8,22 @@ var testAgent = function(){
   
   // bandit setting
 
+
+  var priorFromLatentERPBandits = function(latentBelief, perceivedTotalTime) {
+    return Enumerate(function(){
+      return {manifestState: {loc: 'start',
+			      timeLeft: perceivedTotalTime,
+			      terminateAfterAction: false},
+	      latentState: sample(latentBelief)};
+    });
+  };
+  
   // if agent knows the latent state, they should just do the optimal action
   var numArms1 = 3;
   var armToRewards1 = {'start': 0, rewards: [10, 0, 15]};
-  var priorBelief1 = deltaERP(armToRewards1);
   var perceivedTotalTime1 = 10;
+  var latentBelief1 = deltaERP(armToRewards1);
+  var priorBelief1 = priorFromLatentERPBandits(latentBelief1, perceivedTotalTime1);
   var locs1 = trajectoryToLocations(runBeliefAgentBandit(numArms1, armToRewards1,
   							 priorBelief1,
   							 perceivedTotalTime1));
@@ -23,10 +34,11 @@ var testAgent = function(){
 
   var numArms2 = 3;
   var armToRewards2 = {start: 0, rewards: [0, 1, 0]};
-  var priorBelief2 = Enumerate(function(){
+  var perceivedTotalTime2 = 3;
+  var latentBelief2 = Enumerate(function() {
     return uniformDraw([armToRewards1, armToRewards2]);
   });
-  var perceivedTotalTime2 = 3;
+  var priorBelief2 = priorFromLatentERPBandits(latentBelief2, perceivedTotalTime2);
   var locs2 = trajectoryToLocations(runBeliefAgentBandit(numArms2, armToRewards2,
   							 priorBelief2,
   							 perceivedTotalTime2));
@@ -38,10 +50,11 @@ var testAgent = function(){
   var numArms3 = 2;
   var armToRewards3 = {start: 0, rewards: [1, 0]};
   var arm1Bonanza = {start: 0, rewards: [1, 2]};
-  var priorBelief3 = Enumerate(function(){
+  var latentBelief3 = Enumerate(function(){
     return categorical([0.8, 0.2], [armToRewards3, arm1Bonanza]);
   });
   var perceivedTotalTime3 = 10;
+  var priorBelief3 = priorFromLatentERPBandits(latentBelief3, perceivedTotalTime3);
   var locs3 = trajectoryToLocations(runBeliefAgentBandit(numArms3, armToRewards3,
   							 priorBelief3,
   							 perceivedTotalTime3));
@@ -52,11 +65,12 @@ var testAgent = function(){
 
   var numArms4 = 4;
   var armToRewards4 = {start: 0, rewards: [1,1,1,1]};
-  var priorBelief4 = Enumerate(function(){
+  var latentBelief4 = Enumerate(function(){
     var dist = function(){return uniformDraw([1, 10]);};
     return {start: 0, rewards: [dist(), dist(), dist(), dist()]};
   });
   var perceivedTotalTime4 = 6;
+  var priorBelief4 = priorFromLatentERPBandits(latentBelief4, perceivedTotalTime4);
   var locs4 = trajectoryToLocations(runBeliefAgentBandit(numArms4, armToRewards4,
   							 priorBelief4,
   							 perceivedTotalTime4));
@@ -72,17 +86,6 @@ var testAgent = function(){
   var gridworldMDP = makeDonutWorld2({big: true, maxTimeAtRestaurant : 1});
   var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
   var feature = gridworldMDP.feature;
-
-  var tableToUtilityFunction = function(table) {
-    return function(state, action) {
-      var stateFeatureName = feature(state.manifestState).name;
-      if (stateFeatureName) {
-  	return table[stateFeatureName];
-      } else {
-  	return table.timeCost;
-      }
-    };
-  };
 
   // if the agent knows the latent state, they should go to the closest
   // restaurant that they like

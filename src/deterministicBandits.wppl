@@ -5,7 +5,7 @@ var makeDeterministicBandit = function (numArms) {
   var actions = _.range(numArms);
   
   var mdpTransition = function (state, action) {
-    var terminateAfterAction = state.timeLeft - 1 == 1 ? true : false;
+    var terminateAfterAction = state.timeLeft - 1 === 1;
     return update(state, { loc:action, timeLeft:state.timeLeft - 1, terminateAfterAction:terminateAfterAction });
   };
   
@@ -35,8 +35,11 @@ var runBeliefAgentBandit = function(numArms, armToRewards, priorBelief,
        _.range(numArms) );
   var world = makeDeterministicBandit(numArms);
   
-  // agent params 
-  assert.ok( _.isFinite(priorBelief.score([],armToRewards)),
+  // agent params
+  var latentERP = Enumerate(function(){
+    return sample(priorBelief).latentState;
+  });
+  assert.ok( _.isFinite(latentERP.score([],armToRewards)),
 	     "actual latent not in prior's support" );
 
   var params = { 
@@ -50,11 +53,10 @@ var runBeliefAgentBandit = function(numArms, armToRewards, priorBelief,
 
   var agent = makeBeliefAgent(params, world);
 
-  var actualTotalTime = perceivedTotalTime;
   var startState = {manifestState: {loc: 'start',
 				    timeLeft: perceivedTotalTime,
 				    terminateAfterAction: false},
 		    latentState: armToRewards};
 
-  return simulateBeliefAgent(startState, world, agent, actualTotalTime, 'states');
+  return simulateBeliefAgent(startState, world, agent, 'states');
 };
