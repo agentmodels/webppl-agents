@@ -67,18 +67,21 @@ var makeBeliefDelayAgent = function (params, world){
     return false;
   }
 
-  var fastUpdate = true;
-  var updateBeliefSimple = getUpdateBeliefSimple(transition, observe);
-  var updateBeliefLatent = getUpdateBeliefLatent(transition, observe);
-  var _updateBelief = fastUpdate ? updateBeliefLatent : updateBeliefSimple;
+  var fastUpdate = false;
+  var _updateBelief = fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
+      getUpdateBeliefSimple(transition, observe);
+
+  
   
   var updateBelief = function (belief, observation, action, delay) {
     if (params.boundVOI.on && (delay >= params.boundVOI.bound)){
-      // need to update manifest state
-      return Enumerate(function(){
-        var state = sample(belief);
-        return isNullAction(action) ? state : transition(state, action);
+            
+      var newBelief = Enumerate(function(){  // update manifestState
+        var state = sampleBelief(belief);
+        return transition(state,action); // since boundVOI applies after startState, no nullAction
       });
+      
+      return fastUpdate ? toERPOverLatent(newBelief) : newBelief;
       
     } else {
       return _updateBelief(belief, observation, action)
@@ -135,9 +138,7 @@ var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
   assert.ok(totalTime > 1 || startState.manifestState.terminateAfterAction, 
             'if totalTime==1, must also terminateAfterAction');
 
-  if (agent.params.alpha==101){
-    console.log('startState, ', startState);
-  }
+ 
   
   var agentAct = agent.act;
   var agentUpdateBelief = agent.updateBelief;
@@ -160,7 +161,7 @@ var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
     
     var observation = observe(state);
 
-    var delay = 0;
+    var delay = 0;  
     var belief = agentUpdateBelief(priorBelief, observation, action, delay);
     var action = sample(agentAct(belief, delay));
     var output = [selectOutput(state, action, belief)];

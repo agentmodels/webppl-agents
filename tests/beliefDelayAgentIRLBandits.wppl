@@ -243,13 +243,15 @@ var IRLBanditGenerativeDelay = function(){
     assert.ok(  _.difference(prediction,locs).length == 0, 'fail bandit example myopia');
   };
   console.log( '\n MYOPIA \n Myopia should be faster than discount')
-  testMyopia(1,'not');
-  testMyopia(2,'not');
-  testMyopia(3,'explore');
+  // TODO CHANGE BACK TODO
+  // testMyopia(1,'not');
+  // testMyopia(2,'not');
+  // testMyopia(3,'explore');
 
   // BoundVOI (faster than discounting)
   var testBoundVOI = function(boundVOIBound, exploreOrNot){
     var replaceParams = {
+      alpha: 101,
       discount:0, 
       noDelays:false,
       sophisticatedOrNaive: 'naive',
@@ -263,7 +265,8 @@ var IRLBanditGenerativeDelay = function(){
     var locs = trajectoryToLocations(out.value).slice(1,4);
     var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
     assert.ok(  _.difference(prediction,locs).length == 0, 'fail bandit example boundVOI');
-    console.log( '\n BoundVOI bound: ' + boundVOIBound + ' (locs, timeit) ', trajectoryToLocations(out.value), out.runtimeInMilliseconds + ' ms');
+    console.log( '\n BoundVOI bound: ' + boundVOIBound + ' (locs, timeit) ',
+                 trajectoryToLocations(out.value), out.runtimeInMilliseconds + ' ms');
   };
   console.log('\n BOUND VOI \n BoundVOI should be similar in runtime to discount');
   testBoundVOI(1,'not');
@@ -549,14 +552,14 @@ var beliefAgentTests = function(){
 var beliefDelayAgentTests = function(){
   
   IRLBanditGenerativeNoDelay('beliefDelay');
-  //IRLBanditGenerativeDelay();
+  IRLBanditGenerativeDelay();
   testInferIRLBandit('beliefDelay');   // TODO note that inference won't work
   
   speedTestIRLBandits('beliefDelay');
 //  testBoundVOI(); ash();
 };
 
-beliefAgentTests(); ash()
+//beliefAgentTests(); ash()
 beliefDelayAgentTests();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null
