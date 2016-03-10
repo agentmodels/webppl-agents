@@ -66,6 +66,47 @@ var priorAgentPrior = function(){return uniformDraw([truePriorBelief, alternativ
 var prior = {priorUtilityTable: Enumerate(priorUtilityTable),
              priorAgentPrior: Enumerate(priorAgentPrior)};
 
+var numRejectionSamples = 10;
+var erps = map( function(trajectoryOrOffPolicy){
+  return inferGridWorldPOMDP(world, startState, baseParamsNoDiscount, trueAgentParams, prior, agentTypeAndFunctions,
+                             trajectoryOrOffPolicy, numRejectionSamples);
+}, ['trajectory', 'offPolicy']);
+
+
+// support doesn't work
+// TODO: figure out how to make support work
+// // support of trajectory should be contained in support of offPolicy (since trajectory is rejection
+// // sampled and offPolicy is rejection sampled)
+// // NB: this is generally applicable
+// map(function(index){
+//   assert.ok(_.some(erps[1].support(), function(elem){return elem === erps[0].support()[index];}),
+// 	   'support of trajectory ERP not contained in support of offPolicy ERP');
+// }, range(erps[0].support().length));
+// // in this case, the posterior should be a delta prior on the agent liking
+// // donuts and not knowing that donut south is open
+// console.log(erps[1].support());
+// assert.ok(isDeltaERP(erps[1]), 'posterior ERP not delta ERP');
+
+// we expect both ERPs to be delta ERPs
+assert.ok(_.isEqual(sample(erps[0]), sample(erps[1])), 'posterior erps not equal');
+assert.ok(_.isEqual(sample(erps[0]), sample(erps[1])), 'posterior erps not equal');
+assert.ok(_.isEqual(sample(erps[0]), sample(erps[1])), 'posterior erps not equal');
+assert.ok(sample(erps[1]).utilityTable['Donut S'] === 5,
+	  'posterior ERP failed to infer agent liking donuts');
+var agentBelief = sample(erps[1]).priorBelief;
+var agentBeliefSample = sample(agentBelief);
+assert.ok(agentBelief.score([], agentBeliefSample) < -0.1,
+	 'posterior ERP failed to infer agents uncertainty');
+
+// other possible tests: look at MAP of erps[0] and erps[1], see if certain
+// things are more probable than other things in erps[1]
+
+console.log('passed first test');
+ash();
+
+
+
+
 
 // Inference params
 var numRejectionSamples = 10;

@@ -171,8 +171,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   // get observations using trueAgentParams
   var agent = makeAgent(trueAgentParams, world);
   var observedStateAction = simulate(startState, world, agent, 'stateAction');
-  // console.log('observed trajectory: ', JSON.stringify(observedStateAction));
-  // ash();
+
   assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferGridWorld');
   
   
