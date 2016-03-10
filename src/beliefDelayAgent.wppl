@@ -25,9 +25,9 @@ var exampleMakeAgentParams = {
 var makeBeliefDelayAgent = function (params, world){
 
   // Check on correctness of *params* and *world*
-  assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
-                                    'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
-             'makeBeliefDelayAgent args');
+  // assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
+  //                                   'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
+  //            'makeBeliefDelayAgent args');
   assert.ok( isPOMDPWorld(world), 'makeBeliefDelay world is not world' );
   
   assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI must be false");
@@ -39,8 +39,10 @@ var makeBeliefDelayAgent = function (params, world){
   // Variables for methods
   var utility = params.utility;
   var manifestStateToActions = world.manifestStateToActions;
-  var transition = world.transition;
-  var observe = world.observe;
+
+  var worldObserve = world.observe;
+  var observe = getFullObserve(worldObserve);
+  var beliefToActions = getBeliefToActions( manifestStateToActions );
   
 
   // Update the *delay* parameter in *expectedUtility* for sampling actions and future utilities
@@ -65,19 +67,19 @@ var makeBeliefDelayAgent = function (params, world){
   }
 
   
-  // *belief* is ERP on latent states, returns posterior ERP on latent states
-  var _updateBelief =
-    function (manifestState, belief, observation) {
-      return Enumerate(function () {
-        var latentState = sample(belief);
-        var state = buildState(manifestState, latentState);
-        condition(_.isEqual(observe(state), observation));
-        return latentState;
+  var _updateBelief = 
+    function(belief, observation, action){
+      return Enumerate(function(){
+	var state = sample(belief);
+        var predictedNextState = isNullAction(action) ? state : transition(state, action);
+        var predictedObservation = observe(predictedNextState);
+	condition(_.isEqual(predictedObservation, observation));
+	return predictedNextState;
       });
     };
   
   var updateBelief = dp.cache(
-    function (manifestState, belief, observation, delay) {
+    function (belief, observation, delay) {
       if (params.boundVOI.on && (delay >= params.boundVOI.bound)){
         return belief;
       } else {
@@ -87,40 +89,36 @@ var makeBeliefDelayAgent = function (params, world){
 
   
   var act = dp.cache(
-    function (manifestState, belief, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), 'act arguments error' + 
+    function (belief, delay) {
+      assert.ok( isERP(belief) && _.isFinite(delay), 'act arguments error' + 
                 'act: manifestState, belief, delay' + JSON.stringify([manifestState, belief, delay]));
 
       return Enumerate(function () {
-        var action = uniformDraw(manifestStateToActions(manifestState));
-        var eu = expectedUtility(manifestState, belief, action, delay);
+        var action = uniformDraw(beliefToActions(belief));
+        var eu = expectedUtility(belief, action, delay);
         factor(params.alpha * eu);
         return action;
       });
     });
 
   var expectedUtility = dp.cache(
-    function (manifestState, belief, action, delay) {
+    function (belief, action, delay) {
       return expectation(
         Enumerate(function () {
-          var latentState = sample(belief);
-          var state = buildState(manifestState, latentState);
+          var state = sampleBelief(belief);
           var u = 1.0 / (1 + params.discount * delay) * utility(state, action);
           if (shouldTerminate(state, delay)){
             return u;
           } else {
-            // Change state and get observation based on *latentState*
             var nextState = transition(state, action);
-            var nextObservation = observe(nextState);
-
-            // Update agent's internal state based on new manifestState, the observation, old belief, old delay.
+	    var nextObservation = observe(nextState);
             var transformedDelay = transformDelay(delay);
-            var nextBelief = updateBelief(nextState.manifestState, belief, nextObservation, transformedDelay);
-            var nextAction = sample(act(nextState.manifestState, nextBelief, transformedDelay));
 
-            // Compute utility given agent's new internal belief state, the new manifestState, and agent's action. 
-            var futureU = expectedUtility(nextState.manifestState,nextBelief,nextAction,incrementDelay(delay));
-            return u + futureU;
+	    var nextBelief = updateBelief(belief, nextObservation, action, transformedDelay);            
+	    var nextAction = sample(act(nextBelief, transformedDelay));
+            
+	    var futureU = expectedUtilityBelief(nextBelief, nextAction, incremenetDelay(delay));
+	    return u + futureU;
           }
         }));
     });
@@ -128,9 +126,12 @@ var makeBeliefDelayAgent = function (params, world){
   return { act:act, updateBelief:updateBelief, expectedUtility : expectedUtility, params: params};
 };
 
+
+
 var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
 
   var totalTime = startState.manifestState.timeLeft;
+  
   assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
   assert.ok( _.contains(['states','actions','stateAction','stateBelief'], outputType), 
              "outputType key not in ['states', 'actions', 'stateAction', 'stateBelief']");
@@ -141,7 +142,9 @@ var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
   var agentUpdateBelief = agent.updateBelief;
   var priorBelief = agent.params.priorBelief;
   var transition = world.transition;
-  var observe = world.observe;
+  var worldObserve = world.observe;
+  var observe = getFullObserve(worldObserve);
+
   
   var selectOutput = function(state, action, belief){
     var table =  {states:state, actions:action, stateAction:[state, action], 
@@ -151,23 +154,25 @@ var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
 
   var shouldTerminate = function (manifestState) { return manifestState.terminateAfterAction; };
 
-  var sampleSequence = function(state, priorBelief) {
+  
+  var sampleSequence = function(state, priorBelief, action) {
     var observation = observe(state);
     
-    var delay = 0;
-    var belief = agentUpdateBelief(state.manifestState, priorBelief, observation, delay);
-    var action = sample(agentAct(state.manifestState, belief, delay));       
+    var belief = agentUpdateBelief(priorBelief, observation, action);
+    var action = sample(agentAct(belief));
     var output = [selectOutput(state, action, belief)];
-
+    
     if (shouldTerminate(state.manifestState)) {
       return output;
     } else {   
       var nextState = transition(state, action);
-      return output.concat(sampleSequence(nextState, belief));
+      return output.concat(sampleSequence(nextState, belief, action));
     }
   };
-  return sampleSequence(startState, priorBelief);
+  var startAction = 'noAction';
+  return sampleSequence(startState, priorBelief, startAction);
 };
+
 
 
 

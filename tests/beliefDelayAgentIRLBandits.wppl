@@ -4,7 +4,8 @@
 
 // TODO currently we only have noManifest for belief. When we fix this, change this function
 var getPriorBelief = function(perceivedTotalTime, armToPrizeThunk, beliefOrBeliefDelay){
-  var noManifest = beliefOrBeliefDelay == 'belief' ? true : false;
+ // var noManifest = beliefOrBeliefDelay == 'belief' ? true : false;
+  var noManifest = true;
   return _getPriorBelief(perceivedTotalTime, 'start', armToPrizeThunk, noManifest);
 };
 
