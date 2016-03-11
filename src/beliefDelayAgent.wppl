@@ -137,7 +137,7 @@ var simulateBeliefDelayAgent = getSimulateFunction('beliefDelay');
 
 
 var getMakeAgentFunction = function(beliefOrBeliefDelay){
-  assert.ok( _.contains(['belief','beliefDelay'], beliefOrBeliefDelay),
+  assert.ok( _.includes(['belief','beliefDelay'], beliefOrBeliefDelay),
              'getMakeAgentFunction invalid input:   ' + beliefOrBeliefDelay);
 
   if ( beliefOrBeliefDelay == 'beliefDelay'){

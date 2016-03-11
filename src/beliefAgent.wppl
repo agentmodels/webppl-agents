@@ -235,7 +235,7 @@ var makeBeliefAgent = function(params, world) {
 
 var getSimulateFunction = function(beliefOrBeliefDelay){
 
-  assert.ok( _.contains(['belief','beliefDelay'], beliefOrBeliefDelay), 
+  assert.ok( _.includes(['belief','beliefDelay'], beliefOrBeliefDelay), 
              'getSimulateFunction invalid input: '+ beliefOrBeliefDelay);
 
 
@@ -246,7 +246,7 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
     var totalTime = startState.manifestState.timeLeft;
     
     assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
-    assert.ok( _.contains(['states','actions','stateAction','stateBelief'], outputType), 
+    assert.ok( _.includes(['states','actions','stateAction','stateBelief'], outputType), 
                "outputType key not in ['states', 'actions', 'stateAction', 'stateBelief']");
     assert.ok(totalTime > 1 || startState.manifestState.terminateAfterAction, 
               'if totalTime==1, must also terminateAfterAction');
