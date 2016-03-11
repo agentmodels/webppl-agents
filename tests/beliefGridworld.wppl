@@ -369,9 +369,6 @@ var test3 = function() {
   // actually being closed (as otherwise they would just go the short way
   // around)
 
-  // NB: all of the below needs to be edited (i'm just copy-pasting so that what
-  // I write will be in the right format).
-
   // WORLD PARAMS
   var world = getBigDonutWorld();
   var feature = world.feature;
@@ -495,6 +492,20 @@ var test3 = function() {
   	    'Rejection sampling incorrectly rules out true explanation');
 
   console.log('passed third test');
+};
+
+var test4 = function() {
+  // like test1, but with rich priors, such that we need to use
+  // MCMC inference, and won't get an exact result
+
+  
+  // noReverse is an optimisation for gridworldMDP that makes inference run faster
+  var gridworldMDP = makeDonutWorld2({big: true, noReverse: false});
+  var world = makeGridworldPOMDP(gridworldMDP);
+  var feature = gridworldMDP.feature;
+
+
+  // stuff
 };
 
 test1();
