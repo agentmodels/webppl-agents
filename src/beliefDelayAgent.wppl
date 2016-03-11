@@ -89,7 +89,7 @@ var makeBeliefDelayAgent = function (params, world){
   
   var act = dp.cache(
     function (belief, delay) {
-      assert.ok( _.isFinite(delay), 'act: delay non-finite');
+      assert.ok( _.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
                 
       return Enumerate(function () {
         var action = uniformDraw(beliefToActions(belief));
@@ -178,6 +178,7 @@ var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {
 };
 
 
+var simulateBeliefDelayAgent = getSimulateFunction('beliefDelay');
 
 
 

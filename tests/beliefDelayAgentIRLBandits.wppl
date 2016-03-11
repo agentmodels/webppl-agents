@@ -558,7 +558,7 @@ var beliefDelayAgentTests = function(){
   // testBoundVOI(); FIX THIS TEST
 };
 
-//beliefAgentTests(); ash()
+//beliefAgentTests();
 beliefDelayAgentTests();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null
