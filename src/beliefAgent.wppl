@@ -10,9 +10,6 @@
 // has had manifest states removed.
 
 
-// Optimizations that work in bandits and gridworld (not for boundVOI agent)
-var recurseOnStateOrBelief = 'belief';
-var fastUpdateBelief = true;
 
 
 
@@ -131,6 +128,9 @@ var makeBeliefAgent = function(params, world) {
       ['utility','alpha', 'priorBelief']);
   assert.ok( isPOMDPWorld(world),
 	     'world argument lacks transition, stateToActions, or observe');
+
+  //set defaults for optimizations
+  var params = update({ recurseOnStateOrBelief : 'belief', fastUpdateBelief : true}, params);
   
   var utility = params.utility;
   var manifestStateToActions = world.manifestStateToActions;
@@ -138,9 +138,14 @@ var makeBeliefAgent = function(params, world) {
   var worldObserve = world.observe;
   var observe = getFullObserve(worldObserve);
   var beliefToActions = getBeliefToActions( manifestStateToActions );
+
+  // Optimizations that work in bandits and gridworld (not for boundVOI agent)
+  var recurseOnStateOrBelief = params.recurseOnStateOrBelief;
+  var fastUpdateBelief = params.fastUpdateBelief;
   
   var updateBelief = fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
       getUpdateBeliefSimple(transition, observe);
+
 
   
   // RECURSE ON BELIEF (BELLMAN STYLE)
