@@ -2,8 +2,8 @@
 
 // POMDP AGENT WITHOUT DELAYS
 // Test script by running:
-//webppl tests/beliefDelayAgentIRLBandits.wppl --require webppl-timeit --require webppl-dp --require .
-
+// webppl tests/X --require webppl-timeit --require webppl-dp --require .
+// for X in [beliefDelayIRLBandits.wppl, beliefSimpleBandits.wppl, beliefGridworld.wppl, beliefVarious.wppl]
 
 
 // BELIEF AGENT HELPER FUNCTIONS: should be moved to utilsForBeliefAgent.wppl once beliefDelayAgent

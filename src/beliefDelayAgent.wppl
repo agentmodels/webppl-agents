@@ -1,7 +1,7 @@
 // BELIEF DELAY AGENT
 
 // Test script by running:
-//webppl tests/beliefDelayAgentIRLBandits.wppl --require webppl-timeit --require webppl-dp --require .
+//webppl tests/beliefDelayIRLBandits.wppl --require webppl-timeit --require webppl-dp --require .
 
 
 // Use fast belief update (which puts ERP only on latentState)
