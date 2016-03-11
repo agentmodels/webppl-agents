@@ -126,6 +126,17 @@ var makeBeliefDelayAgent = function (params, world){
 };
 
 
+var getMakeAgentFunction = function(beliefOrBeliefDelay){
+  assert.ok( _.contains(['belief','beliefDelay'], beliefOrBeliefDelay),
+             'getMakeAgentFunction invalid input:   ' + beliefOrBeliefDelay);
+
+  if ( beliefOrBeliefDelay == 'beliefDelay'){
+    return makeBeliefDelayAgent;
+  } else {
+    return makeBeliefAgent;
+  }
+};
+
 // TODO: use same simulate as belief agent. 
 // TODO: check running on gridworld
 var simulateBeliefDelayAgent = function (startState, world, agent, outputType) {

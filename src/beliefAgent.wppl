@@ -229,7 +229,9 @@ var makeBeliefAgent = function(params, world) {
 
 
 var getSimulateFunction = function(beliefOrBeliefDelay){
-  assert.ok( _.contains(['belief','beliefOrBeliefDelay'], beliefOrBeliefDelay), 'getSimulateFunction invalid input');
+
+  assert.ok( _.contains(['belief','beliefDelay'], beliefOrBeliefDelay), 
+             'getSimulateFunction invalid input: '+ beliefOrBeliefDelay);
 
   var useDelays = beliefOrBeliefDelay=='beliefDelay';
 
