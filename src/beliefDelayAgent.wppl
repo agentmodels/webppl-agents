@@ -35,6 +35,8 @@ var makeBeliefDelayAgent = function (params, world){
     'myopia and boundVOI require Naive agent with delays');
   }
 
+  var params = update({ recurseOnStateOrBelief : 'belief', fastUpdateBelief : true}, params);
+
   // Variables for methods
   var transition = world.transition;
   var utility = params.utility;
@@ -43,6 +45,10 @@ var makeBeliefDelayAgent = function (params, world){
   var worldObserve = world.observe;
   var observe = getFullObserve(worldObserve);
   var beliefToActions = getBeliefToActions( manifestStateToActions );
+
+  // Optimizations that work in bandits and gridworld (not for boundVOI agent)
+  var recurseOnStateOrBelief = params.recurseOnStateOrBelief;
+  var fastUpdateBelief = params.fastUpdateBelief;
   
 
   // Update the *delay* parameter in *expectedUtility* for sampling actions and future utilities
