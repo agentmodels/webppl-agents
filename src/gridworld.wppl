@@ -56,10 +56,11 @@ var assertHas = function(object, params, message) {
 
 
 var hasProperties = function(object, listProperties){
-  return _.every(listProperties,
+  assert.ok( _.isObject(object) && _.isArray(listProperties), 'fail hasProperties');
+  return _.all( map( 
     function(property){ 
       return _.has(object, property);
-    });
+    }, listProperties));
 };
 
        

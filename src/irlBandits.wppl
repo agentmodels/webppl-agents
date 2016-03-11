@@ -98,7 +98,8 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
   var priorPrizeToUtility = prior.priorPrizeToUtility;
   var priorAgentPrior = prior.priorAgentPrior;
 
-  assert.ok(isPOMDPWorld(world) && isPOMDPState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args');
+
+  assert.ok(isPOMDPWorld(world) && isPOMDPState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args ' + priorPrizeToUtility + ' \n\n priorAgentPrior' + priorAgentPrior );
   assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 'trajectoryOrOffPolicy bad');
   assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferirlbandit');
 
