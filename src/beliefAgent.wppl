@@ -233,8 +233,8 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
   assert.ok( _.contains(['belief','beliefDelay'], beliefOrBeliefDelay), 
              'getSimulateFunction invalid input: '+ beliefOrBeliefDelay);
 
-  var useDelays = beliefOrBeliefDelay=='beliefDelay';
 
+  var useDelays = beliefOrBeliefDelay=='beliefDelay';
 
   return function (startState, world, agent, outputType) {
 
@@ -261,7 +261,6 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
     };
 
     var shouldTerminate = function (manifestState) { return manifestState.terminateAfterAction; };
-
     
     var sampleSequence = function(state, priorBelief, action) {
       var observation = observe(state);
