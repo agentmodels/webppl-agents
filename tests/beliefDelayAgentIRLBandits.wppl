@@ -539,7 +539,11 @@ var testBoundVOI = function(){
 };
 
 
-
+var speedTestOnly = function(){
+  speedTestIRLBandits('beliefDelay');
+  console.log('\n\ BELIEF DELAY speedtest');
+  speedTestIRLBandits('beliefDelay');
+};
 
 var beliefAgentTests = function(){
   IRLBanditGenerativeNoDelay('belief');
@@ -549,14 +553,13 @@ var beliefAgentTests = function(){
 
 // TODO currently these tests are broken because beliefDelay still uses actualTotalTime
 var beliefDelayAgentTests = function(){
-  
   IRLBanditGenerativeNoDelay('beliefDelay');
   IRLBanditGenerativeDelay();
   testInferIRLBandit('beliefDelay');   // TODO note that inference won't work
-  
   speedTestIRLBandits('beliefDelay');
   // testBoundVOI(); FIX THIS TEST
 };
+
 
 beliefAgentTests();
 console.log('\n\n------\n  BELIEF DELAY \n');

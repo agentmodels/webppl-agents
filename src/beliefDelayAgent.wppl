@@ -24,9 +24,9 @@ var exampleMakeAgentParams = {
 var makeBeliefDelayAgent = function (params, world){
 
   // Check on correctness of *params* and *world*
-  // assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
-  //                                   'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
-  //            'makeBeliefDelayAgent args');
+  assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
+                                    'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
+             'makeBeliefDelayAgent args');
   assert.ok( isPOMDPWorld(world), 'makeBeliefDelay world is not world' );
   
   assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI must be false");
