@@ -159,9 +159,10 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
 
   var isJointPrior = prior.isJoint;
 
-  var jointPrior = isJointPrior ? prior.jointPrior : null;
-  var priorUtilityTable = isJointPrior ? null : prior.priorUtilityTable;
-  var priorAgentPrior = isJointPrior ? null : prior.priorAgentPrior;
+  // try just not defining things instead of having them as 'undefined'
+  var jointPrior = isJointPrior ? prior.jointPrior : undefined;
+  var priorUtilityTable = isJointPrior ? undefined : prior.priorUtilityTable;
+  var priorAgentPrior = isJointPrior ? undefined : prior.priorAgentPrior;
 
   if (isJointPrior) {
     assert.ok(isPOMDPState(startState) && isERP(jointPrior),

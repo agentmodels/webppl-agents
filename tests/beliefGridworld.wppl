@@ -2,6 +2,8 @@
 // since that's deterministic and easier to write tests for.
 // TODO: fix that.
 
+// also TODO: finish test 4 maybe
+
 var myInSupport = function(x, erp){return erp.score([], x) > -100; };
 
 var getActualSupport = function(erp) {
@@ -498,14 +500,135 @@ var test4 = function() {
   // like test1, but with rich priors, such that we need to use
   // MCMC inference, and won't get an exact result
 
-  
+  // WORLD PARAMS
   // noReverse is an optimisation for gridworldMDP that makes inference run faster
   var gridworldMDP = makeDonutWorld2({big: true, noReverse: false});
   var world = makeGridworldPOMDP(gridworldMDP);
   var feature = gridworldMDP.feature;
 
+  // possible latent states
+  var dsClosedLatent = {'Donut N': true,
+			'Donut S': false,
+			'Veg': true,
+			'Noodle': true};
+  var everythingOpenLatent = {'Donut N': true,
+			      'Donut S': true,
+			      'Veg': true,
+			      'Noodle': true};
 
-  // stuff
+  var trueLatentState = everythingOpenLatent;
+  
+  var startState = buildState({loc: [3,1],
+		               terminateAfterAction: false,
+		               timeLeft: 6,
+		               timeAtRestaurant: 1},
+	                      trueLatentState);
+
+
+  // TRUE AGENT PARAMS
+  // Params for true agent: agent thinks Donut South closed w/ prob .8
+
+  // agent's utility function
+  var donutUtilityTable = {'Donut N': 4,
+			   'Donut S': 4,
+			   'Veg': 1,
+			   'Noodle': 1,
+			   'timeCost': -0.1};
+  
+  var uninformedLatentStateSampler = function(){
+    return flip(.8) ? dsClosedLatent : trueLatentState;
+  };
+
+  var makeLatentSampler = function(p) {
+    return function(){
+      return flip(p) ? dsClosedLatent : trueLatentState;
+    };
+  };
+  
+  var truePriorBelief = getPriorBeliefGridworld(startState.manifestState,
+						makeLatentSampler(0.8));
+
+
+  var trueAgentParams = update(baseParamsNoDiscount, 
+                               {priorBelief: truePriorBelief,
+				utility: tableToUtilityFunction(donutUtilityTable,
+								feature)});
+
+
+
+  // PRIOR FOR INFERENCE PARAMS
+
+  var beliefOrBeliefDelay = 'belief';
+  var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
+  var simulate = getSimulateFunction(beliefOrBeliefDelay);
+  var agentTypeAndFunctions = {type: beliefOrBeliefDelay,
+			       makeAgent: makeAgent,
+			       simulate: simulate};
+
+  var priorUtilityTable = function(){
+    var donutUtility = uniformDraw(range(5));
+    return {'Donut N': donutUtility,
+	    'Donut S': donutUtility,
+	    'Veg': uniformDraw(range(5)),
+	    'Noodle': uniformDraw(range(5)),
+	    'timeCost': -0.1};
+  };
+  
+  var priorAgentPrior = function(){
+    var agentProbDSClosed = uniformDraw([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+					 0.8, 0.9]);
+    var agentLatentSampler = makeLatentSampler(agentProbDSClosed);
+    return getPriorBeliefGridworld(startState.manifestState,
+				   agentLatentSampler);
+  };
+
+  var prior = {priorUtilityTable: Enumerate(priorUtilityTable),
+               priorAgentPrior: Enumerate(priorAgentPrior)};
+
+  // INFERENCE
+  
+  var numRejectionSamples = 10;
+  var erps = map( function(trajectoryOrOffPolicy){
+    return inferGridWorldPOMDP(world, startState, baseParamsNoDiscount,
+			       trueAgentParams, prior, agentTypeAndFunctions,
+                               trajectoryOrOffPolicy, numRejectionSamples);
+  }, ['trajectory', 'offPolicy']);
+
+  // TESTS FOR INFERENCE
+
+  // support of trajectory should be contained in support of offPolicy (since
+  // trajectory is rejection sampled and offPolicy is rejection sampled)
+  // need to filter 'support' for things which actually have positive
+  // probability
+  // NB: this is generally applicable
+
+
+  var erp0ActualSupport = getActualSupport(erps[0]);
+  
+  var erp1ActualSupport = getActualSupport(erps[1]);
+
+  map(function(index){
+    assert.ok( myInSupport(erp0ActualSupport[index], erps[1]),
+  	       'support of trajectory ERP not contained in support of offPolicy ERP');
+  }, range(erp0ActualSupport.length));
+
+
+  // we expect both ERPs to be delta ERPs
+  
+  checkEqualDeltaErps(erps);
+
+  assert.ok(sample(erps[1]).utilityTable['Donut S'] === 5,
+	    'posterior ERP failed to infer agent liking donuts');
+
+  var agentBelief = sample(erps[1]).priorBelief;
+  var agentBeliefSample = sample(agentBelief);
+  assert.ok(agentBelief.score([], agentBeliefSample) < -0.1,
+	    'posterior ERP failed to infer agents uncertainty');
+
+  // other possible tests: look at MAP of erps[0] and erps[1], see if certain
+  // things are more probable than other things in erps[1]
+
+  console.log('passed fourth test');
 };
 
 test1();
