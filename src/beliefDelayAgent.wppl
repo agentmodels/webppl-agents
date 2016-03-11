@@ -4,32 +4,33 @@
 //webppl tests/beliefDelayIRLBandits.wppl --require webppl-timeit --require webppl-dp --require .
 
 
-// Use fast belief update (which puts ERP only on latentState)
-var fastUpdate = true;
-
-
 // Example of well-formed *params* argument for makeBeliefDelayAgent.
-// See more examples in ../beliefDelayAgent/irlBanditTests.wppl
+// See more examples in tests/beliefDelayIRLBandits.wppl
 var exampleMakeAgentParams = {
   alpha: 100,
   noDelays: false,
   discount: 2,
   sophisticatedOrNaive: 'sophisticated',
   myopia: {on:false, bound:0},
-  priorBelief: Enumerate(function(){return flip() ? 'latentA' : 'latentB';}),
+  priorBelief: {}, // see the examples mentioned above
   boundVOI: {on:false, bound:0}
 };
 
 
+
+
+// Use fast beliefUpdate (which puts ERP only on latentState)
+var fastUpdate = true;
+
+
 var makeBeliefDelayAgent = function (params, world){
 
-  // Check on correctness of *params* and *world*
   assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
                                     'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
              'makeBeliefDelayAgent args');
   assert.ok( isPOMDPWorld(world), 'makeBeliefDelay world is not world' );
-  
   assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI must be false");
+  
   if (params.myopia.on || params.boundVOI.on){
     assert.ok( params.noDelays === false && params.sophisticatedOrNaive=== 'naive', 
     'myopia and boundVOI require Naive agent with delays');
