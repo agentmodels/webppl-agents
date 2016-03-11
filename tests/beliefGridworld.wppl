@@ -337,38 +337,29 @@ var test2 = function() {
   assert.ok(agentBelief.score([], agentBeliefSample) < -0.1,
 	    'posterior ERP failed to infer agents uncertainty');
 
-  // true params should be in support of both erps -- this tests fails
+  // true params should be in support of both erps -- this test fails
 
   // testing
-  // console.log('\nposterior erp:\n');
-  // printERP(erps2[1]);
 
-  // var toJSONfromSupport = map(function(thing){return JSON.stringify(thing.priorBelief);},
-  // 			      erps2[1].support());
+  console.log('\nagent params were looking at:\n');
+  console.log(JSON.stringify({utilityTable: noodleUtilityTable,
+  			      priorBelief: truePriorBelief2}));
+
+  console.log('\nerp21actualsupport[0]\n');
+  console.log(JSON.stringify(erp21ActualSupport[0]));
+
+  // problem: truePriorBelief2 lists possibilities in a different order than
+  // the corresponding element of erps2[1].support(), making it look totally
+  // different.
+
+  // solution: try to fix this somehow? generate all the orderings of
+  // possibilities as separate ERPs and check all of those? somehow write a
+  // function that uses an ERP equality check that doesn't depend on ordering?
+  // figure out how ordering is going wrong and rejig it so that it goes right?
+  // this last option doesn't lend itself to generalisation in other tests.
   
-  // console.log('\nsupport of erps2[1]:\n', toJSONfromSupport);
-
-  // var toJSONfromActualSupport = map(function(thing){return JSON.stringify(thing.priorBelief);},
-  // 				    erp21ActualSupport);
-
-  // console.log('\n"actual support" of erps2[1]:\n', toJSONfromActualSupport);
-
-  // console.log('\nis the thing in actual support inside real support?\n');
-  // console.log(_.find(erps2[1].support() , erp21ActualSupport[0]) );
-
-  // console.log('\nis the thing im passing into score equal to the thing in the support?\n');
-  // console.log(_.isEqual(erp21ActualSupport[0], {utilityTable: noodleUtilityTable,
-  // 						priorBelief: truePriorBelief2}));
-
-  // console.log('\nagent params were looking at:\n');
-  // console.log(JSON.stringify({utilityTable: noodleUtilityTable,
-  // 			      priorBelief: truePriorBelief2}));
-
-  // console.log('\nerp21actualsupport[0]\n');
-  // console.log(JSON.stringify(erp21ActualSupport[0]));
-  
-  // console.log(erps2[1].score([],{utilityTable: noodleUtilityTable,
-  // 				 priorBelief: truePriorBelief2} ));
+  console.log(erps2[1].score([],{utilityTable: noodleUtilityTable,
+  				 priorBelief: truePriorBelief2} ));
   
   assert.ok(myInSupport({utilityTable: noodleUtilityTable,
 			 priorBelief: truePriorBelief2}, erps2[1]),
