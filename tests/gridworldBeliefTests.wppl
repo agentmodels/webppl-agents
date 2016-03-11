@@ -1,3 +1,6 @@
+// test 2 is not passing
+// TODO: make it pass
+
 // note: currently, most tests are focussing on the inference via enumeration,
 // since that's deterministic and easier to write tests for.
 // TODO: fix that.
@@ -249,6 +252,13 @@ var test2 = function() {
   // noodles are closed, but if agent doesn't like noodles, then unsure about
   // agent's beliefs
 
+  // console.log('posterior on agent params:');
+  // printERP(erps1[1]);
+  
+  // console.log('true prior belief 1:');
+  // printERP(truePriorBelief1);
+
+
   assert.ok(myInSupport({utilityTable: noodleUtilityTable,
 			 priorBelief: truePriorBelief1}, erps1[1]),
 	    'Enumeration incorrectly rules out true explanation');
@@ -312,12 +322,64 @@ var test2 = function() {
   	       'support of trajectory ERP not contained in support of offPolicy ERP');
   }, range(erp20ActualSupport.length));
 
+  // ERPs should be delta ERPs (almost)
+
+  assert.ok(_.isEqual(sample(erps2[0]), sample(erps2[1])), 'posterior erps not equal');
+  assert.ok(_.isEqual(sample(erps2[0]), sample(erps2[1])), 'posterior erps not equal');
+  assert.ok(_.isEqual(sample(erps2[0]), sample(erps2[1])), 'posterior erps not equal');
 
   // inference should think that agent likes noodles and thought noodles were closed
 
+  assert.ok(sample(erps2[1]).utilityTable['Noodle'] === 5,
+	    'posterior ERP failed to infer agent liking noodles');
+  var agentBelief = sample(erps2[1]).priorBelief;
+  var agentBeliefSample = sample(agentBelief);
+  assert.ok(agentBelief.score([], agentBeliefSample) < -0.1,
+	    'posterior ERP failed to infer agents uncertainty');
+
+  // true params should be in support of both erps -- this tests fails
+
+  // testing
+  // console.log('\nposterior erp:\n');
+  // printERP(erps2[1]);
+
+  // var toJSONfromSupport = map(function(thing){return JSON.stringify(thing.priorBelief);},
+  // 			      erps2[1].support());
+  
+  // console.log('\nsupport of erps2[1]:\n', toJSONfromSupport);
+
+  // var toJSONfromActualSupport = map(function(thing){return JSON.stringify(thing.priorBelief);},
+  // 				    erp21ActualSupport);
+
+  // console.log('\n"actual support" of erps2[1]:\n', toJSONfromActualSupport);
+
+  // console.log('\nis the thing in actual support inside real support?\n');
+  // console.log(_.find(erps2[1].support() , erp21ActualSupport[0]) );
+
+  // console.log('\nis the thing im passing into score equal to the thing in the support?\n');
+  // console.log(_.isEqual(erp21ActualSupport[0], {utilityTable: noodleUtilityTable,
+  // 						priorBelief: truePriorBelief2}));
+
+  // console.log('\nagent params were looking at:\n');
+  // console.log(JSON.stringify({utilityTable: noodleUtilityTable,
+  // 			      priorBelief: truePriorBelief2}));
+
+  // console.log('\nerp21actualsupport[0]\n');
+  // console.log(JSON.stringify(erp21ActualSupport[0]));
+  
+  // console.log(erps2[1].score([],{utilityTable: noodleUtilityTable,
+  // 				 priorBelief: truePriorBelief2} ));
+  
+  assert.ok(myInSupport({utilityTable: noodleUtilityTable,
+			 priorBelief: truePriorBelief2}, erps2[1]),
+	    'Enumeration incorrectly rules out true explanation');
+
+  assert.ok(myInSupport({utilityTable: noodleUtilityTable,
+			 priorBelief: truePriorBelief1}, erps2[0]),
+	    'Rejection sampling incorrectly rules out true explanation');
 
   console.log('passed second test part 2');
 };
 
-// test1();
+test1();
 test2();
