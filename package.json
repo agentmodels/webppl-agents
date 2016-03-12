@@ -4,7 +4,7 @@
   "description": "Webppl library for generating Gridworld MDPs. JS library for displaying Gridworld.",
   "main": "src/gridworld.js",
   "dependencies": {
-    "lodash": "^4.2.1",
+    "underscore": "^1.8.3",
     "paper": "^0.9.25"
   },
   "devDependencies": {},
