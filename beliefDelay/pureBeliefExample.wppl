@@ -80,6 +80,9 @@ var trueAgentParams = update(baseParamsNoDiscount,
 							      feature)});
 // PRIOR FOR INFERENCE PARAMS
 
+
+
+
 var beliefOrBeliefDelay = 'belief';
 var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
 var simulate = getSimulateFunction(beliefOrBeliefDelay);

@@ -1,0 +1,58 @@
+
+var world = ... 
+var startState = ...
+
+var path = [[ ]];
+
+var conditionOnTrajectory = function (agent, trajectory, world, startState) {
+  var agentAct = agent.act;
+  var agentUpdateBelief = agent.updateBelief;
+  var priorBelief = agent.params.priorBelief;
+  var transition = world.transition;
+  var worldObserve = world.observe;
+  var observe = getFullObserve(worldObserve);
+
+  var shouldTerminate = function (manifestState) { return manifestState.terminateAfterAction; };
+  var _conditionOnTrajectory = function(state, priorBelief, action, i) {
+    var observation = observe(state);
+
+    var delay = 0;
+    
+    var belief = agentUpdateBelief(priorBelief, observation, action, delay);
+    
+    var action = sample(agentAct(belief, delay));
+    
+    if (shouldTerminate(state.manifestState) || i >= trajectory.length) {
+      return;
+    } else {   
+      var nextState = transition(state, action);
+      condition(_.isEqual(nextState.manifestState.loc, trajectory[i]))
+
+      return _conditionOnTrajectory(nextState, belief, action, i+1));
+    }
+  };
+
+  var startAction = 'noAction';
+  return _conditionOnTrajectory(startState, priorBelief, startAction, 0);
+};
+
+
+
+
+
+
+var posterior = Enumerate(function () { 
+
+  var agentPrior =...
+  var agentUtilityTable = ..
+  var agent = makeBeliefDelayAgent({  prior : agentPrior, utility : agentUtilityTable})
+
+  factor(conditionOnTrajectory(trajectory, agent, world));
+
+  return {
+    prior : agentPrior, 
+    utility : agentUtilityTable
+  };
+
+});
+
