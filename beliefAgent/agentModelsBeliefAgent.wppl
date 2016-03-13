@@ -1,11 +1,10 @@
-// 
-
-// choose arm 0 or arm 1
+ 
+// Pull arm 0 or arm 1
 var actions = [0,1];
 
-// decrements the timeLeft, transitions
-// to prize associated with the arm given by action
-var transition = function(state,action){
+// decrements the timeLeft and transitions
+// to prize associated with arm
+var transition = function(state, action){
   var newTimeLeft = state.timeLeft - 1;
   var terminateAfterAction = (newTimeLeft == 1)
   return update(state, 
@@ -14,13 +13,11 @@ var transition = function(state,action){
                  terminateAfterAction:terminateAfterAction});
 };
 
-// at a state, the agent observes the prize
-var observe = function(state){
-  return state.prize;
-};
+// at state, agent observes the prize
+var observe = function(state){return state.prize;};
 
 var utility = function(state,action){
-  var prizeToUtility = {chocolate: 1, nothing: 0, champagne: 5, start:0};
+  var prizeToUtility = {chocolate: 1, nothing: 0, champagne: 1.5, start:0};
   return prizeToUtility[state.prize];
 };
 
@@ -82,16 +79,18 @@ var simulate = function(startState, priorBelief) {
   return sampleSequence(startState, priorBelief, 'startAction');
 };
 
+
 var startState = { prize: 'start',
-                   timeLeft:3, 
+                   timeLeft:1, 
                    terminateAfterAction:false,
                    armToPrize: {0:'chocolate', 1:'champagne'}
                  };
 
+var alternativeStartState = update(startState, {armToPrize:{0:'chocolate', 1:'nothing'}});
+
 var priorBelief = Enumerate(function(){
-  return categorical( [.05, .95],
-                      [startState, 
-                       update(startState, {armToPrize:{0:'chocolate', 1:'nothing'}})] );
+  return categorical( [.5, .5], [startState, alternativeStartState]);
 });
 
 console.log('sim', simulate(startState, priorBelief))
+null
