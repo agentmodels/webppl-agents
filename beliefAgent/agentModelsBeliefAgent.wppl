@@ -1,0 +1,97 @@
+// 
+
+// choose arm 0 or arm 1
+var actions = [0,1];
+
+// decrements the timeLeft, transitions
+// to prize associated with the arm given by action
+var transition = function(state,action){
+  var newTimeLeft = state.timeLeft - 1;
+  var terminateAfterAction = (newTimeLeft == 1)
+  return update(state, 
+                {prize: state.armToPrize[action], 
+                 timeLeft:newTimeLeft, 
+                 terminateAfterAction:terminateAfterAction});
+};
+
+// at a state, the agent observes the prize
+var observe = function(state){
+  return state.prize;
+};
+
+var utility = function(state,action){
+  var prizeToUtility = {chocolate: 1, nothing: 0, champagne: 5, start:0};
+  return prizeToUtility[state.prize];
+};
+
+
+var updateBelief = function(belief, observation, action){
+  return Enumerate(function(){
+    var state = sample(belief);
+    var predictedNextState = transition(state, action);
+    var predictedObservation = observe(predictedNextState);
+    condition(_.isEqual(predictedObservation, observation));
+    return predictedNextState;
+  });
+};
+
+var act = dp.cache(
+  function(belief) {
+    return Enumerate(function(){
+      var action = uniformDraw(actions);
+      var eu = expectedUtility(belief, action);
+      factor(100 * eu);
+      return action;
+    });
+  });
+
+var expectedUtility = dp.cache(
+  function(belief, action) {
+    return expectation(
+      Enumerate(function(){
+	var state = sample(belief);
+	var u = utility(state, action);
+	if (state.terminateAfterAction) {
+	  return u;
+	} else {
+	  var nextState = transition(state, action);
+	  var nextObservation = observe(nextState);
+	  var nextBelief = updateBelief(belief, nextObservation, action);            
+	  var nextAction = sample(act(nextBelief));   
+	  return u + expectedUtility(nextBelief, nextAction);
+	}
+      }));
+  });
+
+
+var simulate = function(startState, priorBelief) {
+    
+  var sampleSequence = function(state, priorBelief, action) {
+    var observation = observe(state);
+    var belief = action=='startAction' ? priorBelief : updateBelief(priorBelief, observation, action);
+    var action = sample(act(belief));
+    var output = [ [state,action] ];
+      
+      if (state.terminateAfterAction){
+        return output;
+      } else {   
+        var nextState = transition(state, action);
+        return output.concat(sampleSequence(nextState, belief, action));
+      }
+    };
+  return sampleSequence(startState, priorBelief, 'startAction');
+};
+
+var startState = { prize: 'start',
+                   timeLeft:3, 
+                   terminateAfterAction:false,
+                   armToPrize: {0:'chocolate', 1:'champagne'}
+                 };
+
+var priorBelief = Enumerate(function(){
+  return categorical( [.05, .95],
+                      [startState, 
+                       update(startState, {armToPrize:{0:'chocolate', 1:'nothing'}})] );
+});
+
+console.log('sim', simulate(startState, priorBelief))
