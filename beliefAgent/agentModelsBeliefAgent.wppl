@@ -1,26 +1,48 @@
- 
-// Pull arm 0 or arm 1
+
+// ---------------
+// Defining the Bandits decision problem
+
+// Pull arm0 or arm1
 var actions = [0,1];
 
-// decrements the timeLeft and transitions
-// to prize associated with arm
+// use latent "armToPrize" mapping in
+// state to determine which prize agent gets
 var transition = function(state, action){
-  var newTimeLeft = state.timeLeft - 1;
-  var terminateAfterAction = (newTimeLeft == 1)
   return update(state, 
                 {prize: state.armToPrize[action], 
-                 timeLeft:newTimeLeft, 
-                 terminateAfterAction:terminateAfterAction});
+                 timeLeft: state.timeLeft - 1,
+                 terminateAfterAction: state.timeLeft == 2})
 };
 
-// at state, agent observes the prize
+// after pulling an arm, agent observes associated prize
 var observe = function(state){return state.prize;};
 
+var startState = { prize: 'start',
+                   timeLeft:3, 
+                   terminateAfterAction:false,
+                   armToPrize: {0:'chocolate', 1:'champagne'}
+                 };
+                
+// ---------------
+// Defining the POMDP agent
+
+// agent's preferences over prizes
 var utility = function(state,action){
   var prizeToUtility = {chocolate: 1, nothing: 0, champagne: 1.5, start:0};
   return prizeToUtility[state.prize];
 };
 
+// Agent's prior prior includes possibility that arm1 has no prize
+// (instead of champagne)
+var alternativeStartState = update(startState, {armToPrize:{0:'chocolate', 1:'nothing'}});
+
+var priorBelief = Enumerate(function(){
+  return categorical( [.5, .5], [startState, alternativeStartState]);
+});
+
+
+// Agent's belief update: directly translates the belief update
+// equation above
 
 var updateBelief = function(belief, observation, action){
   return Enumerate(function(){
@@ -68,6 +90,7 @@ var simulate = function(startState, priorBelief) {
     var belief = action=='startAction' ? priorBelief : updateBelief(priorBelief, observation, action);
     var action = sample(act(belief));
     var output = [ [state,action] ];
+    
       
       if (state.terminateAfterAction){
         return output;
@@ -80,17 +103,5 @@ var simulate = function(startState, priorBelief) {
 };
 
 
-var startState = { prize: 'start',
-                   timeLeft:1, 
-                   terminateAfterAction:false,
-                   armToPrize: {0:'chocolate', 1:'champagne'}
-                 };
+simulate(startState, priorBelief);
 
-var alternativeStartState = update(startState, {armToPrize:{0:'chocolate', 1:'nothing'}});
-
-var priorBelief = Enumerate(function(){
-  return categorical( [.5, .5], [startState, alternativeStartState]);
-});
-
-console.log('sim', simulate(startState, priorBelief))
-null
