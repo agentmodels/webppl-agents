@@ -37,17 +37,17 @@ var advanceRestaurant = function(state, maxTimeAtRestaurant) {
 };
 
 var moveState = function(gridMap, state, action) { 
-    var loc = state.loc; 
-    var gridTransition = {l: [loc[0]-1, loc[1]],
-                          r: [loc[0]+1, loc[1]],
-                          u: [loc[0], loc[1]+1],
-                          d: [loc[0], loc[1]-1]};
+  var loc = state.loc;
+  var gridTransition = {l: [loc[0]-1, loc[1]],
+                        r: [loc[0]+1, loc[1]],
+                        u: [loc[0], loc[1]+1],
+                        d: [loc[0], loc[1]-1]};
 
-    var possibleNextLoc = gridTransition[action];
-    assert.ok(possibleNextLoc != undefined, 'action was not found');
+  var possibleNextLoc = gridTransition[action];
+  assert.ok(possibleNextLoc != undefined, 'action was not found');
 
-    var nextLoc = isAllowedState_(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
-    return update(state, { loc : nextLoc });
+  var nextLoc = isAllowedState_(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
+  return update(state, { loc : nextLoc });
 }
 
 var makeGridTransition_ = function(gridMap, options) {

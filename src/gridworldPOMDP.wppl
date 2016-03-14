@@ -124,7 +124,7 @@ var getBigDonutWorld = function(){
 var tableToUtilityFunction = function(table, feature) {  
   return function(state, action) {
     var stateFeatureName = feature(state.manifestState).name;
-    if (stateFeatureName) {  
+    if (stateFeatureName) {
       return table[stateFeatureName];
     } else {
       return table.timeCost;
