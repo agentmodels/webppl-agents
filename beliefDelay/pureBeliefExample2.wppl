@@ -114,6 +114,7 @@ var posterior = Enumerate(function () {
 
   var agentPrior = agentPriorSampler();
   var agentUtilityTable = agentUtilityTableSampler();
+
   var agent = makeBeliefDelayAgent({
     priorBelief : agentPrior,
     utility : tableToUtilityFunction(agentUtilityTable, feature),

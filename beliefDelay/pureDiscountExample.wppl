@@ -59,6 +59,30 @@ var agentSophisticationSampler = function() {
   return uniformDraw(['sophisticated', 'naive']);
 };
 
+// see what the agent does with the parameters we want to infer to check if we're right
+
+var agent = makeBeliefDelayAgent({
+  priorBelief : agentPrior,
+  utility : tableToUtilityFunction(vegUtilityTable, feature),
+  alpha : 100,
+  noDelays: true,
+  discount: 2,
+  sophisticatedOrNaive: 'naive',
+  myopia: {on: false, bound: 0},
+  boundVOI: {on: false, bound: 0}
+}, world);
+
+
+var trajectory = simulateBeliefDelayAgent(startState, world, agent, 'states');
+
+var locs = map(function(state) {return state.manifestState.loc;}, trajectory);
+
+console.log(locs);
+
+ash();
+
+
+
 // PATH WE CONDITION ON
 var path = [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]];
 
