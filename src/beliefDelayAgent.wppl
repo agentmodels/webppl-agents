@@ -71,7 +71,7 @@ var makeBeliefDelayAgent = function (params, world){
       return delay >= params.myopia.bound;
     }
     return false;
-  }
+  };
 
   
   var _updateBelief = fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
@@ -89,7 +89,7 @@ var makeBeliefDelayAgent = function (params, world){
       return fastUpdate ? toERPOverLatent(nextBelief) : nextBelief;
       
     } else {
-      return _updateBelief(belief, observation, action)
+      return _updateBelief(belief, observation, action);
     }
   };
 

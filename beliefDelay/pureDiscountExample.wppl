@@ -1,7 +1,10 @@
-// here, we see the agent go the long way around to veg. we deduce that they
-// must prefer noodle to veg, and think that noodle is open, despite noodle
-// actually being closed (as otherwise they would just go the short way
-// around)
+// here, we observe the agent start off near donut south, but go to donut north.
+// we know that the agent knows the true state, so it must not be that the agent
+// just likes donuts. Instead, the solution is that the agent likes veg, but is
+// a naive hyperbolic discounter, aimed to go to veg, but got tempted by donuts
+// instead. we also can conclude that the agent is probably not an extreme
+// discounter, since they would go to donut south if they were, but it's within
+// the realm of possibility because of softmax noise.
 
 // WORLD PARAMS
 
@@ -10,17 +13,10 @@ var feature = world.feature;
 
 // possible latent states
 
-var noodleClosedLatent = {'Donut N': true,
-			  'Donut S': true,
-			  'Veg': true,
-			  'Noodle': false};
-
-var everythingOpenLatent = {'Donut N': true,
-			    'Donut S': true,
-			    'Veg': true,
-			    'Noodle': true};
-
-var trueLatentState = noodleClosedLatent;
+var trueLatentState = {'Donut N': true,
+		       'Donut S': true,
+		       'Veg': true,
+		       'Noodle': true};
 
 // start state
 var startState = {manifestState: {loc: [3,1],
@@ -31,45 +27,40 @@ var startState = {manifestState: {loc: [3,1],
 // POTENTIAL AGENT PARAMS
 
 // possible utility functions
-var noodleUtilityTable = {'Donut N': 1,
-			  'Donut S': 1,
-			  Veg: 1,
-			  Noodle: 3,
-			  timeCost: -0.1};
+var donutUtilityTable = {'Donut N': 2,
+			 'Donut S': 2,
+			 Veg: 1,
+			 Noodle: 0,
+			 timeCost: -0.1};
 
 var vegUtilityTable = {'Donut N': 1,
 		       'Donut S': 1,
-		       Veg: 3,
-		       Noodle: 1,
+		       Veg: 2,
+		       Noodle: 0,
 		       timeCost: -0.1};
 
-// possible priors that the agent could have
-var uninformedLatentStateSampler = function(){
-  return flip(.8) ? everythingOpenLatent : trueLatentState;
-};
-
-var uninformedPriorBelief = getPriorBeliefGridworld( startState.manifestState,
-					       uninformedLatentStateSampler);
-
-var informedPriorBelief = getPriorBeliefGridworld( startState.manifestState,
-						   function(){
-						     return trueLatentState;
-						   });
+// the agent's prior
+var agentPrior = getPriorBeliefGridworld( startState.manifestState,
+					  function(){
+					    return trueLatentState;
+					  });
 
 // PRIORS OVER AGENT PARAMS
 
-var agentPriorSampler = function() {
-  return uniformDraw([informedPriorBelief, uninformedPriorBelief]);
+var agentUtilityTableSampler = function() {
+  return uniformDraw([donutUtilityTable, vegUtilityTable]);
 };
 
-var agentUtilityTableSampler = function() {
-  return uniformDraw([noodleUtilityTable, vegUtilityTable]);
+var agentDiscountSampler = function() {
+  return uniformDraw([0, 2, 100]);
+};
+
+var agentSophisticationSampler = function() {
+  return uniformDraw(['sophisticated', 'naive']);
 };
 
 // PATH WE CONDITION ON
-
-var path = [[3,1], [3,2], [3,3], [4,3], [5,3], [5,4], [5,5], [5,6],
-	    [4,6], [4,7]];
+var path = [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]];
 
 // INFERENCE
 
@@ -112,15 +103,16 @@ var conditionOnPath = function (agent, path, world, startState) {
 
 var posterior = Enumerate(function () { 
 
-  var agentPrior = agentPriorSampler();
   var agentUtilityTable = agentUtilityTableSampler();
+  var discount = agentDiscountSampler();
+  var sophistication = agentSophisticationSampler();
   var agent = makeBeliefDelayAgent({
     priorBelief : agentPrior,
     utility : tableToUtilityFunction(agentUtilityTable, feature),
     alpha : 100,
     noDelays: true,
-    discount: 0,
-    sophisticatedOrNaive: 'sophisticated',
+    discount: discount,
+    sophisticatedOrNaive: sophistication,
     myopia: {on: false, bound: 0},
     boundVOI: {on: false, bound: 0}
   }, world);
@@ -128,8 +120,9 @@ var posterior = Enumerate(function () {
   conditionOnPath(agent, path, world, startState);
 
   return {
-    prior : agentPrior, 
-    utilityTable : agentUtilityTable
+    utilityTable : agentUtilityTable,
+    discount: discount,
+    sophistication: sophistication
   };
 
 });
