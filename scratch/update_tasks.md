@@ -21,5 +21,7 @@
 
 - We'll do some simplified versions of beliefAgent for the relevant chapters. Also some simplified inference functions. 
 
-
+- Implement stochastic bandits (built upon IRL bandits). The idea is that each arm provides a distribution over prizes that have fixed utility of zero or one (so this is the standard bandit problem with arms having a coin weight that you are trying to learn). Provide a simple test of the scaling. A simplified version is https://github.com/agentmodels/webppl-gridworld/blob/master/beliefAgent/agentModelBeliefStochastic.wppl
+For more on the bandit problem (including discussion of the dynamic programming approach and boundVOI-- which they call myopic): here's a paper from NIPS:
+https://scholar.google.com/scholar?cluster=3431274804861947016&hl=en&as_sdt=0,5
 
