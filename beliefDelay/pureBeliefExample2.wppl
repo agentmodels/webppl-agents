@@ -1,10 +1,79 @@
+// here, we see the agent go the long way around to veg. we deduce that they
+// must prefer noodle to veg, and think that noodle is open, despite noodle
+// actually being closed (as otherwise they would just go the short way
+// around)
 
-var world = ... 
-var startState = ...
+// WORLD PARAMS
+
+var world = getBigDonutWorld();
+var feature = world.feature;
+
+// possible latent states
+
+var noodleClosedLatent = {'Donut N': true,
+			  'Donut S': true,
+			  'Veg': true,
+			  'Noodle': false};
+
+var everythingOpenLatent = {'Donut N': true,
+			    'Donut S': true,
+			    'Veg': true,
+			    'Noodle': true};
+
+var trueLatentState = noodleClosedLatent;
+
+// start state
+var startState = {manifestState: {loc: [3,1],
+				  terminateAfterAction: false,
+				  timeLeft: 10,
+				  timeAtRestaurant: 1},
+		  latentState: trueLatentState};
+
+// POTENTIAL AGENT PARAMS
+
+// possible utility functions
+var noodleUtilityTable = {'Donut N': 1,
+			  'Donut S': 1,
+			  Veg: 1,
+			  Noodle: 3,
+			  timeCost: -0.1};
+
+var vegUtilityTable = {'Donut N': 1,
+		       'Donut S': 1,
+		       Veg: 3,
+		       Noodle: 1,
+		       timeCost: -0.1};
+
+// possible priors that the agent could have
+var uninformedLatentStateSampler = function(){
+  return flip(.8) ? everythingOpenLatent : trueLatentState;
+};
+
+var uninformedPriorBelief = getPriorBeliefGridworld( startState.manifestState,
+					       uninformedLatentStateSampler);
+
+var informedPriorBelief = getPriorBeliefGridworld( startState.manifestState,
+						   function(){
+						     return trueLatentState;
+						   });
+
+// PRIORS OVER AGENT PARAMS
+
+var agentPriorSampler = function() {
+  return uniformDraw([informedPriorBelief, uninformedPriorBelief]);
+};
+
+var agentUtilityTableSampler = function() {
+  return uniformDraw([noodleUtilityTable, vegUtilityTable]);
+};
+
+// PATH WE CONDITION ON
 
 var path = [[ ]];
 
-var conditionOnTrajectory = function (agent, trajectory, world, startState) {
+// INFERENCE
+
+var conditionOnPath = function (agent, path, world, startState) {
   var agentAct = agent.act;
   var agentUpdateBelief = agent.updateBelief;
   var priorBelief = agent.params.priorBelief;
@@ -12,28 +81,31 @@ var conditionOnTrajectory = function (agent, trajectory, world, startState) {
   var worldObserve = world.observe;
   var observe = getFullObserve(worldObserve);
 
-  var shouldTerminate = function (manifestState) { return manifestState.terminateAfterAction; };
-  var _conditionOnTrajectory = function(state, priorBelief, action, i) {
+  var shouldTerminate = function (manifestState) {
+    return manifestState.terminateAfterAction;
+  };
+  
+  var _conditionOnPath = function(state, priorBelief, action, i) {
     var observation = observe(state);
-
+    // we set *delay = 0* since we are not using hyperbolic discounting or myopia
     var delay = 0;
     
     var belief = agentUpdateBelief(priorBelief, observation, action, delay);
     
-    var action = sample(agentAct(belief, delay));
+    var newAction = sample(agentAct(belief, delay));
     
-    if (shouldTerminate(state.manifestState) || i >= trajectory.length) {
-      return;
+    if (shouldTerminate(state.manifestState) || i >= path.length) {
+      return 0;
     } else {   
       var nextState = transition(state, action);
-      condition(_.isEqual(nextState.manifestState.loc, trajectory[i]))
+      condition(_.isEqual(nextState.manifestState.loc, path[i]));
 
-      return _conditionOnTrajectory(nextState, belief, action, i+1));
+      return _conditionOnPath(nextState, belief, newAction, i+1);
     }
   };
 
   var startAction = 'noAction';
-  return _conditionOnTrajectory(startState, priorBelief, startAction, 0);
+  return _conditionOnPath(startState, priorBelief, startAction, 0);
 };
 
 
@@ -43,11 +115,14 @@ var conditionOnTrajectory = function (agent, trajectory, world, startState) {
 
 var posterior = Enumerate(function () { 
 
-  var agentPrior =...
-  var agentUtilityTable = ..
-  var agent = makeBeliefDelayAgent({  prior : agentPrior, utility : agentUtilityTable})
+  var agentPrior = null;
+  var agentUtilityTable = null;
+  var agent = makeBeliefDelayAgent({
+    prior : agentPrior,
+    utility : agentUtilityTable
+  });
 
-  factor(conditionOnTrajectory(trajectory, agent, world));
+  conditionOnPath(agent, path, world, startState);
 
   return {
     prior : agentPrior, 
