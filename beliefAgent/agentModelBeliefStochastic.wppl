@@ -1,5 +1,6 @@
 
-var totalTime = 10;
+var totalTime = 9;
+var useSpecialUpdate = true;
 
 // ---------------
 // Defining the Bandits decision problem
@@ -16,13 +17,6 @@ var transition = function(state, action){
                  terminateAfterAction: state.timeLeft == 2})
 };
 
-// var transition = function(state, action){
-//   var prize = (state.timeLeft > 4 && action==1) ? 'zero' : sample(state.armToPrize[action]); 
-//   return update(state, 
-//                 {prize: prize,
-//                  timeLeft: state.timeLeft - 1,
-//                  terminateAfterAction: state.timeLeft == 2})
-// };
 
 // after pulling an arm, agent observes associated prize
 var observe = function(state){return state.prize;};
@@ -39,10 +33,11 @@ var worseERP = getBetaERP(1-betterProb);
 var halfERP = deltaERP('half');
 
 
+var actualERP = getBetaERP(.001);
 var startState = { prize: 'start',
                    timeLeft:totalTime, 
                    terminateAfterAction:false,
-                   armToPrize: {0:halfERP, 1:betterERP}
+                   armToPrize: {0:halfERP, 1:actualERP}
                  };
                 
 // ---------------
@@ -56,10 +51,11 @@ var utility = function(state,action){
 
 // Agent's prior prior includes possibility that arm1 has no prize
 // (instead of champagne)
-var alternativeStartState = update(startState, {armToPrize:{0:halfERP, 1:worseERP}});
+var agentState1 = update(startState, {armToPrize:{0:halfERP, 1:betterERP}});
+var agentState2 = update(startState, {armToPrize:{0:halfERP, 1:worseERP}});
 
 var priorBelief = Enumerate(function(){
-  return categorical( [.5, .5], [startState, alternativeStartState]);
+  return categorical( [.5, .5], [agentState1, agentState2]);
 });
 
 
@@ -75,6 +71,18 @@ var updateBelief = dp.cache(function(belief, observation, action){
     return predictedNextState;
   });
 });
+
+var specialUpdateBelief = dp.cache(function(belief, observation, action){
+  return Enumerate(function(){
+    var state = sample(belief);
+    var armToPrizeERPs = state.armToPrize;
+    var ERPForArm = armToPrizeERPs[action];
+    factor( ERPForArm.score( [], observation ) ); // because the observation is same as the prize in this case
+    return transition(state,action) // doesn't matter which prize we're at: only what we infer about armToPrize
+  });
+});
+
+var updateBelief = useSpecialUpdate ? specialUpdateBelief : updateBelief;
 
 var act = dp.cache(
   function(belief) {
@@ -125,10 +133,19 @@ var simulate = function(startState, priorBelief) {
 };
 
 
-map( function(state_action){
-  var previousPrize = state_action[0].prize;
-  var nextAction = state_action[1];
-  console.log(' -> Prize ' + previousPrize + '\n');
-  console.log('Arm: ' + nextAction);
-},  simulate(startState, priorBelief));
+var displayTrajectory = function( trajectory ){
+  var out = map( function(state_action){
+    var previousPrize = state_action[0].prize;
+    var nextAction = state_action[1];
+    return [previousPrize, nextAction];
+  }, trajectory);  
 
+  var out = _.flatten(out);
+  return out.slice(1,out.length-1);
+};
+
+var trajectory = simulate(startState, priorBelief);
+
+console.log( JSON.stringify(displayTrajectory(trajectory)));
+// agent should pick 1, get multiple zeros and then switch to
+// half for rest of it. currently this is failing. 
