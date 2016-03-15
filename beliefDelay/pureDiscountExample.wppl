@@ -8,8 +8,8 @@
 
 // WORLD PARAMS
 
-var world = getBigDonutWorld();
-var feature = world.feature;
+var gridworldMDP = makeDonutWorld2({big: true, maxTimeAtRestaurant : 2});
+var world = makeGridworldPOMDP(gridworldMDP);
 
 // possible latent states
 
@@ -21,23 +21,25 @@ var trueLatentState = {'Donut N': true,
 // start state
 var startState = {manifestState: {loc: [3,1],
 				  terminateAfterAction: false,
-				  timeLeft: 10},
+				  timeLeft: 14},
 		  latentState: trueLatentState};
 
 // POTENTIAL AGENT PARAMS
 
 // possible utility functions
-var donutUtilityTable = {'Donut N': 2,
-			 'Donut S': 2,
-			 Veg: 1,
-			 Noodle: 0,
-			 timeCost: -0.1};
+var donutUtilityTable = {
+    'Donut N' : [20, -10],
+    'Donut S' : [20, -10],
+    'Veg'   : [-10, 20],
+    'Noodle': [0, 0]
+}
 
-var vegUtilityTable = {'Donut N': 1,
-		       'Donut S': 1,
-		       Veg: 2,
-		       Noodle: 0,
-		       timeCost: -0.1};
+var vegUtilityTable = {
+    'Donut N' : [10, -10],
+    'Donut S' : [10, -10],
+    'Veg'   : [-10, 20],
+    'Noodle': [0, 0]
+};
 
 // the agent's prior
 var agentPrior = getPriorBeliefGridworld( startState.manifestState,
@@ -52,7 +54,7 @@ var agentUtilityTableSampler = function() {
 };
 
 var agentDiscountSampler = function() {
-  return uniformDraw([0, 2, 100]);
+  return uniformDraw([1, 0, 100]);
 };
 
 var agentSophisticationSampler = function() {
@@ -60,13 +62,18 @@ var agentSophisticationSampler = function() {
 };
 
 // see what the agent does with the parameters we want to infer to check if we're right
+var pomdpUtilityFromManifestUtility = function(utility) {
+  return function (state) { 
+    return utility(state.manifestState);
+  };
+};
 
 var agent = makeBeliefDelayAgent({
   priorBelief : agentPrior,
-  utility : tableToUtilityFunction(vegUtilityTable, feature),
+  utility : pomdpUtilityFromManifestUtility(makeDonutUtility(world, vegUtilityTable)),
   alpha : 100,
-  noDelays: true,
-  discount: 2,
+  noDelays: false,
+  discount: 1,
   sophisticatedOrNaive: 'naive',
   myopia: {on: false, bound: 0},
   boundVOI: {on: false, bound: 0}
@@ -78,9 +85,6 @@ var trajectory = simulateBeliefDelayAgent(startState, world, agent, 'states');
 var locs = map(function(state) {return state.manifestState.loc;}, trajectory);
 
 console.log(locs);
-
-ash();
-
 
 
 // PATH WE CONDITION ON
@@ -132,16 +136,18 @@ var posterior = Enumerate(function () {
   var sophistication = agentSophisticationSampler();
   var agent = makeBeliefDelayAgent({
     priorBelief : agentPrior,
-    utility : tableToUtilityFunction(agentUtilityTable, feature),
+    utility : pomdpUtilityFromManifestUtility(makeDonutUtility(world, agentUtilityTable)),
     alpha : 100,
-    noDelays: true,
+    noDelays: discount===0,
     discount: discount,
     sophisticatedOrNaive: sophistication,
     myopia: {on: false, bound: 0},
     boundVOI: {on: false, bound: 0}
   }, world);
 
+  console.log("first", discount);
   conditionOnPath(agent, path, world, startState);
+  console.log("after", discount);
 
   return {
     utilityTable : agentUtilityTable,

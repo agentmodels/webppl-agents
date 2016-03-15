@@ -107,7 +107,8 @@ var makeGridworldPOMDP = function(gridworld) {
   
   return {manifestStateToActions: manifestStateToActions,
 	  transition: transition,
-	  observe: observe};
+	  observe: observe,
+          feature : feature};
 };
 
 
