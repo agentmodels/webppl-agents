@@ -110,31 +110,41 @@ var conditionOnPath = function (agent, path, world, startState) {
   return _conditionOnPath(startState, priorBelief, startAction, 1);
 };
 
-var posterior = Enumerate(function () { 
+var posterior = function() {
 
-  var agentProbNoodleOpen = agentProbNoodleOpenSampler();
-  var agentPrior = agentProbNoodleOpen === 0 ? informedPriorBelief
-	: uninformedPriorBelief;
-  var agentUtilityTable = agentUtilityTableSampler();
+  var posteriorERP = Enumerate(function () { 
 
-  var agent = makeBeliefDelayAgent({
-    priorBelief : agentPrior,
-    utility : tableToUtilityFunction(agentUtilityTable, feature),
-    alpha : 100,
-    noDelays: true,
-    discount: 0,
-    sophisticatedOrNaive: 'sophisticated',
-    myopia: {on: false, bound: 0},
-    boundVOI: {on: false, bound: 0}
-  }, world);
+    var agentProbNoodleOpen = agentProbNoodleOpenSampler();
+    var agentPrior = agentProbNoodleOpen === 0 ? informedPriorBelief
+	  : uninformedPriorBelief;
+    var agentUtilityTable = agentUtilityTableSampler();
 
-  conditionOnPath(agent, path, world, startState);
+    var agent = makeBeliefDelayAgent({
+      priorBelief : agentPrior,
+      utility : tableToUtilityFunction(agentUtilityTable, feature),
+      alpha : 100,
+      noDelays: true,
+      discount: 0,
+      sophisticatedOrNaive: 'sophisticated',
+      myopia: {on: false, bound: 0},
+      boundVOI: {on: false, bound: 0}
+    }, world);
 
-  return {
-    probNoodleOpen : agentProbNoodleOpen, 
-    utilityTable : agentUtilityTable
-  };
+    conditionOnPath(agent, path, world, startState);
 
-});
+    return {
+      probNoodleOpen : agentProbNoodleOpen, 
+      utilityTable : agentUtilityTable
+    };
 
-printERP(posterior);
+  });
+
+  printERP(posteriorERP);
+
+};
+
+// printERP(posterior);
+
+timeit(posterior);
+
+
