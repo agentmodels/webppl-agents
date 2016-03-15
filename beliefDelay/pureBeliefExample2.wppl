@@ -87,7 +87,7 @@ var conditionOnPath = function (agent, path, world, startState) {
   
   var _conditionOnPath = function(state, priorBelief, action, i) {
     var observation = observe(state);
-    // we set *delay = 0* since we are not using hyperbolic discounting or myopia
+
     var delay = 0;
 
     var belief = agentUpdateBelief(priorBelief, observation, action, delay);
