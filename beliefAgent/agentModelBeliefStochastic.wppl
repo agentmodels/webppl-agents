@@ -149,3 +149,5 @@ var trajectory = simulate(startState, priorBelief);
 console.log( JSON.stringify(displayTrajectory(trajectory)));
 // agent should pick 1, get multiple zeros and then switch to
 // half for rest of it. currently this is failing. 
+
+
