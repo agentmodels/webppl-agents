@@ -67,7 +67,7 @@ var agentUtilityTableSampler = function() {
 };
 
 var agentDiscountSampler = function() {
-  return uniformDraw([1, 0, 100]);
+  return uniformDraw([0, 1, 100]);
 };
 
 var agentSophisticationSampler = function() {

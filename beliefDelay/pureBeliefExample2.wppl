@@ -58,8 +58,8 @@ var informedPriorBelief = getPriorBeliefGridworld( startState.manifestState,
 
 // PRIORS OVER AGENT PARAMS
 
-var agentPriorSampler = function() {
-  return uniformDraw([informedPriorBelief, uninformedPriorBelief]);
+var agentProbNoodleOpenSampler = function() {
+  return uniformDraw([0, 0.8]);
 };
 
 var agentUtilityTableSampler = function() {
@@ -112,7 +112,9 @@ var conditionOnPath = function (agent, path, world, startState) {
 
 var posterior = Enumerate(function () { 
 
-  var agentPrior = agentPriorSampler();
+  var agentProbNoodleOpen = agentProbNoodleOpenSampler();
+  var agentPrior = agentProbNoodleOpen === 0 ? informedPriorBelief
+	: uninformedPriorBelief;
   var agentUtilityTable = agentUtilityTableSampler();
 
   var agent = makeBeliefDelayAgent({
@@ -129,7 +131,7 @@ var posterior = Enumerate(function () {
   conditionOnPath(agent, path, world, startState);
 
   return {
-    prior : agentPrior, 
+    probNoodleOpen : agentProbNoodleOpen, 
     utilityTable : agentUtilityTable
   };
 
