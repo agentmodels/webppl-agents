@@ -1,8 +1,21 @@
-// here, we observe the agent start off near donut south, but go to donut north.
+// We know that donuts are immediately pleasurable, but one timestep later have
+// a bad aftertaste, and that vegetables are initially unpleasant, but one
+// timestep later have a very good aftertaste. We know that either veg or noodle
+// gives net positive reward, and that the other gives net zero reward, but
+// don't know which is which. We also aren't sure how much the agent discounts,
+// or whether the agent is naive, but we do know that the agent knows the true
+// latent state of the MDP.
+
+// We observe the agent start off near donut south, but go to donut north.
 // we know that the agent knows the true state, so it must not be that the agent
 // just likes donuts. Instead, the solution is that the agent likes veg, but is
-// a naive hyperbolic discounter, aimed to go to veg, but got tempted by donuts
-// instead. we also can conclude that the agent is probably not an extreme
+// a naive hyperbolic discounter, and aimed to go to veg. However, when the
+// agent got near veg, the immediate reward of donut and the immediate negative
+// reward of veg became very salient, and the later negative reward of donut
+// and positive reward of veg looked small in comparison, so the agent changed
+// its mind and went to donut instead.
+
+// we also can conclude that the agent is probably not an extreme
 // discounter, since they would go to donut south if they were, but it's within
 // the realm of possibility because of softmax noise.
 
@@ -30,7 +43,7 @@ var startState = {manifestState: {loc: [3,1],
 var donutUtilityTable = {
     'Donut N' : [20, -10],
     'Donut S' : [20, -10],
-    'Veg'   : [-10, 20],
+    'Veg'   : [-10, 10],
     'Noodle': [0, 0]
 }
 
@@ -61,30 +74,33 @@ var agentSophisticationSampler = function() {
   return uniformDraw(['sophisticated', 'naive']);
 };
 
-// see what the agent does with the parameters we want to infer to check if we're right
 var pomdpUtilityFromManifestUtility = function(utility) {
   return function (state) { 
     return utility(state.manifestState);
   };
 };
 
-var agent = makeBeliefDelayAgent({
-  priorBelief : agentPrior,
-  utility : pomdpUtilityFromManifestUtility(makeDonutUtility(world, vegUtilityTable)),
-  alpha : 100,
-  noDelays: false,
-  discount: 1,
-  sophisticatedOrNaive: 'naive',
-  myopia: {on: false, bound: 0},
-  boundVOI: {on: false, bound: 0}
-}, world);
+// see what the agent does with the parameters we want to infer to check if we're right
+
+// var agent = makeBeliefDelayAgent({
+//   priorBelief : agentPrior,
+//   utility : pomdpUtilityFromManifestUtility(makeDonutUtility(world, vegUtilityTable)),
+//   // utility : pomdpUtilityFromManifestUtility(makeDonutUtility(world, donutUtilityTable)),
+//   alpha : 100,
+//   noDelays: false,
+//   discount: 1,
+//   sophisticatedOrNaive: 'sophisticated',
+//   myopia: {on: false, bound: 0},
+//   boundVOI: {on: false, bound: 0}
+// }, world);
 
 
-var trajectory = simulateBeliefDelayAgent(startState, world, agent, 'states');
+// var trajectory = simulateBeliefDelayAgent(startState, world, agent, 'states');
 
-var locs = map(function(state) {return state.manifestState.loc;}, trajectory);
+// var locs = map(function(state) {return state.manifestState.loc;}, trajectory);
 
-console.log(locs);
+// console.log(locs);
+// ash();
 
 
 // PATH WE CONDITION ON
@@ -145,9 +161,7 @@ var posterior = Enumerate(function () {
     boundVOI: {on: false, bound: 0}
   }, world);
 
-  console.log("first", discount);
   conditionOnPath(agent, path, world, startState);
-  console.log("after", discount);
 
   return {
     utilityTable : agentUtilityTable,
