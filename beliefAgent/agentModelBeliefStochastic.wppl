@@ -1,4 +1,7 @@
 
+// WARNING: there's a bug somewhere and agent is performing as expected
+
+
 var totalTime = 9;
 var useSpecialUpdate = true;
 
@@ -17,28 +20,32 @@ var transition = function(state, action){
                  terminateAfterAction: state.timeLeft == 2})
 };
 
-
 // after pulling an arm, agent observes associated prize
 var observe = function(state){return state.prize;};
 
-var getBetaERP = function(p){return Enumerate(
+
+
+// Define ERPs for armToPrize
+
+var getBernoulliERP = function(p){return Enumerate(
   function(){return categorical([1-p,p],['zero','one'])})};
 
-var fairERP = getBetaERP(.5);
-
+// Agent prior is that arm1 has either flip(.6) or flip(.4).
 var betterProb = .6;
-var betterERP = getBetaERP(betterProb);
-var worseERP = getBetaERP(1-betterProb);
+var betterERP = getBernoulliERP(betterProb);
+var worseERP = getBernoulliERP(1-betterProb);
 
+// Agent knows that arm0 has deterministic reward of .5
 var halfERP = deltaERP('half');
 
-
-var actualERP = getBetaERP(.001);
+// For testing, arm1 will actually always pay 0
+var actualERP = getBernoulliERP(.001);
 var startState = { prize: 'start',
                    timeLeft:totalTime, 
                    terminateAfterAction:false,
                    armToPrize: {0:halfERP, 1:actualERP}
                  };
+
                 
 // ---------------
 // Defining the POMDP agent
@@ -49,8 +56,7 @@ var utility = function(state,action){
   return prizeToUtility[state.prize];
 };
 
-// Agent's prior prior includes possibility that arm1 has no prize
-// (instead of champagne)
+// Possible startStates for the agent
 var agentState1 = update(startState, {armToPrize:{0:halfERP, 1:betterERP}});
 var agentState2 = update(startState, {armToPrize:{0:halfERP, 1:worseERP}});
 
@@ -59,9 +65,7 @@ var priorBelief = Enumerate(function(){
 });
 
 
-// Agent's belief update: directly translates the belief update
-// equation above
-
+// Agent's belief update
 var updateBelief = dp.cache(function(belief, observation, action){
   return Enumerate(function(){
     var state = sample(belief);
@@ -72,6 +76,7 @@ var updateBelief = dp.cache(function(belief, observation, action){
   });
 });
 
+// Variant of above beliefUpdate that is specialized for stochastic bandits
 var specialUpdateBelief = dp.cache(function(belief, observation, action){
   return Enumerate(function(){
     var state = sample(belief);
@@ -83,6 +88,7 @@ var specialUpdateBelief = dp.cache(function(belief, observation, action){
 });
 
 var updateBelief = useSpecialUpdate ? specialUpdateBelief : updateBelief;
+
 
 var act = dp.cache(
   function(belief) {
@@ -120,8 +126,7 @@ var simulate = function(startState, priorBelief) {
     var belief = action=='startAction' ? priorBelief : updateBelief(priorBelief, observation, action);
     var action = sample(act(belief));
     var output = [ [state,action] ];
-    
-      
+          
       if (state.terminateAfterAction){
         return output;
       } else {   
