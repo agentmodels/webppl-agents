@@ -54,7 +54,7 @@ var makeGridTransition_ = function(gridMap, options) {
   return function(state,action){
     var getFeature = gridMap.feature;
     var state = options.noReverse ? addPrevious(state) : state;
-    var state = advanceStateTime(state);
+    var state = !getFeature(state).name ? advanceStateTime(state) : state;
 
     var state = !getFeature(state).name ? moveState(gridMap, state, action) : state;
     var state = getFeature(state).name ? advanceRestaurant(state, options.maxTimeAtRestaurant) : state;
