@@ -8,17 +8,14 @@
 var start = { 
   loc : [3,0],
   terminateAfterAction : false,
-   
   timeLeft : 13
 };
 
+var world = makeDonutWorld2({ big : true, noReverse : true, maxTimeAtRestaurant : 2});
 
 // Create trajectory that we'll use to condition on
 
-// TODO: have *options* argument for makeDonutUtility
-// so that *max_restaurantTimeLeft* is a property of options. Could
-// also use this to have a default value for max_restaurantTimeLeft. 
-var donutUtility = makeDonutUtility(2, {
+var donutUtility = makeDonutUtility(world, {
     'Donut N' : [10, -10],
     'Donut S' : [10, -10],
     'Veg'   : [-10, 20],
@@ -26,14 +23,13 @@ var donutUtility = makeDonutUtility(2, {
 });
 
 
-var world = makeDonutWorld2({ big : true, noReverse : true});
 var actual_agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
       discount : 1, 
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
-var observed = simulate(start, world, actual_agent, start.timeLeft, 'both');
+var observed = simulateHyperbolic(start, world, actual_agent, start.timeLeft, 'both');
 
 
 // Inference only on utilities of Donut and Veg
@@ -52,7 +48,7 @@ var posterior = Enumerate(function () {
   var Uveg1   = uniformDraw([-10,  10, 20]);
   var Uveg2   = uniformDraw([-10,  10, 20]);
 
-  var donutUtility = makeDonutUtility(2, {
+  var donutUtility = makeDonutUtility(world, {
       'Donut N' : [Udonut1, Udonut2],
       'Donut S' : [Udonut1, Udonut2],
       'Veg'     : [Uveg1, Uveg2],
@@ -79,4 +75,4 @@ var posterior = Enumerate(function () {
          };
 });
 
-viz.print(posterior);
+if (typeof(document) !== 'undefined') { viz.print(posterior); }
