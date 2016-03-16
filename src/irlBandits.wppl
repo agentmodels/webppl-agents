@@ -154,3 +154,33 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
 };
 
 
+
+var agentModelsIRLBanditInfer = function(baseAgentParams, priorPrizeToUtility, priorInitialBelief, observedSequence){
+
+  return Enumerate(function(){
+    var prizeToUtility = sample(priorPrizeToUtility);
+    var initialBelief = sample(priorInitial);
+    
+    var agent = makeIRLBanditAgent(prizeToUtility, update(baseAgentParams, {priorBelief:initialBelief}), worldAndStart, 'belief');
+    var agentAct = agent.act;
+    var agentUpdateBelief = agent.updateBelief;
+    
+    var factorSequence = function(currentBelief, previousAction, timeIndex){
+      if (timeIndex < observedSequence.length) { 
+        var state = observedSequence[timeIndex].state;
+        var observation = observedSequence[timeIndex].observation;
+        var nextBelief = agentUpdateBelief(currentBelief, observation, previousAction);           
+        var nextActionERP = agentAct(nextBelief);
+        var observedAction = observedSequence[timeIndex].action;
+        
+        factor(nextActionERP.score([], observedAction));
+        
+        factorSequence(nextBelief, observedAction, timeIndex + 1);
+      }
+    };
+    factorSequence(initialBelief,'noAction', 0);
+    
+    return {prizeToUtility: prizeToUtility, priorBelief:initialBelief};
+  });
+};
+
