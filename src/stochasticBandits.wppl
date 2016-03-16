@@ -10,7 +10,7 @@
 
 // the agent observes its prize (but it automatically observes its location,
 // right? do I have to put that into the observation?)
-var makeStochasticBanditWorld = function (numArms) {
+var makeStochasticBanditWorld = function(numArms) {
   var actions = _.range(numArms);
   
   var advanceTime = function (manifestState) {
