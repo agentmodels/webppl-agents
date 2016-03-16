@@ -45,6 +45,11 @@ function draw(world, additional) {
     return convertDraw(world, additional)
   }
 
+  if (typeof(wpEditor) === 'undefined') { 
+    console.log("no wpEditor, not drawing");
+    return;
+  }
+
   var element = wpEditor.makeResultContainer();
 
   var canvas = createCanvas(element, { width : world.xLim * 100, height : world.yLim * 100});

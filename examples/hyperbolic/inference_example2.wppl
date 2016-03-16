@@ -5,20 +5,21 @@ var start = {
   timeLeft : 13
 };
 
-var donutUtility = makeDonutUtility(2, {
-    'Donut' : [1, -1],
+var world = makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2});
+var donutUtility = makeDonutUtility(world, {
+    'Donut N' : [1, -1],
+    'Donut S' : [1, -1],
     'Veg'   : [-1, 2],
     'Noodle': [0, 0]
 });
 
-var world = makeDonutWorld2({ big : true });
 var actual_agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
       discount : 1, 
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
-var observed = simulate(start, world, actual_agent, 12, 'both');
+var observed = simulateHyperbolic(start, world, actual_agent, 12, 'both');
 
 var posterior = timeit( function () {
 MH(function () {
@@ -28,10 +29,11 @@ MH(function () {
   var dU = randomInteger(4) - 1;
   var vU = randomInteger(4) - .5;
 
-  var donutUtility = makeDonutUtility(4, {
-      'Donut' : [dU, 0, 0, 0],
-      'Veg'   : [0, 0, 0, vU],
-      'Noodle': [0, 0, 0, 0]
+  var donutUtility = makeDonutUtility(world, {
+      'Donut N' : [dU, -1],
+      'Donut S' : [dU, -1],
+      'Veg'   : [-1,  vU],
+      'Noodle': [0,  0]
   });
 
   var agent = makeHyperbolicDiscounter(
@@ -46,11 +48,11 @@ MH(function () {
     var state = stateAction[0];
     var action = stateAction[1];
 
-    factor(agentAction(state).score([], action)) ; 
+    factor(agentAction(state, 0).score([], action)) ; 
   }, observed);
 
   return { type:type, discount:discount, alpha:alpha, dU:dU, vU:vU };
 })
 
 });
-viz.print(posterior.value)
+if (typeof(document) !== 'undefined') { viz.print(posterior.value); }

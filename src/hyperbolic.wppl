@@ -113,7 +113,7 @@ var getExpectedUtilities = function(trajectory, agent, actions) {
 
 // TODO more descriptive name
 var mdpSim = function(start, world, agent, actualTotalTime) { 
-  var trajectory = simulate(start, world, agent, actualTotalTime, 'states');
+  var trajectory = simulateHyperbolic(start, world, agent, actualTotalTime, 'states');
 
   var trajectoryPlans = map(function (state) {
     var currentPlan = MAPActionPath(state, world, agent, state.timeLeft, 'states');
