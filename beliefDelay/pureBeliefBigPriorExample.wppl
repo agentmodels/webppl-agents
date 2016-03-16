@@ -1,0 +1,137 @@
+// like pureBeliefExample, but with a prior with large support, making exact
+// inference infeasible. We should infer that the agent prefers noodle and veg
+// to donut, and its utility for noodle is at least as high as its utility for
+// veg, and that it thinks that noodle is open.
+
+// WORLD PARAMS
+
+var world = getBigDonutWorld();
+var feature = world.feature;
+
+// possible latent states
+
+var noodleClosedLatent = {'Donut N': true,
+			  'Donut S': true,
+			  'Veg': true,
+			  'Noodle': false};
+
+var everythingOpenLatent = {'Donut N': true,
+			    'Donut S': true,
+			    'Veg': true,
+			    'Noodle': true};
+
+var trueLatentState = noodleClosedLatent;
+
+// start state
+var startState = {manifestState: {loc: [3,1],
+				  terminateAfterAction: false,
+				  timeLeft: 10},
+		  latentState: trueLatentState};
+
+// POTENTIAL AGENT PARAMS
+
+// possible priors that the agent could have
+var uninformedLatentStateSampler = function(p){
+  return function() {
+    return flip(p) ? everythingOpenLatent : trueLatentState;
+  };
+};
+
+// PRIORS OVER AGENT PARAMS
+
+var agentProbNoodleOpenSampler = function() {
+  return uniformDraw([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]);
+};
+
+var agentUtilityTableSampler = function() {
+  var donutUtility = uniformDraw(range(4));
+  return {'Donut N': donutUtility,
+	  'Donut S': donutUtility,
+	  Veg: uniformDraw(range(4)),
+	  Noodle: uniformDraw(range(4)),
+	  timeCost: -0.1};
+};
+
+// PATH WE CONDITION ON
+
+var path = [[3,1], [3,2], [3,3], [4,3], [5,3], [5,4], [5,5], [5,6],
+	    [4,6], [4,7]];
+
+// INFERENCE
+
+var conditionOnPath = function (agent, path, world, startState) {
+  var agentAct = agent.act;
+  var agentUpdateBelief = agent.updateBelief;
+  var priorBelief = agent.params.priorBelief;
+  var transition = world.transition;
+  var worldObserve = world.observe;
+  var observe = getFullObserve(worldObserve);
+
+  var shouldTerminate = function (manifestState) {
+    return manifestState.terminateAfterAction;
+  };
+  
+  var _conditionOnPath = function(state, priorBelief, action, i) {
+    var observation = observe(state);
+
+    var delay = 0;
+
+    var belief = agentUpdateBelief(priorBelief, observation, action, delay);
+
+    var newAction = sample(agentAct(belief, delay));
+
+    if (shouldTerminate(state.manifestState) || i >= path.length) {
+      return 0;
+    } else {   
+      var nextState = transition(state, newAction);
+
+      condition(_.isEqual(nextState.manifestState.loc, path[i]));
+
+      return _conditionOnPath(nextState, belief, newAction, i+1);
+    }
+  };
+
+  var startAction = 'noAction';
+
+  return _conditionOnPath(startState, priorBelief, startAction, 1);
+};
+
+var posterior = function(inferFunc, options) {
+  return function() {
+    var posteriorERP = inferFunc(function () { 
+
+      var agentProbNoodleOpen = agentProbNoodleOpenSampler();
+      var agentPrior = getPriorBeliefGridworld(
+	startState.manifestState,
+	uninformedLatentStateSampler(agentProbNoodleOpen));
+      var agentUtilityTable = agentUtilityTableSampler();
+
+      var agent = makeBeliefDelayAgent({
+	priorBelief : agentPrior,
+	utility : tableToUtilityFunction(agentUtilityTable, feature),
+	alpha : 100,
+	noDelays: true,
+	discount: 0,
+	sophisticatedOrNaive: 'sophisticated',
+	myopia: {on: false, bound: 0},
+	boundVOI: {on: false, bound: 0}
+      }, world);
+
+      conditionOnPath(agent, path, world, startState);
+
+      return {
+	probNoodleOpen : agentProbNoodleOpen, 
+	utilityTable : agentUtilityTable
+      };
+
+    }, options);
+
+    printERP(posteriorERP);
+  };
+};
+
+// printERP(posterior);
+
+timeit(posterior(MCMC));
+
+
