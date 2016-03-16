@@ -1,0 +1,161 @@
+// testing the behaviour of beliefAgent in a stochastic bandit pomdp.
+
+var test1 = function() {
+  // prizes are deterministic, and the agent knows this (as well as what the
+  // prizes actually are). the agent should just pick the arm with the highest
+  // utility prize.
+  
+  // params for world
+  var world = makeStochasticBanditWorld(2);
+
+  var startState = {manifestState: {loc: 'start',
+				    timeLeft: 3,
+				    terminateAfterAction: false},
+		    latentState: {0: deltaERP('a'),
+				  1: deltaERP('b')}};
+
+  // agent parameters
+
+  var prior = deltaERP(startState);
+
+  var prizeToUtility = {a: 0, b: 1};
+  var utility = function(state,action){
+    var loc = state.manifestState.loc;
+    if (loc=='start'){
+      return 0;
+    } else {
+      return prizeToUtility[loc];
+    }
+  };
+
+  var agentParams = {utility: utility,
+		     alpha: 100,
+		     priorBelief: prior};
+
+  var agent = makeBeliefAgent(agentParams, world);
+
+  // agent's behaviour
+
+  var trajectory = simulateBeliefAgent(startState, world, agent, 'actions');
+
+  // check the agent is choosing the highest-utility arm
+
+  assert.ok(_.isEqual(most(trajectory), [1,1]),
+	    'agent is not choosing right arms in first test');
+
+
+  console.log('passed first test');
+};
+
+var test2 = function() {
+  // there are two arms, one with a deterministic prize, one with a random
+  // prize, and the agent knows this. No matter how long the time left is,
+  // the agent should choose the highest utility arm, whether it be the sure
+  // or the unsure arm.
+
+  var world = makeStochasticBanditWorld(2);
+
+  var uncertainArmERP = Enumerate(function() {
+    return uniformDraw(['b', 'c']);
+  });
+
+  var startStateShort = {manifestState: {loc: 'start',
+					 timeLeft: 3,
+					 terminateAfterAction: false},
+			 latentState: {0: deltaERP('a'),
+				       1: uncertainArmERP}};
+
+  
+  var startStateLong = {manifestState: {loc: 'start',
+					timeLeft: 20,
+					terminateAfterAction: false},
+			latentState: {0: deltaERP('a'),
+				      1: uncertainArmERP}};
+
+  // agent parameters
+
+  var priorShort = deltaERP(startStateShort);
+
+  var priorLong = deltaERP(startStateLong);
+
+  var prizeToUtilityRisk = {a: 1, b: 0, c: 10};
+  var utilityRisk = function(state,action){
+    var loc = state.manifestState.loc;
+    if (loc=='start'){
+      return 0;
+    } else {
+      return prizeToUtilityRisk[loc];
+    }
+  };
+
+  var prizeToUtilitySafe = {a: 1, b: 0, c: 1.2};
+  var utilitySafe = function(state,action){
+    var loc = state.manifestState.loc;
+    if (loc=='start'){
+      return 0;
+    } else {
+      return prizeToUtilitySafe[loc];
+    }
+  };
+
+
+  // simulating agents
+  var riskyShortAgentParams = {utility: utilityRisk,
+			       alpha: 100,
+			       priorBelief: priorShort};
+
+  var riskyShortAgent = makeBeliefAgent(riskyShortAgentParams, world);
+  var riskyShortTrajectory = simulateBeliefAgent(startStateShort, world,
+						 riskyShortAgent, 'actions');
+
+  assert.ok(_.isEqual(riskyShortTrajectory[0], 1),
+	    'agent not risky enough with short lifespan');
+
+  // var riskyLongAgentParams = {utility: utilityRisk,
+  // 			      alpha: 100,
+  // 			      priorBelief: priorLong};
+
+  // var riskyLongAgent = makeBeliefAgent(riskyLongAgentParams, world);
+  // var riskyLongTrajectory = simulateBeliefAgent(startStateLong, world,
+  // 						 riskyLongAgent, 'actions');
+
+  // assert.ok(_.isEqual(riskyLongTrajectory[0], 1),
+  // 	    'agent not risky enough with long lifespan');
+
+
+  // var safeShortAgentParams = {utility: utilitySafe,
+  // 			      alpha: 100,
+  // 			      priorBelief: priorShort};
+
+  // var safeShortAgent = makeBeliefAgent(safeShortAgentParams, world);
+  // var safeShortTrajectory = simulateBeliefAgent(startStateShort, world,
+  // 						safeShortAgent, 'actions');
+
+  // assert.ok(_.isEqual(safeShortTrajectory[0], 0),
+  // 	    'agent not safe enough with short lifespan');
+
+
+  // var safeLongAgentParams = {utility: utilitySafe,
+  // 			     alpha: 100,
+  // 			     priorBelief: priorLong};
+
+  // var safeLongAgent = makeBeliefAgent(safeLongAgentParams, world);
+  // var safeLongTrajectory = simulateBeliefAgent(startStateLong, world,
+  // 						safeLongAgent, 'actions');
+
+  // assert.ok(_.isEqual(safeLongTrajectory[0], 0),
+  // 	    'agent not safe enough with long lifespan');
+
+  console.log('passed second test');
+};
+
+var test3 = function(){
+  // have example where agent isn't sure what the probabilities for the second
+  // arm are. if the lifetime is long enough, agent should explore, and stay on
+  // that arm if good news, leave if not. if lifetime is short, agent should not
+  // explore.
+
+};
+
+// test1();
+test2();

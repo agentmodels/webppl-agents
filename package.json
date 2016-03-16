@@ -21,7 +21,8 @@
       "src/beliefAgent.wppl",
       "src/beliefDelayAgent.wppl",
       "src/deterministicBandits.wppl",
-      "src/irlBandits.wppl" 
+      "src/irlBandits.wppl",
+      "src/stochasticBandits.wppl"
     ]
   },
   "repository": {
