@@ -71,7 +71,7 @@ var makeBeliefDelayAgent = function (params, world){
       return delay >= params.myopia.bound;
     }
     return false;
-  }
+  };
 
   
   var _updateBelief = fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
@@ -89,7 +89,7 @@ var makeBeliefDelayAgent = function (params, world){
       return fastUpdate ? toERPOverLatent(nextBelief) : nextBelief;
       
     } else {
-      return _updateBelief(belief, observation, action)
+      return _updateBelief(belief, observation, action);
     }
   };
 
@@ -97,7 +97,7 @@ var makeBeliefDelayAgent = function (params, world){
   var act = dp.cache(
     function (belief, delay) {
       assert.ok( _.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
-                
+
       return Enumerate(function () {
         var action = uniformDraw(beliefToActions(belief));
         var eu = expectedUtilityBelief(belief, action, delay);
