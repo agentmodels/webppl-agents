@@ -102,7 +102,8 @@ var test2 = function() {
   // simulating agents
   var riskyShortAgentParams = {utility: utilityRisk,
 			       alpha: 100,
-			       priorBelief: priorShort};
+			       priorBelief: priorShort,
+			       fastUpdateBelief: false};
 
   var riskyShortAgent = makeBeliefAgent(riskyShortAgentParams, world);
   var riskyShortTrajectory = simulateBeliefAgent(startStateShort, world,
@@ -111,40 +112,43 @@ var test2 = function() {
   assert.ok(_.isEqual(riskyShortTrajectory[0], 1),
 	    'agent not risky enough with short lifespan');
 
-  // var riskyLongAgentParams = {utility: utilityRisk,
-  // 			      alpha: 100,
-  // 			      priorBelief: priorLong};
+  var riskyLongAgentParams = {utility: utilityRisk,
+  			      alpha: 100,
+  			      priorBelief: priorLong,
+			      fastUpdateBelief: false};
 
-  // var riskyLongAgent = makeBeliefAgent(riskyLongAgentParams, world);
-  // var riskyLongTrajectory = simulateBeliefAgent(startStateLong, world,
-  // 						 riskyLongAgent, 'actions');
+  var riskyLongAgent = makeBeliefAgent(riskyLongAgentParams, world);
+  var riskyLongTrajectory = simulateBeliefAgent(startStateLong, world,
+  						 riskyLongAgent, 'actions');
 
-  // assert.ok(_.isEqual(riskyLongTrajectory[0], 1),
-  // 	    'agent not risky enough with long lifespan');
-
-
-  // var safeShortAgentParams = {utility: utilitySafe,
-  // 			      alpha: 100,
-  // 			      priorBelief: priorShort};
-
-  // var safeShortAgent = makeBeliefAgent(safeShortAgentParams, world);
-  // var safeShortTrajectory = simulateBeliefAgent(startStateShort, world,
-  // 						safeShortAgent, 'actions');
-
-  // assert.ok(_.isEqual(safeShortTrajectory[0], 0),
-  // 	    'agent not safe enough with short lifespan');
+  assert.ok(_.isEqual(riskyLongTrajectory[0], 1),
+  	    'agent not risky enough with long lifespan');
 
 
-  // var safeLongAgentParams = {utility: utilitySafe,
-  // 			     alpha: 100,
-  // 			     priorBelief: priorLong};
+  var safeShortAgentParams = {utility: utilitySafe,
+  			      alpha: 100,
+  			      priorBelief: priorShort,
+			      fastUpdateBelief: false};
 
-  // var safeLongAgent = makeBeliefAgent(safeLongAgentParams, world);
-  // var safeLongTrajectory = simulateBeliefAgent(startStateLong, world,
-  // 						safeLongAgent, 'actions');
+  var safeShortAgent = makeBeliefAgent(safeShortAgentParams, world);
+  var safeShortTrajectory = simulateBeliefAgent(startStateShort, world,
+  						safeShortAgent, 'actions');
 
-  // assert.ok(_.isEqual(safeLongTrajectory[0], 0),
-  // 	    'agent not safe enough with long lifespan');
+  assert.ok(_.isEqual(safeShortTrajectory[0], 0),
+  	    'agent not safe enough with short lifespan');
+
+
+  var safeLongAgentParams = {utility: utilitySafe,
+  			     alpha: 100,
+  			     priorBelief: priorLong,
+			     fastUpdateBelief: false};
+
+  var safeLongAgent = makeBeliefAgent(safeLongAgentParams, world);
+  var safeLongTrajectory = simulateBeliefAgent(startStateLong, world,
+  						safeLongAgent, 'actions');
+
+  assert.ok(_.isEqual(safeLongTrajectory[0], 0),
+  	    'agent not safe enough with long lifespan');
 
   console.log('passed second test');
 };
@@ -155,6 +159,37 @@ var test3 = function(){
   // that arm if good news, leave if not. if lifetime is short, agent should not
   // explore.
 
+  var world = makeStochasticBanditWorld(2);
+  
+  var startStateShort = {manifestState: {loc: 'start',
+					 timeLeft: 1,
+					 terminateAfterAction: true},
+			 latentState: {0: deltaERP('a'),
+				       1: categoricalERP([0.2, 0.8], ['b', 'c'])}
+			};
+
+  var startStateLong = {manifestState: {loc: 'start',
+					timeLeft: 4,
+					terminateAfterAction: true},
+			latentState: {0: deltaERP('a'),
+				      1: categoricalERP([0.2, 0.8], ['b', 'c'])}
+		       };
+
+  var priorShort = deltaERP(startStateShort);
+
+  var priorLong = deltaERP(startStateLong);
+  // todo: make this work
+  var prizeToUtility = {a: 1, b: 0, c: 10};
+  var utility = function(state,action){
+    var loc = state.manifestState.loc;
+    if (loc=='start'){
+      return 0;
+    } else {
+      return prizeToUtility[loc];
+    }
+  };
+  
+  
 };
 
 // test1();
