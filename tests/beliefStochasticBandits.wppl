@@ -159,27 +159,49 @@ var test3 = function(){
   // that arm if good news, leave if not. if lifetime is short, agent should not
   // explore.
 
+  // note that this test is nondeterministic - if the code is right, it should
+  // always pass, but if the code is wrong, it might pass anyway sometimes.
+
+
+  // parameters for world
+  
   var world = makeStochasticBanditWorld(2);
+
+  var luckyLatent = {0: deltaERP('a'),
+		     1: categoricalERP([0.2, 0.8], ['b', 'c'])};
+
+  var unluckyLatent = {0: deltaERP('a'),
+		       1: categoricalERP([0.8, 0.2], ['b', 'c'])};
   
   var startStateShort = {manifestState: {loc: 'start',
-					 timeLeft: 1,
-					 terminateAfterAction: true},
-			 latentState: {0: deltaERP('a'),
-				       1: categoricalERP([0.2, 0.8], ['b', 'c'])}
+					 timeLeft: 2,
+					 terminateAfterAction: false},
+			 latentState: luckyLatent
 			};
 
-  var startStateLong = {manifestState: {loc: 'start',
-					timeLeft: 4,
-					terminateAfterAction: true},
-			latentState: {0: deltaERP('a'),
-				      1: categoricalERP([0.2, 0.8], ['b', 'c'])}
-		       };
+  var startStateLongLucky = {manifestState: {loc: 'start',
+					     timeLeft: 12,
+					     terminateAfterAction: false},
+			     latentState: luckyLatent
+			    };
 
-  var priorShort = deltaERP(startStateShort);
+  var startStateLongUnlucky = {manifestState: startStateLongLucky.manifestState,
+			       latentState: unluckyLatent
+			      };
 
-  var priorLong = deltaERP(startStateLong);
-  // todo: make this work
-  var prizeToUtility = {a: 1, b: 0, c: 10};
+  // parameters for agent
+  
+  var agentLatentPrior = function() {
+    return uniformDraw([luckyLatent, unluckyLatent]);
+  };
+
+  var shortPrior = getPriorBeliefGridworld(startStateShort.manifestState,
+					   agentLatentPrior);
+
+  var longPrior = getPriorBeliefGridworld(startStateLongLucky.manifestState,
+					  agentLatentPrior);
+
+  var prizeToUtility = {a: 1, b: 0, c: 1.5};
   var utility = function(state,action){
     var loc = state.manifestState.loc;
     if (loc=='start'){
@@ -188,9 +210,50 @@ var test3 = function(){
       return prizeToUtility[loc];
     }
   };
+
+  // simulating agent in short environment
   
+  var agentParamsShort = {utility: utility,
+			  alpha: 100,
+			  priorBelief: shortPrior,
+			  fastUpdateBelief: false};
+
+  var agentShort = makeBeliefAgent(agentParamsShort, world);
+
+  var trajectoryShort = simulateBeliefAgent(startStateShort, world, agentShort,
+					    'actions');
+
+  assert.ok(trajectoryShort[0] === 0, 'agent explores when it shouldnt');
+
+  // simulating agent in long environments
+
+  var agentParamsLong = {utility: utility,
+			 alpha: 100,
+			 priorBelief: longPrior,
+			 fastUpdateBelief: false};
+
+  var agentLong = makeBeliefAgent(agentParamsLong, world);
+
+  var trajectoryLongLucky = simulateBeliefAgent(startStateLongLucky, world,
+						agentLong, 'stateAction');
+
+  assert.ok(trajectoryLongLucky[0][1] === 1, 'agent doesnt explore enough');
+
+  if (trajectoryLongLucky[1][0] === 'c') {
+    assert.ok(trajectoryLongLucky[1][1] === 1, 'agent should follow up luck');
+  }
+
+  var trajectoryLongUnlucky = simulateBeliefAgent(startStateLongUnlucky, world,
+						  agentLong, 'stateAction');
   
+  if (trajectoryLongUnlucky[1][0] === 'b') {
+    assert.ok(trajectoryLongUnlucky[1][1] === 0,
+	      'agent should learn from bad luck');
+  }
+
+  console.log('passed third test');
 };
 
-// test1();
+test1();
 test2();
+test3();
