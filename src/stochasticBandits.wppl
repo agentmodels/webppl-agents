@@ -8,8 +8,8 @@
 // the manifest state location contains the prize gained after the
 // previous arm pull
 
-// the agent observes its prize (but it automatically observes its location,
-// right? do I have to put that into the observation?)
+// the agent will observe its prize when it sees the manifest state, so there is
+// no need for any observation of the latent state.
 var makeStochasticBanditWorld = function(numArms) {
   var actions = _.range(numArms);
   
