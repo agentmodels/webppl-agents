@@ -1,0 +1,57 @@
+var world = makeStochasticBanditWorld(2);
+
+var probablyChampagneERP = categoricalERP([0.2, 0.8], ['nothing', 'champagne']);
+
+var probablyNothingERP = categoricalERP([0.8, 0.2], ['nothing', 'champagne']);
+
+var startState = {manifestState: {loc: 'start',
+				  timeLeft: 10,
+				  terminateAfterAction: false},
+		  latentState: {0: deltaERP('chocolate'),
+				1: probablyChampagneERP}};
+
+var prior = Enumerate(function(){
+  var manifestState = startState.manifestState;
+  var latentState = {0: deltaERP('chocolate'),
+		     1: uniformDraw([probablyNothingERP,
+				     probablyChampagneERP])};
+  return buildState(manifestState, latentState);
+});
+
+var prizeToUtility = {start: 0,
+		      nothing: 0,
+		      chocolate: 1,
+		      champagne: 1.5};
+
+var utility = function(state,action){
+  var loc = state.manifestState.loc;
+  return prizeToUtility[loc];
+};
+
+var agentParams = {utility: utility,
+		   alpha: 10000,
+		   priorBelief: prior,
+		   fastUpdateBelief: false};
+
+var agent = makeBeliefAgent(agentParams, world);
+
+var displayTrajectory = function(trajectory) {
+  var getLocAction = function(stateAction) {
+    var state = stateAction[0];
+    var action = stateAction[1];
+    return [state.manifestState.loc, action];
+  };
+
+  var locsActions = map(getLocAction, trajectory);
+  var flatLocsActions = _.flatten(locsActions);
+  return flatLocsActions.slice(1, flatLocsActions.length - 1);
+};
+
+var eu = agent.expectedUtilityBelief;
+
+var f = function() {
+  var trajectory = simulateBeliefAgent(startState, world, agent, 'stateAction');
+  return displayTrajectory(trajectory);
+};
+
+timeit(f);

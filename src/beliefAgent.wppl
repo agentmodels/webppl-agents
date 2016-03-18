@@ -151,7 +151,6 @@ var makeBeliefAgent = function(params, world) {
   // RECURSE ON BELIEF (BELLMAN STYLE)
   var act = dp.cache(
     function(belief) {
-    
       return Enumerate(function(){
 	var action = uniformDraw(beliefToActions(belief));
 	var eu = expectedUtilityBelief(belief, action);
@@ -272,11 +271,12 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
       var observation = observe(state);
 
       var delay = 0;
-
+      
       var belief = useDelays ? agentUpdateBelief(priorBelief, observation, action, delay) :
             agentUpdateBelief(priorBelief, observation, action);
       
       var action = useDelays ? sample(agentAct(belief, delay)) : sample(agentAct(belief));
+      
       var output = [selectOutput(state, action, belief)];
       
       if (shouldTerminate(state.manifestState)) {
