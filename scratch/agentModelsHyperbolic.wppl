@@ -8,6 +8,8 @@ var makeAgent = function (params, world) {
   var discountFunction = function(delay){
     return 1/(1 + params.discount*delay);
   };
+
+  var isNaive = params.sophisticatedOrNaive=='naive';
     
   var act = dp.cache( 
     function(state, delay){
@@ -27,7 +29,7 @@ var makeAgent = function (params, world) {
       } else {                     
         return u + expectation( Enumerate(function(){
           var nextState = transition(state, action); 
-          var perceivedDelay = { naive : delay + 1, sophisticated : 0}[params.sophisticatedOrNaive]; 
+          var perceivedDelay = isNaive ? delay + 1 : 0;
           var nextAction = sample(act(nextState, perceivedDelay));
           return expectedUtility(nextState, nextAction, delay+1);  
         }));
