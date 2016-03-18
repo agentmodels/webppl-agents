@@ -1,0 +1,170 @@
+
+
+var makeAgent = function (params, world) {
+  var stateToActions = world.stateToActions;
+  var transition = world.transition;
+  var utility = params.utility;
+
+  var discountFunction = function(delay){
+    return 1/(1 + params.discount*delay);
+  };
+    
+  var act = dp.cache( 
+    function(state, delay){
+      return Enumerate(function(){
+        var action = uniformDraw(stateToActions(state));
+        var eu = expectedUtility(state, action, delay);    
+        factor(params.alpha * eu);
+        return action;
+      });      
+    });
+  
+  var expectedUtility = dp.cache(
+    function(state, action, delay){
+      var u = discountFunction(delay) * utility(state, action);
+      if (state.terminateAfterAction){
+        return u; 
+      } else {                     
+        return u + expectation( Enumerate(function(){
+          var nextState = transition(state, action); 
+          var perceivedDelay = { naive : delay + 1, sophisticated : 0}[params.sophisticatedOrNaive]; 
+          var nextAction = sample(act(nextState, perceivedDelay));
+          return expectedUtility(nextState, nextAction, delay+1);  
+        }));
+      }                      
+    });
+  
+  return {
+    params : params,
+    expectedUtility : expectedUtility,
+    act: act
+  };
+};
+
+var simulate = function(startState, world, agent) {
+  var act = agent.act;
+  var expectedUtility = agent.expectedUtility;
+  var transition = world.transition;
+
+  var sampleSequence = function (state) {
+    var delay = 0;
+    var action = sample(act(state, delay));
+    var nextState = transition(state, action); 
+    var out = [state,action]
+    return state.terminateAfterAction ?
+      [out] : [out].concat(sampleSequence(nextState));
+  };
+  return sampleSequence(startState);
+};
+
+
+var makeRestaurantUtilityFunction = function (world, rewards) { 
+  return function(state, action) {
+    var getFeature = world.feature;
+    var feature = getFeature(state);
+
+    if (feature.name) { return rewards[feature.name][state.timeAtRestaurant]; }
+    return -0.01;
+  };
+};
+
+
+// Construct MDP, i.e. world
+var startState = { 
+  loc : [3,0],
+  terminateAfterAction : false,
+  timeLeft : 13
+};
+
+var world = makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2});
+
+
+// Construct hyperbolic discounting agent
+
+var restaurantUtility = makeRestaurantUtilityFunction(world, {
+    'Donut N' : [10, -10],
+    'Donut S' : [10, -10],
+    'Veg'   : [-10, 20],
+    'Noodle': [0, 0]
+});
+
+var baseAgentParams = {
+  utility : restaurantUtility,
+  alpha : 500, 
+  discount : 1
+};
+
+var sophisticatedAgent = makeAgent(
+  update(baseAgentParams, {sophisticatedOrNaive: 'sophisticated'}), 
+  world
+);
+
+console.log('Sophisticated trajectory', 
+            simulate(startState, world, sophisticatedAgent));
+
+var naiveAgent = makeAgent( 
+  update(baseAgentParams, {sophisticatedOrNaive: 'naive'}), 
+  world
+);
+
+console.log('Naive trajectory', 
+            simulate(startState, world, naiveAgent));
+
+
+ash();
+
+
+
+
+
+
+
+
+
+
+
+
+// TODO merge with simulate, use a more descriptive name. It seems that
+// ideally we'd use the MAP path, and the 
+var MAPActionPath = function(state, world, agent, actualTotalTime, statesOrActions) { 
+  var perceivedTotalTime = state.timeLeft;
+  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work' + JSON.stringify(state));
+
+  var agentAction = agent.agent;
+  var expectedUtility = agent.expectedUtility;
+  var transition = world.transition;
+
+  var sampleSequence = function (state, actualTimeLeft) {
+      var action = agentAction(state, actualTotalTime-actualTimeLeft).MAP().val;
+      var nextState = transition(state, action); 
+      var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
+    if (actualTimeLeft==0 || state.terminateAfterAction){
+      return [out];
+    } else {
+      return [ out ].concat( sampleSequence(nextState, actualTimeLeft-1));
+    }
+  };
+  return sampleSequence(state, actualTotalTime);
+};
+
+var getExpectedUtilities = function(trajectory, agent, actions) { 
+  var expectedUtility = agent.expectedUtility;
+
+  var v = mapIndexed(function(i, state) {
+    return [state.loc, map(function (a) { return  expectedUtility(state, a, i); }, actions)];
+  }, trajectory)
+  return v;
+};
+
+// TODO more descriptive name
+var mdpSim = function(start, world, agent, actualTotalTime) { 
+  var trajectory = simulateHyperbolic(start, world, agent, actualTotalTime, 'states');
+
+  var trajectoryPlans = map(function (state) {
+    var currentPlan = MAPActionPath(state, world, agent, state.timeLeft, 'states');
+    return getExpectedUtilities(currentPlan, agent, world.actions);
+  }, trajectory);
+
+  GridWorld.draw(world, {trajectory : trajectory, paths : trajectoryPlans });
+}
+null
