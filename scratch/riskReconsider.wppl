@@ -9,9 +9,9 @@ var makeDonutUtility = function (world, rewards) {
 };
 
 
-var makeHyperbolicDiscounter = function (agentParams, world) {
+var makeRiskAgent = function (agentParams, world) {
   map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeAgent args: ' + s + '; ' + JSON.stringify(agentParams));}, 
-      ['utility','alpha','discount','sophisticatedOrNaive']);
+      ['utility','alpha','discount']);
 
   var stateToActions = world.stateToActions;
   var transition = world.transition;
@@ -84,7 +84,6 @@ var makeHyperbolicDiscounter = function (agentParams, world) {
   // simulate agent2 with agent(start, 0, 0). if no flips, both rise together
   // if always flip, perceived delay always zero. 
 
-
   return {
     agentParams : agentParams,
     expectedUtility : expectedUtility,
@@ -92,28 +91,94 @@ var makeHyperbolicDiscounter = function (agentParams, world) {
   };
 };
 
-var simulateHyperbolic = function(state, world, agent, actualTotalTime, outputType) { 
+var simulateRisk = function(state, world, agent, actualTotalTime, outputType) { 
   var perceivedTotalTime = state.timeLeft;
-  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work');
-
 
   var agentAction = agent.agent;
   var expectedUtility = agent.expectedUtility;
   var transition = world.transition;
 
-  var sampleSequence = function (state, actualTimeLeft) {
-      var action = sample(agentAction(state, 0));
-      var nextState = transition(state, action); 
-      var out = {states:state, actions:action, both:[state,action]}[outputType];
+  var sampleSequence = function (state, actualTimeLeft, delay) {
+
+    var simulateDelay = flip(agent.agentParams.probStick) ? delay : 0;
+    var action = sample(agentAction(state, simulateDelay));
+    
+    var nextState = transition(state, action); 
+    var out = {states:state, actions:action, both:[state,action],
+               all: [action,simulateDelay]}[outputType];
     if (actualTimeLeft==0 || state.terminateAfterAction){
       return [out];
     } else {
-      return [ out ].concat( sampleSequence(nextState, actualTimeLeft-1));
+      return [ out ].concat( sampleSequence(nextState, actualTimeLeft-1, delay + 1));
     }
-
   };
-  return sampleSequence(state, actualTotalTime);
+  return sampleSequence(state, actualTotalTime, 0);
 };
+
+var start = { 
+  loc : [3,0],
+  terminateAfterAction : false,
+  timeLeft : 14
+};
+
+var world = makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2});
+
+var donutUtility = makeDonutUtility(world, {
+    'Donut N' : [10, -10],
+    'Donut S' : [10, -10],
+    'Veg'   : [-10, 20],
+    'Noodle': [0, 0]
+});
+
+var hd = false;
+var makeAgent = hd ? makeHyperbolicDiscounter : makeRiskAgent;
+var simulate = hd? simulateHyperbolic : simulateRisk;
+
+
+var agent3 = makeAgent(
+    { utility : donutUtility,
+      alpha : 500, 
+      discount : 1, 
+      probStick: .8
+    }, world);
+var out = simulate(start, world, agent3, 13,'all');
+console.log( 'simulateHyperbolic(start, world, agent, 13);', 
+             out);
+
+ash();
+
+var agent = makeAgent(
+    { utility : donutUtility,
+      alpha : 500, 
+      discount : 1, 
+      sophisticatedOrNaive  : 'sophisticated',
+    }, world);
+console.log( 'simulateHyperbolic(start, world, agent, 13);', 
+             map(second, simulate(start, world, agent, 13,'both')));
+
+
+var agent2 = makeAgent(
+    { utility : donutUtility,
+      alpha : 500, 
+      discount : 1, 
+      sophisticatedOrNaive  : 'naive' 
+    }, world);
+
+
+
+console.log( 'simulateHyperbolic(start, world, agent, 13);', 
+             map(second, simulate(start, world, agent2, 13,'both')));
+
+
+ash();
+
+
+
+
+
+
+
+
 
 // TODO merge with simulate, use a more descriptive name. It seems that
 // ideally we'd use the MAP path, and the 
@@ -158,3 +223,5 @@ var mdpSim = function(start, world, agent, actualTotalTime) {
 
   GridWorld.draw(world, {trajectory : trajectory, paths : trajectoryPlans });
 }
+
+null
