@@ -7,22 +7,30 @@ Running a webppl script in the browser allows use of `GridWorld.draw` for easier
 
 This clones webppl into the directory above yours and links it to the global node webppl installation.
 
+If `npm link` doesn't work due to permissions, you can use sudo or [follow this](http://justjs.com/posts/npm-link-developing-your-own-npm-modules-without-tears). 
+
 ```
-git clone git@github.com:probmods/webppl.git ../webppl
-git clone git@github.com:stuhlmueller/webppl-timeit.git ../webppl-timeit
-git clone git@github.com:stuhlmueller/webppl-dp.git ../webppl-dp
-git clone git@github.com:erindb/webppl-viz.git ../webppl-viz
-npm link ../webppl
+sh install.sh
 ```
 
 Then we can compile webppl and webppl-gridworld together and run your script.
 
 ```
-sh compile.sh myscript.webppl
+sh compile.sh examples/hyperbolic/generative_examples.wppl
 ```
 
 To just run your script without compiling we can do. 
 
 ```
 sh run.sh myscript.webppl
+```
+
+
+To run purely on the command line we need to install some webppl packages:
+
+```
+mkdir ~/.webppl
+npm install --prefix ~/.webppl https://github.com/stuhlmueller/webppl-dp
+npm install --prefix ~/.webppl https://github.com/stuhlmueller/webppl-timeit
+npm install --prefix ~/.webppl https://github.com/stuhlmueller/webppl-viz
 ```
