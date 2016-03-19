@@ -16,7 +16,7 @@ sh install.sh
 Then we can compile webppl and webppl-gridworld together and run your script.
 
 ```
-sh compile.sh myscript.webppl
+sh compile.sh examples/hyperbolic/generative_examples.wppl
 ```
 
 To just run your script without compiling we can do. 
