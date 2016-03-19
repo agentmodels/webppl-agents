@@ -10,14 +10,7 @@ This clones webppl into the directory above yours and links it to the global nod
 If `npm link` doesn't work due to permissions, you can use sudo or [follow this](http://justjs.com/posts/npm-link-developing-your-own-npm-modules-without-tears). 
 
 ```
-git clone https://github.com/probmods/webppl.git ../webppl
-git clone https://github.com/stuhlmueller/webppl-timeit.git ../webppl-timeit
-git clone https://github.com/stuhlmueller/webppl-dp.git ../webppl-dp
-git clone https://github.com/erindb/webppl-viz.git ../webppl-viz
-npm link ../webppl
-npm install grunt
-npm install -g grunt-cli 
-npm install -g browserify
+sh install.sh
 ```
 
 Then we can compile webppl and webppl-gridworld together and run your script.
