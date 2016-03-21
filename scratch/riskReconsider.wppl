@@ -17,7 +17,10 @@ var makeRiskAgent = function (agentParams, world) {
   var transition = world.transition;
   var utility = agentParams.utility;
 
-    
+
+  var probStick = agentParams.probStick;
+  
+  
   var agent = dp.cache( 
     function(state, delay){
       return Enumerate(function(){
@@ -29,8 +32,6 @@ var makeRiskAgent = function (agentParams, world) {
       });      
     });
 
-  var probStick = .8;
-  
   
   var expectedUtility = dp.cache(
     function(state, action, delay){
@@ -135,11 +136,13 @@ var makeAgent = hd ? makeHyperbolicDiscounter : makeRiskAgent;
 var simulate = hd? simulateHyperbolic : simulateRisk;
 
 
+var probStick = .8;
+
 var agent3 = makeAgent(
     { utility : donutUtility,
       alpha : 500, 
       discount : 1, 
-      probStick: .8
+      probStick: probStick,
     }, world);
 var out = simulate(start, world, agent3, 13,'all');
 console.log( 'simulateHyperbolic(start, world, agent, 13);', 
