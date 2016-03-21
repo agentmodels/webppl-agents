@@ -29,7 +29,7 @@ var utility = function(state,action){
 };
 
 var agentParams = {utility: utility,
-		   alpha: 10000,
+		   alpha: 100,
 		   priorBelief: prior,
 		   fastUpdateBelief: false};
 
@@ -46,8 +46,6 @@ var displayTrajectory = function(trajectory) {
   var flatLocsActions = _.flatten(locsActions);
   return flatLocsActions.slice(1, flatLocsActions.length - 1);
 };
-
-var eu = agent.expectedUtilityBelief;
 
 var f = function() {
   var trajectory = simulateBeliefAgent(startState, world, agent, 'stateAction');

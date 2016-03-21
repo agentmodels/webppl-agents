@@ -52,7 +52,7 @@ var simulate = function(startState, world, agent) {
     var delay = 0;
     var action = sample(act(state, delay));
     var nextState = transition(state, action); 
-    var out = [state,action]
+    var out = [state,action];
     return state.terminateAfterAction ?
       [out] : [out].concat(sampleSequence(nextState));
   };

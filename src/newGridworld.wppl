@@ -144,6 +144,6 @@ var makeGridWorld = function(features, options) {
   return update(gridMap,
     { transition : transition, 
       actions    : actions,
-      stateToActions    : stateToActions,
+      stateToActions    : stateToActions
     });
 };

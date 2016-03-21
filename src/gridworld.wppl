@@ -609,7 +609,7 @@ var mdpSimulateGridworld = function(startState, totalTime, params, numRejectionS
       if (timeLeft == 0 | isTerminal(state)){
         return [[state,action]];
       } else {
-        return [[state,action]].concat( sampleSequence(nextState,timeLeft-1 ))
+        return [[state,action]].concat( sampleSequence(nextState,timeLeft-1 ));
       }
     };
     return Rejection(function(){return sampleSequence(startState, totalTime);}, numRejectionSamples);
@@ -617,13 +617,3 @@ var mdpSimulateGridworld = function(startState, totalTime, params, numRejectionS
 
   return simulate(startState, totalTime);
 };
-
-
-
-
-
-
-
-
-
-
