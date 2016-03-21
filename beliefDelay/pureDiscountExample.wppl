@@ -80,31 +80,30 @@ var pomdpUtilityFromManifestUtility = function(utility) {
   };
 };
 
-// see what the agent does with the parameters we want to infer to check if we're right
-
-// var agent = makeBeliefDelayAgent({
-//   priorBelief : agentPrior,
-//   utility : pomdpUtilityFromManifestUtility(makeDonutUtility(world, vegUtilityTable)),
-//   // utility : pomdpUtilityFromManifestUtility(makeDonutUtility(world, donutUtilityTable)),
-//   alpha : 100,
-//   noDelays: false,
-//   discount: 1,
-//   sophisticatedOrNaive: 'sophisticated',
-//   myopia: {on: false, bound: 0},
-//   boundVOI: {on: false, bound: 0}
-// }, world);
-
-
-// var trajectory = simulateBeliefDelayAgent(startState, world, agent, 'states');
-
-// var locs = map(function(state) {return state.manifestState.loc;}, trajectory);
-
-// console.log(locs);
-// ash();
-
-
 // PATH WE CONDITION ON
 var path = [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]];
+
+
+// see what the agent does with the parameters we want to infer to check if we're right
+var testAgent = makeBeliefDelayAgent({
+  priorBelief : agentPrior,
+  utility : pomdpUtilityFromManifestUtility(makeDonutUtility(world, vegUtilityTable)),
+  alpha : 100,
+  noDelays: false,
+  discount: 100,//1,
+  sophisticatedOrNaive: 'naive',
+  myopia: {on: false, bound: 0},
+  boundVOI: {on: false, bound: 0}
+}, world);
+
+
+var testLocations = trajectoryToLocations(
+  simulateBeliefDelayAgent(startState, world, testAgent, 'states'));
+console.log('test', testLocations);
+assert.ok( arraysEqual(path, testLocations.slice(0,testLocations.length-1), 'check' ) );
+
+
+
 
 // INFERENCE
 
@@ -155,7 +154,7 @@ var posterior = function() {
     var agent = makeBeliefDelayAgent({
       priorBelief : agentPrior,
       utility : pomdpUtilityFromManifestUtility(makeDonutUtility(world, agentUtilityTable)),
-      alpha : 100,
+      alpha : 1000,
       noDelays: discount===0,
       discount: discount,
       sophisticatedOrNaive: sophistication,
