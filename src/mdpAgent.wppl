@@ -1,0 +1,58 @@
+// functions involving an agent in a plain gridworld MDP.
+
+var makeMDPAgent = function(params, world) {
+  // *params* should be an object containing *utility*, a utility function, and
+  // *alpha*, which regulates the agent's softmax noise.
+  map(function(s){assert.ok(params.hasOwnProperty(s),'makeMDPAgent args');}, 
+      ['utility','alpha']);
+  
+  var stateToActions = world.stateToActions;
+  var transition = world.transition;
+  var utility = params.utility;
+  var alpha = params.alpha;
+
+  var act = dp.cache( 
+    function(state){
+      return Enumerate(function(){
+        var action = uniformDraw(stateToActions(state));
+        var eu = expectedUtility(state, action);    
+        factor(alpha * eu);
+        return action;
+      });      
+    });
+  
+  var expectedUtility = dp.cache(
+    function(state, action){
+      var u = utility(state, action);
+      if (state.terminateAfterAction){
+        return u; 
+      } else {                     
+        return u + expectation( Enumerate(function(){
+          var nextState = transition(state, action); 
+          var nextAction = sample(act(nextState));
+          return expectedUtility(nextState, nextAction);  
+        }));
+      }                      
+    });
+  
+  return {
+    params : params,
+    expectedUtility : expectedUtility,
+    act: act
+  };
+};
+
+var simulateGridworldMDP = function(startState, world, agent) {
+  var act = agent.act;
+  var expectedUtility = agent.expectedUtility;
+  var transition = world.transition;
+
+  var sampleSequence = function(state) {
+    var action = sample(act(state));
+    var nextState = transition(state, action);
+    var out = [state, action];
+    return state.terminateAfterAction ? [out]
+      : [out].concat(sampleSequence(nextState));
+  };
+  return sampleSequence(startState);
+};
