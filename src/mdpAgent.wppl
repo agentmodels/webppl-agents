@@ -56,3 +56,14 @@ var simulateGridworldMDP = function(startState, world, agent) {
   };
   return sampleSequence(startState);
 };
+
+var mdpTableToUtilityFunction = function(table, feature) {
+  return function(state, action) {
+    var stateFeatureName = feature(state).name;
+    if (stateFeatureName) {
+      return table[stateFeatureName];
+    } else {
+      return table.timeCost;
+    }
+  };
+};
