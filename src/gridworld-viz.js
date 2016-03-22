@@ -216,7 +216,6 @@ function draw(world, additional) {
         var segments = (event.time - offsett)*segPerSec;
         var frac = segments % 1;
         var idx = Math.floor(Math.min(Math.floor(segments) % (trajectory.length + extraAtEnd), trajectory.length-1));
-        console.log(idx >= 0, 'idx floor in gridworld-viz') 
         
         agentPath.remove()
 
