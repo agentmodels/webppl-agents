@@ -52,6 +52,7 @@ var makeRiskAgent = function (agentParams, world) {
     });
 
 
+  // change action function to single argument
   var agent2 = dp.cache( 
     function(state, evaluateDelay, simulateActionDelay){
       return Enumerate(function(){
@@ -67,7 +68,6 @@ var makeRiskAgent = function (agentParams, world) {
     function(state, action, evaluateDelay, simulateActionDelay){
       var u = 1.0/(1 + agentParams.discount*evaluateDelay) * utility(state, action);
       
-      assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state) + " " + action + " " + delay + ' ' + utility(state, action));
       if (state.terminateAfterAction){
         return u; 
       } else {                     
@@ -106,7 +106,7 @@ var simulateRisk = function(state, world, agent, actualTotalTime, outputType) {
     
     var nextState = transition(state, action); 
     var out = {states:state, actions:action, both:[state,action],
-               all: [action,simulateDelay]}[outputType];
+               all: [state,action,simulateDelay]}[outputType];
     if (actualTimeLeft==0 || state.terminateAfterAction){
       return [out];
     } else {
@@ -131,46 +131,68 @@ var donutUtility = makeDonutUtility(world, {
     'Noodle': [0, 0]
 });
 
+var locToFeature = function(loc){
+  if (arraysEqual(loc,[4,7])){return 'veg'};
+  if (arraysEqual(loc,[2,5])){return 'donut North'};
+  if (arraysEqual(loc,[0,0])){return 'donut south'};
+};
+
+
 var hd = false;
 var makeAgent = hd ? makeHyperbolicDiscounter : makeRiskAgent;
 var simulate = hd? simulateHyperbolic : simulateRisk;
 
 
-var probStick = .8;
 
-var agent3 = makeAgent(
+var runRiskAgent = function(probStick){
+  var agent = makeAgent(
     { utility : donutUtility,
       alpha : 500, 
       discount : 1, 
       probStick: probStick,
     }, world);
-var out = simulate(start, world, agent3, 13,'all');
-console.log( 'simulateHyperbolic(start, world, agent, 13);', 
-             out);
+  var out = simulate(start, world, agent, 14,'all');
+  var locs = _.map(_.map(out,0), 'loc');
+  var actions = _.map(out, 1);
+  var delays = _.map(out,2);
+  var lastState = locToFeature(last(locs));
+  console.log( 'simulateHyperbolic(start, world, agent, 13);', 
+               zip(actions, delays));
+  console.log('locs: ', locs);
+  console.log('ended at:', lastState);
+  if (out.length==12){console.log('length of long route')};
+  if (out.length==8){console.log('length of temptation route')};
+  if (out.length==10){console.log('length of direct route')};
 
+  //if (out.lenght
+  return {lastState:lastState};
+};
+
+runRiskAgent(.99);
+
+var out =  Rejection(function(){return runRiskAgent(.8).lastState;},20,undefined, true );
+printERP(out);
+
+  
 ash();
 
-var agent = makeAgent(
+var runAgent = function(sophisticatedOrNaive){
+  var agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
       discount : 1, 
-      sophisticatedOrNaive  : 'sophisticated',
+      sophisticatedOrNaive  : sophisticatedOrNaive,
     }, world);
-console.log( 'simulateHyperbolic(start, world, agent, 13);', 
-             map(second, simulate(start, world, agent, 13,'both')));
-
-
-var agent2 = makeAgent(
-    { utility : donutUtility,
-      alpha : 500, 
-      discount : 1, 
-      sophisticatedOrNaive  : 'naive' 
-    }, world);
+  var locs = _.map(simulateHyperbolic(start, world, agent, 13,'states'),'loc');
+  console.log( 'simulateHyperbolic(start, world, agent, 13)  ' + sophisticatedOrNaive, locs);
+  console.log('ended at: ', locToFeature(last(locs)));
+               
+};
+runAgent('sophisticated');
+runAgent('naive');
 
 
 
-console.log( 'simulateHyperbolic(start, world, agent, 13);', 
-             map(second, simulate(start, world, agent2, 13,'both')));
 
 
 ash();
