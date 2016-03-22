@@ -36,8 +36,9 @@ function convertDraw(world, additional) {
   var featureLabels = _.map( filterHasName(xyf), function (a) { 
     return { point : a.pos, content : a.feat.name } 
   })
-  var labels = additional.labels ? additional.labels.concat(featureLabels) :
-      featureLabels;
+
+  var additionalLabels = additional.labels || [];
+  var labels = additionalLabels.concat(featureLabels) : featureLabels;
 
   var trajectory = _.map(additional.trajectory, function(state) { 
     return [state.loc, ''];
