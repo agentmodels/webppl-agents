@@ -155,9 +155,9 @@ var makeHike = function(transitionNoiseProb, options) {
 	 [ _ ,  _ ,  _ ,  _ ,  _ ,  _ ],
 	 [ H ,  H ,  H ,  H ,  H ,  H ]];
 
-  var features = options.big ? bigFeatures : smallFeatures;
+  var options_ = options ? options : {big: false};
   
-  var options_ = options ? options : {};
+  var features = options_.big ? bigFeatures : smallFeatures;
   
   return makeNoisyGridworld(features, options_, transitionNoiseProb);
 };
@@ -198,7 +198,7 @@ var makeGridWorld = function(features, options) {
 
 
 var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
-  var defaults = { noReverse: true, maxTimeAtRestaurant : 1 };
+  var defaults = { noReverse: false, maxTimeAtRestaurant : 1 };
 
   var options = update(defaults, inputOptions);
   var gridMap = makeGridMap(features); 

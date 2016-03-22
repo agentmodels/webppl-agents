@@ -42,15 +42,23 @@ var makeMDPAgent = function(params, world) {
   };
 };
 
-var simulateGridworldMDP = function(startState, world, agent) {
+var simulateMDP = function(startState, world, agent, outputType) {
+  // if outputType is undefined, default to stateAction
   var act = agent.act;
   var expectedUtility = agent.expectedUtility;
   var transition = world.transition;
 
+  var selectOutput = function(state, action) {
+    var table = {states: state,
+		 actions: action,
+		 stateAction: [state, action]};
+    return outputType ? table[outputType] : table.stateAction;
+  };
+
   var sampleSequence = function(state) {
     var action = sample(act(state));
     var nextState = transition(state, action);
-    var out = [state, action];
+    var out = selectOutput(state, action);
     return state.terminateAfterAction ? [out]
       : [out].concat(sampleSequence(nextState));
   };
@@ -63,4 +71,16 @@ var mdpTableToUtilityFunction = function(table, feature) {
     
     return stateFeatureName ? table[stateFeatureName] : table.timeCost;
   };
+};
+
+// *trajectory* must be a trajectory of states
+var getExpectedUtilitiesMDP = function(stateTrajectory, world, agent) {
+  var stateToActions = world.stateToActions;
+  var eu = agent.expectedUtility;
+  var getAllExpectedUtilities = function(state) {
+    var availableActions = stateToActions(state);
+    return [state, map(function(action){return eu(state, action);},
+		       availableActions)];
+  };
+  return map(getAllExpectedUtilities, stateTrajectory);
 };
