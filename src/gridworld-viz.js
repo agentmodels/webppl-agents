@@ -38,7 +38,7 @@ function convertDraw(world, additional) {
   })
 
   var additionalLabels = additional.labels || [];
-  var labels = additionalLabels.concat(featureLabels) : featureLabels;
+  var labels = additionalLabels.concat(featureLabels);
 
   var trajectory = _.map(additional.trajectory, function(state) { 
     return [state.loc, ''];
