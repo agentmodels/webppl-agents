@@ -13,7 +13,7 @@ function createCanvas(element, options) {
 function convertDraw(world, additional) {
   var additional = additional || {}; 
 
-  var out = _.flatten(
+  var xyf = _.flatten(
     _.map( world.features, 
            function (val, y) {
              return _.map(val, function (feat, x) { 
