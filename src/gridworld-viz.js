@@ -14,19 +14,12 @@ function convertDraw(world, additional) {
   var additional = additional || {}; 
 
   var xyf = _.flatten(
-    _.map( world.features, 
-           function (val, y) {
+    _.map( world.features, function (val, y) {
              return _.map(val, function (feat, x) { 
-               return { feat : feat, 
-                        pos : [x, y]};
-             })}));
-  
-  
-  // var xyf = _(world.features)
-  //     .flatMap(function (val, y) {
-  //       return _.map(val, function (feat, x) { return { feat : feat, pos : [x, y]};})})
-  //     .value();
-  
+               return { feat : feat, pos : [x, y]};
+             })}
+         ));
+    
   var filterHasName = function(ar){
     return _.filter(ar, function(x){return x.feat.name;});
   };
@@ -43,7 +36,8 @@ function convertDraw(world, additional) {
   var featureLabels = _.map( filterHasName(xyf), function (a) { 
     return { point : a.pos, content : a.feat.name } 
   })
-  var labels = additional.labels.concat(featureLabels);
+  var labels = additional.labels ? additional.labels.concat(featureLabels) :
+      featureLabels;
 
   var trajectory = _.map(additional.trajectory, function(state) { 
     return [state.loc, ''];
