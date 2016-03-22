@@ -13,11 +13,27 @@ function createCanvas(element, options) {
 function convertDraw(world, additional) {
   var additional = additional || {}; 
 
-  var xyf = _(world.features)
-    .flatMap(function (val, y) {
-      return _.map(val, function (feat, x) { return { feat : feat, pos : [x, y]};})})
-    .value();
+  // flatten and then map.
+  // map and filter may not work. map -> pluck. 
 
+  
+
+  var features = world.features;
+  var out = _.flatten(
+    _.map( features, 
+           function (val, y) {
+             return _.map(val, function (feat, x) { 
+               return { feat : feat, 
+                        pos : [x, y]};
+             })}));
+  console.log('convertDraw out', convertDraw);
+  
+  var xyf = _(world.features)
+      .flatMap(function (val, y) {
+        return _.map(val, function (feat, x) { return { feat : feat, pos : [x, y]};})})
+      .value();
+  
+    
   var blocked  = _.map(_.filter(xyf, { feat : '#' }), 'pos');
   var terminal = _.map(_.filter(xyf, 'feat.name'   ), 'pos');
 
