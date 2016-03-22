@@ -1,5 +1,5 @@
 var paper = require('paper');
-var _ = require('lodash');
+
 
 function createCanvas(element, options) {
   var canvas = document.createElement('canvas');
@@ -13,29 +13,25 @@ function createCanvas(element, options) {
 function convertDraw(world, additional) {
   var additional = additional || {}; 
 
-  // flatten and then map.
-  // map and filter may not work. map -> pluck. 
-
-  
-
-  var features = world.features;
   var out = _.flatten(
-    _.map( features, 
+    _.map( world.features, 
            function (val, y) {
              return _.map(val, function (feat, x) { 
                return { feat : feat, 
                         pos : [x, y]};
              })}));
-  console.log('convertDraw out', convertDraw);
   
-  var xyf = _(world.features)
-      .flatMap(function (val, y) {
-        return _.map(val, function (feat, x) { return { feat : feat, pos : [x, y]};})})
-      .value();
   
-    
-  var blocked  = _.map(_.filter(xyf, { feat : '#' }), 'pos');
-  var terminal = _.map(_.filter(xyf, 'feat.name'   ), 'pos');
+  // var xyf = _(world.features)
+  //     .flatMap(function (val, y) {
+  //       return _.map(val, function (feat, x) { return { feat : feat, pos : [x, y]};})})
+  //     .value();
+  
+  var filterHasName = function(ar){
+    return _.filter(ar, function(x){return x.feat.name;});
+  };
+  var blocked  = _.map(_.filter(xyf, function(x){return x.feat=='#';}), 'pos');
+  var terminal = _.map(filterHasName(xyf), 'pos');
 
   var world2 = {
     blockedStates : blocked, 
@@ -44,7 +40,7 @@ function convertDraw(world, additional) {
     yLim : world.yLim
   };
 
-  var featureLabels = _.map(_.filter(xyf, 'feat.name'), function (a) { 
+  var featureLabels = _.map( filterHasName(xyf), function (a) { 
     return { point : a.pos, content : a.feat.name } 
   })
   var labels = _.concat(additional.labels, featureLabels);
@@ -224,8 +220,9 @@ function draw(world, additional) {
 
         var segments = (event.time - offsett)*segPerSec;
         var frac = segments % 1;
-        var idx = _.toInteger(Math.min(Math.floor(segments) % (trajectory.length + extraAtEnd), trajectory.length-1));
-
+        var idx = Math.floor(Math.min(Math.floor(segments) % (trajectory.length + extraAtEnd), trajectory.length-1));
+        console.log(idx >= 0, 'idx floor in gridworld-viz') 
+        
         agentPath.remove()
 
         var currentLocation;

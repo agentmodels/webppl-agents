@@ -152,6 +152,7 @@ var makeHike = function(transitionNoiseProb) {
   return makeNoisyGridworld(features, options, transitionNoiseProb);
 };
 
+
 var makeGridWorld = function(features, options) {
   var defaults = { noReverse : false, maxTimeAtRestaurant : 1 };
 
