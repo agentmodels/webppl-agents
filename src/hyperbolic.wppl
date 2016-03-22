@@ -52,7 +52,7 @@ var makeHyperbolicDiscounter = function (agentParams, world) {
   return {
     agentParams : agentParams,
     expectedUtility : expectedUtility,
-    agent : agent,
+    agent : agent
   };
 };
 

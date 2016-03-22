@@ -140,13 +140,23 @@ var makeHike = function(transitionNoiseProb, options) {
   var E = {name: 'East'};
   var _ = ' ';
   
-  var features =
+  var smallFeatures =
 	[[ _ ,  _ ,  _ ,  _ ,  _ ],
 	 [ _ , '#',  _ ,  _ ,  _ ],
 	 [ _ , '#',  W , '#',  E ],
 	 [ _ ,  _ ,  _ ,  _ ,  _ ],
 	 [ H ,  H ,  H ,  H ,  H ]];
 
+  var bigFeatures =
+	[[ _ ,  _ ,  _ ,  _ ,  _ ,  _ ],
+	 [ _ ,  _ ,  _ ,  _ ,  _ ,  _ ],
+	 [ _ ,  _ , '#',  _ ,  _ ,  _ ],
+	 [ _ ,  _ , '#',  W , '#',  E ],
+	 [ _ ,  _ ,  _ ,  _ ,  _ ,  _ ],
+	 [ H ,  H ,  H ,  H ,  H ,  H ]];
+
+  var features = options.big ? bigFeatures : smallFeatures;
+  
   var options_ = options ? options : {};
   
   return makeNoisyGridworld(features, options_, transitionNoiseProb);
