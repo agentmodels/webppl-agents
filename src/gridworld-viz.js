@@ -43,7 +43,7 @@ function convertDraw(world, additional) {
   var featureLabels = _.map( filterHasName(xyf), function (a) { 
     return { point : a.pos, content : a.feat.name } 
   })
-  var labels = _.concat(additional.labels, featureLabels);
+  var labels = additional.labels.concat(featureLabels);
 
   var trajectory = _.map(additional.trajectory, function(state) { 
     return [state.loc, ''];
@@ -235,7 +235,8 @@ function draw(world, additional) {
           currentLocation = coords[idx];
         }
 
-        var currentPath = _.take(coords, idx+1);
+        var lodashTake = function(ar,n){return ar.slice(0,n);};
+        var currentPath = lodashTake(coords, idx+1);
         currentPath.push(currentLocation);
 
         if (paths) {
