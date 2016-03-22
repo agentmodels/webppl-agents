@@ -185,7 +185,8 @@ var makeGridWorld = function(features, options) {
     });
 };
 
-var makeNoisyGridWorld = function(features, inputOptions, transitionNoiseProb) {
+
+var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
   var defaults = { noReverse: true, maxTimeAtRestaurant : 1 };
 
   var options = update(defaults, inputOptions);

@@ -15,7 +15,7 @@ var makeMDPAgent = function(params, world) {
     function(state){
       return Enumerate(function(){
         var action = uniformDraw(stateToActions(state));
-        var eu = expectedUtility(state, action);    
+        var eu = expectedUtility(state, action);
         factor(alpha * eu);
         return action;
       });      
@@ -60,10 +60,7 @@ var simulateGridworldMDP = function(startState, world, agent) {
 var mdpTableToUtilityFunction = function(table, feature) {
   return function(state, action) {
     var stateFeatureName = feature(state).name;
-    if (stateFeatureName) {
-      return table[stateFeatureName];
-    } else {
-      return table.timeCost;
-    }
+    
+    return stateFeatureName ? table[stateFeatureName] : table.timeCost;
   };
 };
