@@ -63,6 +63,22 @@ var makeGridTransition_ = function(gridMap, options) {
   };
 };
 
+var makeNoisyGridTransition_ = function(gridMap, options, transitionNoiseProb) {
+  var deterministicTransition = makeGridTransition_(gridMap, options);
+  // If agent selects *key*, with *transitionNoiseProb* they do one of the two
+  // orthogonal actions
+  var noiseActionTable = {u: ['l','r'],
+			  d: ['l','r'],
+			  l: ['u','d'],
+			  r: ['u','d']};
+
+  return function(state,action){
+    return flip(1-transitionNoiseProb) ? deterministicTransition(state,action)
+      : deterministicTransition(state, uniformDraw(noiseActionTable[action]));
+  };
+};
+
+
 var makeGridMap = function(rfeatures)  { 
   var features = rfeatures.reverse();
   return { 
@@ -112,8 +128,29 @@ var makeDonutWorld2 = function(options) {
 
   var features = options.big ? big : small;
   return makeGridWorld(features, options);
-}
+};
 
+var makeHike = function(transitionNoiseProb) {
+  assert.ok(_.isFinite(transitionNoiseProb) && 0 <= transitionNoiseProb
+	    && transitionNoiseProb <= 1,
+	    'something wrong with transitionNoiseProb argument to makeHike');
+
+  var H = {name: 'Hill'};
+  var W = {name: 'West'};
+  var E = {name: 'East'};
+  var _ = ' ';
+  
+  var features =
+	[[ _ ,  _ ,  _ ,  _ ,  _ ],
+	 [ _ , '#',  _ ,  _ ,  _ ],
+	 [ _ , '#',  W , '#',  E ],
+	 [ _ ,  _ ,  _ ,  _ ,  _ ],
+	 [ H ,  H ,  H ,  H ,  H ]];
+
+  var options = {};
+  
+  return makeNoisyGridworld(features, options, transitionNoiseProb);
+};
 
 var makeGridWorld = function(features, options) {
   var defaults = { noReverse : false, maxTimeAtRestaurant : 1 };
@@ -145,5 +182,46 @@ var makeGridWorld = function(features, options) {
     { transition : transition, 
       actions    : actions,
       stateToActions    : stateToActions
+    });
+};
+
+var makeNoisyGridWorld = function(features, inputOptions, transitionNoiseProb) {
+  var defaults = { noReverse: true, maxTimeAtRestaurant : 1 };
+
+  var options = update(defaults, inputOptions);
+  var gridMap = makeGridMap(features); 
+
+  var transition = makeNoisyGridTransition_(gridMap, options,
+					    transitionNoiseProb);
+  var actions = ['l', 'r', 'u', 'd'];
+
+  var stateToActions = function (state) { 
+    var possibleActions = filter(function (action) {
+      // if noReverse, check that MAP of newState doesn't reverse you
+      var transitionERP = Enumerate(function(){
+	return transition(state, action);
+      });
+      var likelyNewState = MAP(transitionERP).val;
+      if (options.noReverse && state.previousLoc
+	  && state.previousLoc[0] === likelyNewState.loc[0]
+	  && state.previousLoc[1] === likelyNewState.loc[1]) {
+	return false;
+      } else {
+	return state.loc[0] !== likelyNewState.loc[0]
+	  || state.loc[1] !== likelyNewState.loc[1];
+      }}, actions);
+			
+
+    if (possibleActions.length > 0) {
+      return possibleActions;
+    } else { 
+      return [actions[0]];
+    }
+  };
+
+  return update(gridMap,
+    { transition : transition, 
+      actions : actions,
+      stateToActions : stateToActions
     });
 };
