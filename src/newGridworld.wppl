@@ -48,7 +48,7 @@ var moveState = function(gridMap, state, action) {
 
   var nextLoc = isAllowedState_(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
   return update(state, { loc : nextLoc });
-}
+};
 
 var makeGridTransition_ = function(gridMap, options) {
   return function(state,action){
@@ -130,7 +130,7 @@ var makeDonutWorld2 = function(options) {
   return makeGridWorld(features, options);
 };
 
-var makeHike = function(transitionNoiseProb) {
+var makeHike = function(transitionNoiseProb, options) {
   assert.ok(_.isFinite(transitionNoiseProb) && 0 <= transitionNoiseProb
 	    && transitionNoiseProb <= 1,
 	    'something wrong with transitionNoiseProb argument to makeHike');
@@ -147,9 +147,9 @@ var makeHike = function(transitionNoiseProb) {
 	 [ _ ,  _ ,  _ ,  _ ,  _ ],
 	 [ H ,  H ,  H ,  H ,  H ]];
 
-  var options = {};
+  var options_ = options ? options : {};
   
-  return makeNoisyGridworld(features, options, transitionNoiseProb);
+  return makeNoisyGridworld(features, options_, transitionNoiseProb);
 };
 
 
