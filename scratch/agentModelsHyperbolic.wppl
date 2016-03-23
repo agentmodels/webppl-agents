@@ -1,3 +1,21 @@
+var nameToPath = {
+  naive: [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]],
+  
+  sophisticated: [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
+                  [ 5, 4 ], [ 5, 5 ], [ 5, 6 ], [4, 6 ], [ 4, 7 ] ],
+  
+  donutSouth: [[3,1], [2,1], [1,1], [0,1], [0,0]],
+  
+  vegDirect: [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]]
+};
+
+var pathToName = function(path){
+  var path = path.slice(0,path.length-1);
+  var table = _.invert(nameToPath);
+  return 'path: ' + table[path];
+};
+
+
 
 
 var makeAgent = function (params, world) {
@@ -73,9 +91,9 @@ var makeRestaurantUtilityFunction = function (world, rewards) {
 
 // Construct MDP, i.e. world
 var startState = { 
-  loc : [3,0],
+  loc : [3,1],
   terminateAfterAction : false,
-  timeLeft : 13
+  timeLeft : 11
 };
 
 var world = makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2});
@@ -90,31 +108,62 @@ var restaurantUtility = makeRestaurantUtilityFunction(world, {
     'Noodle': [0, 0]
 });
 
+var donutU = [20,0];
+var vegU = [5,40];
+var restaurantUtility = makeRestaurantUtilityFunction(world, {
+  'Donut N' : donutU,
+  'Donut S' : donutU,
+  'Veg'   : vegU,
+  'Noodle': [0, 0]
+});
+
+
 var baseAgentParams = {
   utility : restaurantUtility,
   alpha : 500, 
   discount : 1
 };
 
-var sophisticatedAgent = makeAgent(
-  update(baseAgentParams, {sophisticatedOrNaive: 'sophisticated'}), 
-  world
-);
+var getLocations = function(stateActions){
+  return _.map( _.map(stateActions,0), 'loc');
+};
 
-console.log('Sophisticated trajectory', 
-            simulate(startState, world, sophisticatedAgent));
+var getPath = function(sophisticatedOrNaive){
+  var agent = makeAgent(update(baseAgentParams, 
+                               {sophisticatedOrNaive: sophisticatedOrNaive}), world);
 
-var naiveAgent = makeAgent( 
-  update(baseAgentParams, {sophisticatedOrNaive: 'naive'}), 
-  world
-);
+  var out = timeit( function(){return simulate(startState, world, agent)});
+  var locs = _.map( _.map(out.value,0), 'loc');
+  console.log('Trajectory: ' + sophisticatedOrNaive, locs,
+              '\n\n runtime', out.runtimeInMilliseconds);
+  return locs;
+};
 
-console.log('Naive trajectory', 
-            simulate(startState, world, naiveAgent));
+var priorAgentParams = function(){
+  return {
+    discount: uniformDraw([0,1]),
+    utility: restaurantUtility,
+    sophisticatedOrNaive: uniformDraw(['sophisticated', 'naive'])
+  };
+};
+
+var infer = function(observedPath){
+  return Enumerate( function(){
+    var agentParams = priorAgentParams();
+    var agent = makeAgent( update(baseAgentParams, agentParams), world);
+    var path = getLocations( simulate(startState, world, agent) );
+    condition( _.isEqual(observedPath, path) );
+    return agentParams;
+  });
+};
+
+var erp = infer(nameToPath.naive);
+
+//getPath('sophisticated');
+//getPath('naive');
 
 
 ash();
-
 
 
 

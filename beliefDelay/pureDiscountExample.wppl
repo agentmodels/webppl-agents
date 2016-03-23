@@ -22,44 +22,20 @@
 
 var nameToPath = {
   naive: [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]],
+  
   sophisticated: [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
                   [ 5, 4 ], [ 5, 5 ], [ 5, 6 ], [4, 6 ], [ 4, 7 ] ],
+  
   donutSouth: [[3,1], [2,1], [1,1], [0,1], [0,0]],
+  
   vegDirect: [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]]
 };
 
 var pathToName = function(path){
   var path = path.slice(0,path.length-1);
-
-  var namedPaths = ._keys(nameToPath);
-
-  var out = _.filter( namedPaths
-    function(namedPath){
-      return _.isEqual(path, nameToPath(namedPath)) ?
-    });
-  return out;
+  var table = _.invert(nameToPath);
+  return 'path: ' + table[path];
 };
-  
-  
-      
-
-//   if (_.isEqual(path, nameToPath(naive))
-//     return 'path is Donut North Naive';
-//   }
-//   if (_.isEqual(path,
-//                [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
-//                 [ 5, 4 ], [ 5, 5 ], [ 5, 6 ], [4, 6 ], [ 4, 7 ] ])){
-//     return 'path is Veg Sophistiated';
-//   }
-//   if (_.isEqual(path, [[3,1], [2,1], [1,1], [0,1], [0,0]])){
-//     return 'path is Donut South Direct';
-//   }
-//   if (_.isEqual(path, [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]])){
-//     return 'path is Veg direct';
-//   }
-//   return 'other path';
-// };
-
 
 
 // WORLD PARAMS
@@ -76,7 +52,7 @@ var trueLatentState = {'Donut N': true,
 
 
 // start state
-var timeLeft = 11;
+var timeLeft = 12;
 var startState = {manifestState: {loc: [3,1],
 				  terminateAfterAction: false,
 				  timeLeft: timeLeft},
@@ -101,8 +77,8 @@ var vegUtilityTable = {
 
 
 var agentTable = function(){
-  var donut = [uniformDraw([5,10]), -10];
-  var veg = [0, uniformDraw([5,10])];
+  var donut = [uniformDraw([5,10,15]), -10];
+  var veg = [0, uniformDraw([5,10,20])];
   return {
     'Donut N' : donut,
     'Donut S' : donut,
@@ -143,20 +119,14 @@ var pomdpUtilityFromManifestUtility = function(utility) {
 
 
 
-
-// PATH WE CONDITION ON
-var path = [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]];
-var sophPath = [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
-                [ 5, 4 ], [ 5, 5 ], [ 5, 6 ], [4, 6 ], [ 4, 7 ] ];
-
 // see what the agent does with the parameters we want to infer to check if we're right
 var testAgent = makeBeliefDelayAgent({
   priorBelief : agentPrior,
   utility : pomdpUtilityFromManifestUtility(makeDonutUtility(world, vegUtilityTable)),
   alpha : 1000,
   noDelays: false,
-  discount: 100,//1,
-  sophisticatedOrNaive: 'naive',
+  discount: 1,//1,
+  sophisticatedOrNaive: 'sophisticated',
   myopia: {on: false, bound: 0},
   boundVOI: {on: false, bound: 0}
 }, world);
@@ -167,10 +137,19 @@ var testLocations = function(){
     simulateBeliefDelayAgent(startState, world, testAgent, 'states')));
 };
 
-var pathDist = Rejection(testLocations, 10);
-printERP(pathDist);
-//assert.ok( arraysEqual(path, testLocations.slice(0,testLocations.length-1), 'check' ) );
-ash();
+var out = timeit( function(){
+  return trajectoryToLocations(simulateBeliefDelayAgent(startState, world, testAgent, 'states'));
+} );
+var path = out.value;
+var time = out.runtimeInMilliseconds;
+console.log('nameTo', pathToName(path),
+            '\n runtime: ', time); ash();
+
+
+// var pathDist = Rejection(testLocations, 10);
+// printERP(pathDist);
+// //assert.ok( arraysEqual(path, testLocations.slice(0,testLocations.length-1), 'check' ) );
+// ash();
 
 
 
@@ -213,10 +192,8 @@ var conditionOnPath = function (agent, path, world, startState) {
   return _conditionOnPath(startState, priorBelief, startAction, 1);
 };
 
-var posterior = function() {
-
-  var posteriorERP = Enumerate(function () { 
-
+var posterior = function(observedPath) {
+  return Enumerate(function () { 
     var agentUtilityTable = agentUtilityTableSampler();
     var discount = agentDiscountSampler();
     var sophistication = agentSophisticationSampler();
@@ -231,18 +208,23 @@ var posterior = function() {
       boundVOI: {on: false, bound: 0}
     }, world);
 
-    conditionOnPath(agent, path, world, startState);
+    conditionOnPath(agent, observedPath, world, startState);
 
     return {
-      utilityTable : agentUtilityTable,
+      utility : agentUtilityTable,
       discount: discount,
       sophistication: sophistication
     };
-
   });
-
-  printERP(posteriorERP);
 };
 
-// printERP(posterior);
-timeit(posterior);
+var getPosterior = function( observedPath ){
+  var thunk = function(){return posterior(observedPath)};
+  var out = timeit( thunk );
+  printERP(out.value);
+  console.log( 'runtime in s:', .001 * out.runtimeInMilliseconds);
+};
+
+//getPosterior( nameToPath.naive);
+getPosterior( nameToPath.sophisticated);
+
