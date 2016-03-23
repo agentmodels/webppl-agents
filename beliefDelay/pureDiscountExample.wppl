@@ -20,24 +20,45 @@
 // the realm of possibility because of softmax noise.
 
 
+var nameToPath = {
+  naive: [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]],
+  sophisticated: [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
+                  [ 5, 4 ], [ 5, 5 ], [ 5, 6 ], [4, 6 ], [ 4, 7 ] ],
+  donutSouth: [[3,1], [2,1], [1,1], [0,1], [0,0]],
+  vegDirect: [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]]
+};
+
 var pathToName = function(path){
   var path = path.slice(0,path.length-1);
-  if (_.isEqual(path, [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]])){
-    return 'path is Donut North Naive';
-  }
-  if (_.isEqual(path,
-               [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
-                [ 5, 4 ], [ 5, 5 ], [ 5, 6 ], [4, 6 ], [ 4, 7 ] ])){
-    return 'path is Veg Sophistiated';
-  }
-  if (_.isEqual(path, [[3,1], [2,1], [1,1], [0,1], [0,0]])){
-    return 'path is Donut South Direct';
-  }
-  if (_.isEqual(path, [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]])){
-    return 'path is Veg direct';
-  }
-  return 'other path';
+
+  var namedPaths = ._keys(nameToPath);
+
+  var out = _.filter( namedPaths
+    function(namedPath){
+      return _.isEqual(path, nameToPath(namedPath)) ?
+    });
+  return out;
 };
+  
+  
+      
+
+//   if (_.isEqual(path, nameToPath(naive))
+//     return 'path is Donut North Naive';
+//   }
+//   if (_.isEqual(path,
+//                [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
+//                 [ 5, 4 ], [ 5, 5 ], [ 5, 6 ], [4, 6 ], [ 4, 7 ] ])){
+//     return 'path is Veg Sophistiated';
+//   }
+//   if (_.isEqual(path, [[3,1], [2,1], [1,1], [0,1], [0,0]])){
+//     return 'path is Donut South Direct';
+//   }
+//   if (_.isEqual(path, [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]])){
+//     return 'path is Veg direct';
+//   }
+//   return 'other path';
+// };
 
 
 
@@ -53,7 +74,7 @@ var trueLatentState = {'Donut N': true,
 		       'Veg': true,
 		       'Noodle': true};
 
-var naiveTimeLeft = 9
+
 // start state
 var timeLeft = 11;
 var startState = {manifestState: {loc: [3,1],
@@ -146,10 +167,10 @@ var testLocations = function(){
     simulateBeliefDelayAgent(startState, world, testAgent, 'states')));
 };
 
-// var pathDist = Rejection(testLocations, 10);
-// printERP(pathDist);
-// //assert.ok( arraysEqual(path, testLocations.slice(0,testLocations.length-1), 'check' ) );
-//ash();
+var pathDist = Rejection(testLocations, 10);
+printERP(pathDist);
+//assert.ok( arraysEqual(path, testLocations.slice(0,testLocations.length-1), 'check' ) );
+ash();
 
 
 
