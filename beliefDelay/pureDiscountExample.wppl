@@ -19,6 +19,28 @@
 // discounter, since they would go to donut south if they were, but it's within
 // the realm of possibility because of softmax noise.
 
+
+var pathToName = function(path){
+  var path = path.slice(0,path.length-1);
+  if (_.isEqual(path, [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]])){
+    return 'path is Donut North Naive';
+  }
+  if (_.isEqual(path,
+               [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
+                [ 5, 4 ], [ 5, 5 ], [ 5, 6 ], [4, 6 ], [ 4, 7 ] ])){
+    return 'path is Veg Sophistiated';
+  }
+  if (_.isEqual(path, [[3,1], [2,1], [1,1], [0,1], [0,0]])){
+    return 'path is Donut South Direct';
+  }
+  if (_.isEqual(path, [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]])){
+    return 'path is Veg direct';
+  }
+  return 'other path';
+};
+
+
+
 // WORLD PARAMS
 
 var gridworldMDP = makeDonutWorld2({big: true, maxTimeAtRestaurant : 2});
@@ -31,10 +53,12 @@ var trueLatentState = {'Donut N': true,
 		       'Veg': true,
 		       'Noodle': true};
 
+var naiveTimeLeft = 9
 // start state
+var timeLeft = 11;
 var startState = {manifestState: {loc: [3,1],
 				  terminateAfterAction: false,
-				  timeLeft: 14},
+				  timeLeft: timeLeft},
 		  latentState: trueLatentState};
 
 // POTENTIAL AGENT PARAMS
@@ -54,6 +78,19 @@ var vegUtilityTable = {
     'Noodle': [0, 0]
 };
 
+
+var agentTable = function(){
+  var donut = [uniformDraw([5,10]), -10];
+  var veg = [0, uniformDraw([5,10])];
+  return {
+    'Donut N' : donut,
+    'Donut S' : donut,
+    'Veg'   : veg,
+    'Noodle': [0, 0]
+  };
+};
+                         
+  
 // the agent's prior
 var agentPrior = getPriorBeliefGridworld( startState.manifestState,
 					  function(){
@@ -65,9 +102,11 @@ var agentPrior = getPriorBeliefGridworld( startState.manifestState,
 var agentUtilityTableSampler = function() {
   return uniformDraw([donutUtilityTable, vegUtilityTable]);
 };
+var agentUtilityTableSampler = agentTable;
+
 
 var agentDiscountSampler = function() {
-  return uniformDraw([0, 1, 100]);
+  return uniformDraw([0, .1, 1]);
 };
 
 var agentSophisticationSampler = function() {
@@ -80,15 +119,20 @@ var pomdpUtilityFromManifestUtility = function(utility) {
   };
 };
 
+
+
+
+
 // PATH WE CONDITION ON
 var path = [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]];
-
+var sophPath = [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
+                [ 5, 4 ], [ 5, 5 ], [ 5, 6 ], [4, 6 ], [ 4, 7 ] ];
 
 // see what the agent does with the parameters we want to infer to check if we're right
 var testAgent = makeBeliefDelayAgent({
   priorBelief : agentPrior,
   utility : pomdpUtilityFromManifestUtility(makeDonutUtility(world, vegUtilityTable)),
-  alpha : 100,
+  alpha : 1000,
   noDelays: false,
   discount: 100,//1,
   sophisticatedOrNaive: 'naive',
@@ -97,11 +141,15 @@ var testAgent = makeBeliefDelayAgent({
 }, world);
 
 
-var testLocations = trajectoryToLocations(
-  simulateBeliefDelayAgent(startState, world, testAgent, 'states'));
-console.log('test', testLocations);
-assert.ok( arraysEqual(path, testLocations.slice(0,testLocations.length-1), 'check' ) );
+var testLocations = function(){
+  return pathToName(trajectoryToLocations(
+    simulateBeliefDelayAgent(startState, world, testAgent, 'states')));
+};
 
+// var pathDist = Rejection(testLocations, 10);
+// printERP(pathDist);
+// //assert.ok( arraysEqual(path, testLocations.slice(0,testLocations.length-1), 'check' ) );
+//ash();
 
 
 
