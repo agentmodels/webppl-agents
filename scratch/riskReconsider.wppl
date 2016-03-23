@@ -170,7 +170,7 @@ var runRiskAgent = function(probStick){
 
 runRiskAgent(.99);
 
-var out =  Rejection(function(){return runRiskAgent(.8).lastState;},20,undefined, true );
+var out =  Rejection(function(){return runRiskAgent(.8).lastState;},2,undefined, true );
 printERP(out);
 
   
