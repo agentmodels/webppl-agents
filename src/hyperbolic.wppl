@@ -56,9 +56,6 @@ var makeHyperbolicDiscounter = function (params, world) {
     expectedUtility : expectedUtility,
     act: act
   };
-
-
-  
 };
 
 var simulateHyperbolic = function(startState, world, agent) {
