@@ -1,8 +1,10 @@
 
 
-
-
 var makeHyperbolicAgent = function (params, world) {
+  map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeAgent args: ' + s + '; ' + JSON.stringify(agentParams));}, 
+      ['utility','alpha','discount','sophisticatedOrNaive']);
+  
+  
   var stateToActions = world.stateToActions;
   var transition = world.transition;
   var utility = params.utility;

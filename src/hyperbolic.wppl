@@ -122,3 +122,9 @@ var mdpSim = function(start, world, agent, actualTotalTime) {
 
   GridWorld.draw(world, {trajectory : trajectory, paths : trajectoryPlans });
 }
+
+
+
+
+
+
