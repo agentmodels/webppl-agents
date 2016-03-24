@@ -1,6 +1,7 @@
 
 
-var nameToPath = {
+
+var nameToPathBig = {
   naive: [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]],
   
   sophisticated: [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
@@ -11,9 +12,18 @@ var nameToPath = {
   vegDirect: [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]]
 };
 
-var pathToName = function(path){
-  var path = path.slice(0,path.length-1);
-  var table = _.invert(nameToPath);
+var nameToPathSmall = {
+  naive: [[2,1], [2,2], [2,3], [2,4], [1,4]],
+  sophisticated: [[2,1], [2,2], [2,3], [3,3], [4,3], [4,4], [4,5], [3,5], [3,6]]
+};
+
+var nameToPath = function(name, bigOrSmall){
+  return bigOrSmall == 'big' ? nameToPathBig[name] : nameToPathSmall[name];
+};
+
+var pathToName = function(path, bigOrSmall){
+  var path = path.slice(0, path.length-1);
+  var table = bigOrSmall == 'big' ?  _.invert(nameToPathBig) : _.invert(nameToPathSmall);
   return 'path: ' + table[path];
 };
 
@@ -103,56 +113,8 @@ var makeRestaurantUtilityFunction = function (world, rewards) {
     var feature = getFeature(state);
 
     if (feature.name) { return rewards[feature.name][state.timeAtRestaurant]; }
-    return -0.01;
+    return -.1;
   };
-};
-
-
-// Construct MDP, i.e. world
-var startState = { 
-  loc : [3,1],
-  terminateAfterAction : false,
-  timeLeft : 11
-};
-var world = makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2});
-
-
-// Construct hyperbolic discounting agent
-
-var getRestaurantParamsHyperbolic = function(world, donut, veg, discount, sophisticatedOrNaive){
-  var utilityTable = {
-    'Donut N' : donut,
-    'Donut S' : donut,
-    'Veg'   : veg,
-    'Noodle': [0, 0]
-  };
-  
-  return {
-    alpha: 500,
-    discount: discount,
-    sophisticatedOrNaive: sophisticatedOrNaive,
-    utility: makeRestaurantUtilityFunction(world,utilityTable)
-  };
-}; 
-
-var priorUtilityTable = function(){
-  var donut = [uniformDraw([5,10,15,20]), 0];
-  var veg = [0, uniformDraw([5,10,15,20])];
-  return {'Donut N' : donut,
-          'Donut S' : donut,
-          'Veg'   : veg,
-          'Noodle': [0, 0]
-         };
-};
-
-
-var priorDiscounting = function(){
-  //var discount = categorical([.5, .25, .25], [0, 1, 5]);
-  var discount = uniformDraw([0,1]);
-  var sophisticatedOrNaive = uniformDraw(['sophisticated', 'naive']);
-  
-
-  return {discount: discount, sophisticatedOrNaive: sophisticatedOrNaive};
 };
 
 var getHyperbolicParams = function(utilityTable, discounting, alpha, world){
@@ -164,34 +126,96 @@ var getHyperbolicParams = function(utilityTable, discounting, alpha, world){
   };
 };
 
-var infer = function(observedPath){
+
+
+// Construct MDP, i.e. world
+var getWorldStart = function(bigOrSmall){
+  var isBig = bigOrSmall=='big';
+  var loc = isBig ? [3,1] : [2,1];
+  var timeLeft = isBig ? 11 : 10;
+  
+  return { start: { loc : loc,
+                    terminateAfterAction : false,
+                    timeLeft : timeLeft
+                  },
+           world: makeDonutWorld2({ big : isBig, maxTimeAtRestaurant : 2})
+         };
+};
+
+  
+// Construct hyperbolic discounting agent
+var priorUtilityTable = function(){
+  var donut = [uniformDraw([0,5,10,20]), 0];
+  var veg = [ 0, uniformDraw([0,5,10,20,30])];
+  return {'Donut N' : donut,
+          'Donut S' : donut,
+          'Veg'   : veg,
+          'Noodle': [0, 0]
+         };
+};
+
+var priorDiscounting = function(){
+  var discount = uniformDraw([0, 1, 1.5]);
+  var sophisticatedOrNaive = uniformDraw(['sophisticated', 'naive']);
+  return {discount: discount, sophisticatedOrNaive: sophisticatedOrNaive};
+};
+
+
+var infer = function(observedPath, world, startState){
   return Enumerate( function(){
     var utilityTable = priorUtilityTable();
     var discounting = priorDiscounting();
-    var agent = makeAgent( getHyperbolicParams(utilityTable, discounting,500, world), world);
-    var fullPath = getLocations( simulate(startState, world, agent) );
-    var path = fullPath.slice(0,fullPath.length-1);
+    
+    var agent = makeAgent( getHyperbolicParams(utilityTable, discounting, 500, world), world);
+    var trajectory = Rejection( function(){return simulate(startState, world, agent);}, 1).MAP().val; 
+    var path = getLocations(trajectory).slice(0,trajectory.length-1 );
+    //console.log('path: ', path, ' \n', utilityTable);
     condition( _.isEqual(observedPath, path) );
     return {utility:utilityTable, discounting: discounting};
   });
 };
 
-var erp = infer(nameToPath.naive);
-printERP(erp);
-ash();
+var bigOrSmall = 'big';
+var world = getWorldStart(bigOrSmall).world;
+var startState = getWorldStart(bigOrSmall).start;
 
-console.log('\nSOPH');
-var erp = infer(nameToPath.sophisticated);
-printERP(erp);
-
-ash();
-getPath('sophisticated');
-//getPath('naive');
+// var erp = infer( nameToPath('naive', bigOrSmall), world, startState );
+// printERP(erp);
+// console.log('\n\n MAP: ', erp.MAP());
 
 
-ash();
+// console.log('\nSOPH');
+// var erp = infer( nameToPath('sophisticated', bigOrSmall), world, startState );
+// printERP(erp);
+// console.log('\n\n MAP: ', erp.MAP());
+
+// ash();
 
 
+var testAgent = function(){
+  var worldStart = { start: { loc : [3,1],
+                              terminateAfterAction : false,
+                              timeLeft : 12
+                            },
+                     world: makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2})
+                   };
+  var donut = [10,0];
+  var veg = [5,25];
+  var utilityTable = {'Donut N' : donut,
+                      'Donut S' : donut,
+                      'Veg'   : veg,
+                      'Noodle': [0, 0]
+                     };
+  var discounting = {discount:1, sophisticatedOrNaive:'sophisticated'};
+  var alpha = 500;
+  var world = worldStart.world;
+  var params = getHyperbolicParams(utilityTable, discounting, alpha, world);
+  var agent = makeAgent(params,world);
+  var fullPath = getLocations( simulate(worldStart.start, world, agent) );
+  return fullPath;
+};
+
+console.log('testAgent', testAgent());
 
 
 
