@@ -29,7 +29,7 @@ var actual_agent = makeHyperbolicDiscounter(
       discount : 1, 
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
-var observed = simulateHyperbolic(start, world, actual_agent, start.timeLeft, 'both');
+var observed = simulateHyperbolic(start, world, actual_agent);
 
 
 // Inference only on utilities of Donut and Veg
@@ -61,7 +61,7 @@ var posterior = Enumerate(function () {
         discount  : discount, 
         sophisticatedOrNaive  : type,
       }, world);
-  var agentAction = agent.agent;
+  var agentAction = agent.act;
 
   map(function (stateAction) {
     var state   = stateAction[0];
@@ -75,4 +75,6 @@ var posterior = Enumerate(function () {
          };
 });
 
+
 if (typeof(document) !== 'undefined') { viz.print(posterior); }
+else {printERP(posterior);}

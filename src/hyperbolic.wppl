@@ -9,75 +9,76 @@ var makeDonutUtility = function (world, rewards) {
 };
 
 
-var makeHyperbolicDiscounter = function (agentParams, world) {
-  map(function(s){assert.ok(agentParams.hasOwnProperty(s),'makeAgent args: ' + s + '; ' + JSON.stringify(agentParams));}, 
-      ['utility','alpha','discount','sophisticatedOrNaive']);
+var makeHyperbolicDiscounter = function (params, world) {
 
+  assert.ok(hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive'], 'makeDiscounter params'));
+  
+  
   var stateToActions = world.stateToActions;
   var transition = world.transition;
-  var utility = agentParams.utility;
+  var utility = params.utility;
 
+  var discountFunction = function(delay){
+    return 1/(1 + params.discount*delay);
+  };
+
+  var isNaive = params.sophisticatedOrNaive=='naive';
     
-  var agent = dp.cache( 
+  var act = dp.cache( 
     function(state, delay){
       return Enumerate(function(){
-        var possibleActions = stateToActions(state);
-        var action = uniformDraw(possibleActions);
+        var action = uniformDraw(stateToActions(state));
         var eu = expectedUtility(state, action, delay);    
-        factor(agentParams.alpha * eu);
+        factor(params.alpha * eu);
         return action;
       });      
     });
-
   
   var expectedUtility = dp.cache(
     function(state, action, delay){
-      var u = 1.0/(1 + agentParams.discount*delay) * utility(state, action);
+      var u = discountFunction(delay) * utility(state, action);
       
-      assert.ok(u === u,"utility not valid " + u + " " + JSON.stringify(state) + " " + action + " " + delay + ' ' + utility(state, action));
+      assert.ok(!_.isUndefined(u),"utility undefind" + JSON.stringify([state, action, delay, utility(state, action)]));
+      
       if (state.terminateAfterAction){
         return u; 
       } else {                     
         return u + expectation( Enumerate(function(){
           var nextState = transition(state, action); 
-
-          var perceivedDelay = { naive : delay + 1, sophisticated : 0}[agentParams.sophisticatedOrNaive]; 
-          var nextAction = sample(agent(nextState, perceivedDelay));
+          var perceivedDelay = isNaive ? delay + 1 : 0;
+          var nextAction = sample(act(nextState, perceivedDelay));
           return expectedUtility(nextState, nextAction, delay+1);  
         }));
       }                      
     });
-
-
+  
   return {
-    agentParams : agentParams,
+    params : params,
     expectedUtility : expectedUtility,
-    agent : agent
+    act: act
   };
+
+
+  
 };
 
-var simulateHyperbolic = function(state, world, agent, actualTotalTime, outputType) { 
-  var perceivedTotalTime = state.timeLeft;
-  assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work');
-
-
-  var agentAction = agent.agent;
+var simulateHyperbolic = function(startState, world, agent, actualTotalTime) {
+  var act = agent.act;
   var expectedUtility = agent.expectedUtility;
   var transition = world.transition;
 
-  var sampleSequence = function (state, actualTimeLeft) {
-      var action = sample(agentAction(state, 0));
-      var nextState = transition(state, action); 
-      var out = {states:state, actions:action, both:[state,action]}[outputType];
-    if (actualTimeLeft==0 || state.terminateAfterAction){
-      return [out];
-    } else {
-      return [ out ].concat( sampleSequence(nextState, actualTimeLeft-1));
-    }
-
+  var sampleSequence = function (state) {
+    var delay = 0;
+    var action = sample(act(state, delay));
+    var nextState = transition(state, action); 
+    var out = [state,action];
+    return state.terminateAfterAction ?
+      [out] : [out].concat(sampleSequence(nextState));
   };
-  return sampleSequence(state, actualTotalTime);
+  return sampleSequence(startState);
 };
+
+
 
 // TODO merge with simulate, use a more descriptive name. It seems that
 // ideally we'd use the MAP path, and the 
@@ -85,7 +86,7 @@ var MAPActionPath = function(state, world, agent, actualTotalTime, statesOrActio
   var perceivedTotalTime = state.timeLeft;
   assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work' + JSON.stringify(state));
 
-  var agentAction = agent.agent;
+  var agentAction = agent.act;
   var expectedUtility = agent.expectedUtility;
   var transition = world.transition;
 

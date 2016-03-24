@@ -19,7 +19,7 @@ var actual_agent = makeHyperbolicDiscounter(
       discount : 1, 
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
-var observed = simulateHyperbolic(start, world, actual_agent, 12, 'both');
+var observed = simulateHyperbolic(start, world, actual_agent);
 
 var posterior = timeit( function () {
 MH(function () {
@@ -42,7 +42,7 @@ MH(function () {
         discount : discount, 
         sophisticatedOrNaive  : type,
       }, world);
-  var agentAction = agent.agent;
+  var agentAction = agent.act;
 
   map(function (stateAction) {
     var state = stateAction[0];
@@ -56,3 +56,4 @@ MH(function () {
 
 });
 if (typeof(document) !== 'undefined') { viz.print(posterior.value); }
+else {printERP(posterior.value)}
