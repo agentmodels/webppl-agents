@@ -112,6 +112,7 @@ var makeBeliefDelayAgent = function (params, world){
         Enumerate(function () {
           var state = sampleBelief(belief);
           var u = 1.0 / (1 + params.discount * delay) * utility(state, action);
+	  console.log(u);
           if (shouldTerminate(state, delay)){
             return u;
           } else {

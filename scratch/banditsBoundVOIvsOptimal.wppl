@@ -1,0 +1,126 @@
+// TODO: print out nicely
+
+// pretty sure something is screwy here, but not sure what
+// my suspicion is that one or both of these agents are not doing what I expect
+// them to be doing.
+
+// boundVOI agent is always 50/50, and not seeing many positive utilities. weird.
+
+var world = makeStochasticBanditWorld(2);
+var worldObserve = world.observe;
+var observe = getFullObserve(worldObserve);
+var transition = world.transition;
+
+var probablyChampagneERP = categoricalERP([0.4, 0.6], ['nothing', 'champagne']);
+var probablyNothingERP = categoricalERP([0.6, 0.4], ['nothing', 'champagne']);
+
+var trueLatent = {0: probablyNothingERP,
+		  1: probablyChampagneERP};
+
+var timeLeft = 7;
+
+var startState = buildStochasticBanditStartState(timeLeft, trueLatent);
+
+var prior = Enumerate(function(){
+  var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
+		     1: categorical([0.6, 0.4], [probablyChampagneERP,
+						 probablyNothingERP])};
+  return buildStochasticBanditStartState(timeLeft, latentState);
+});
+
+var prizeToUtility = {start: 0, nothing: 0, champagne: 1};
+var utility = makeStochasticBanditUtility(prizeToUtility);
+
+var optimalAgentParams = {utility: utility,
+			  alpha: 100,
+			  priorBelief: prior,
+			  fastUpdateBelief: false};
+var optimalAgent = makeBeliefAgent(optimalAgentParams, world);
+
+var myopicAgentParams = {utility: utility,
+			 alpha: 100,
+			 priorBelief: prior,
+			 sophisticatedOrNaive: 'naive',
+			 boundVOI: {on: true, bound: 1},
+			 noDelays: false,
+			 discount: 0,
+			 myopia: {on: false, bound: 0},
+			 fastUpdateBelief: false};
+var myopicAgent = makeBeliefDelayAgent(myopicAgentParams, world);
+
+// it's important that we simulate the two agents such that they get the same
+// prizes when pulling the same arms, so that we can check if their
+// actions are the same. We could not ensure this by simply simulating one agent
+// and then the other.
+var sampleTwoSequences = function(states, priorBeliefs, actions) {
+  var optimalState = states[0];
+  var optimalPriorBelief = priorBeliefs[0];
+  var optimalAction = actions[0];
+
+  var optimalAct = optimalAgent.act;
+  var optimalUpdateBelief = optimalAgent.updateBelief;
+  
+  var myopicState = states[1];
+  var myopicPriorBelief = priorBeliefs[1];
+  var myopicAction = actions[1];
+  
+  var myopicAct = myopicAgent.act;
+  var myopicUpdateBelief = myopicAgent.updateBelief;
+
+  var optimalObservation = observe(optimalState);
+  var myopicObservation = observe(myopicState);
+  
+  var delay = 0;
+
+  var newMyopicBelief = myopicUpdateBelief(myopicPriorBelief, myopicObservation,
+					   myopicAction, delay);
+  var newOptimalBelief = optimalUpdateBelief(optimalPriorBelief,
+					     optimalObservation, optimalAction,
+					     delay);
+
+  // problem: what if the agents act differently by accident?
+  var newMyopicAction = sample(myopicAct(newMyopicBelief, delay));
+  var newOptimalAction = sample(optimalAct(newOptimalBelief));
+
+  // console.log('actions');
+  // printERP(optimalAct(newOptimalBelief));
+  // console.log(newOptimalAction);
+  // printERP(myopicAct(newMyopicBelief, delay));
+  // console.log(newMyopicAction);
+
+  var output = [optimalState, myopicState, newOptimalAction, newMyopicAction];
+
+  if (optimalState.manifestState.terminateAfterAction) {
+    // we don't have to worry about different runtimes for the optimal and
+    // myopic agents, since they start with the same timeLeft
+    return output;
+  } else {
+    var nextPriorBeliefs = [newOptimalBelief, newMyopicBelief];
+    var nextActions = [newOptimalAction, newMyopicAction];
+    if (_.isEqual(optimalState, myopicState) && _.isEqual(newOptimalAction,
+							  newMyopicAction)) {
+      var nextState = transition(optimalState, newOptimalAction);
+      var nextStates = [nextState, nextState];
+      return output.concat(sampleTwoSequences(nextStates, nextPriorBeliefs,
+					      nextActions));
+    } else {
+      var nextOptimalState = transition(optimalState, newOptimalAction);
+      var nextMyopicState = transition(myopicState, newMyopicAction);
+      var nextStates = [nextOptimalState, nextMyopicState];
+      return output.concat(sampleTwoSequences(nextStates, nextPriorBeliefs,
+					      nextActions));
+    }
+  }
+};
+
+var startAction = 'noAction';
+
+console.log(sampleTwoSequences([startState, startState], [prior, prior],
+			       [startAction, startAction]));
+
+// console.log(simulateBeliefAgent(startState, world, optimalAgent, 'stateAction'));
+
+
+
+// then, look at what boundVOI does with 3 arms
+// see how it scales
