@@ -13,7 +13,6 @@ var makeHyperbolicDiscounter = function (params, world) {
 
   assert.ok(hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive'], 'makeDiscounter params'));
   
-  
   var stateToActions = world.stateToActions;
   var transition = world.transition;
   var utility = params.utility;
@@ -37,8 +36,8 @@ var makeHyperbolicDiscounter = function (params, world) {
   var expectedUtility = dp.cache(
     function(state, action, delay){
       var u = discountFunction(delay) * utility(state, action);
-      
-      assert.ok(!_.isUndefined(u),"utility undefind" + JSON.stringify([state, action, delay, utility(state, action)]));
+      assert.ok(!_.isUndefined(u),
+                "utility undefined" + JSON.stringify([state, action, delay, utility(state, action)]));
       
       if (state.terminateAfterAction){
         return u; 
@@ -62,7 +61,7 @@ var makeHyperbolicDiscounter = function (params, world) {
   
 };
 
-var simulateHyperbolic = function(startState, world, agent, actualTotalTime) {
+var simulateHyperbolic = function(startState, world, agent) {
   var act = agent.act;
   var expectedUtility = agent.expectedUtility;
   var transition = world.transition;
@@ -77,6 +76,9 @@ var simulateHyperbolic = function(startState, world, agent, actualTotalTime) {
   };
   return sampleSequence(startState);
 };
+
+var getStatesHyperbolic = function(out){return _.map(out,0);};
+var getActionsHyperbolic = function(out){return _.map(out,1);};
 
 
 
@@ -113,8 +115,8 @@ var getExpectedUtilities = function(trajectory, agent, actions) {
 };
 
 // TODO more descriptive name
-var mdpSim = function(start, world, agent, actualTotalTime) { 
-  var trajectory = simulateHyperbolic(start, world, agent, actualTotalTime, 'states');
+var mdpSim = function(start, world, agent) { 
+  var trajectory = getStatesHyperbolic(simulateHyperbolic(start, world, agent));
 
   var trajectoryPlans = map(function (state) {
     var currentPlan = MAPActionPath(state, world, agent, state.timeLeft, 'states');

@@ -20,7 +20,7 @@ var agent = makeHyperbolicDiscounter(
       discount : 1, 
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
-mdpSim(start, world, agent, 13);
+mdpSim(start, world, agent);
 
 var agent2 = makeHyperbolicDiscounter(
     { utility : donutUtility,
@@ -28,4 +28,4 @@ var agent2 = makeHyperbolicDiscounter(
       discount : 1, 
       sophisticatedOrNaive  : 'naive' 
     }, world);
-mdpSim(start, world, agent2, 13);
+mdpSim(start, world, agent2);
