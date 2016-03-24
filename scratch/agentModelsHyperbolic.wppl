@@ -1,53 +1,8 @@
 
 
 
-var nameToPathBig = {
-  naive: [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]],
-  
-  sophisticated: [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
-                  [ 5, 4 ], [ 5, 5 ], [ 5, 6 ], [4, 6 ], [ 4, 7 ] ],
-  
-  donutSouth: [[3,1], [2,1], [1,1], [0,1], [0,0]],
-  
-  vegDirect: [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]]
-};
 
-var nameToPathSmall = {
-  naive: [[2,1], [2,2], [2,3], [2,4], [1,4]],
-  sophisticated: [[2,1], [2,2], [2,3], [3,3], [4,3], [4,4], [4,5], [3,5], [3,6]]
-};
-
-var nameToPath = function(name, bigOrSmall){
-  return bigOrSmall == 'big' ? nameToPathBig[name] : nameToPathSmall[name];
-};
-
-var pathToName = function(path, bigOrSmall){
-  var path = path.slice(0, path.length-1);
-  var table = bigOrSmall == 'big' ?  _.invert(nameToPathBig) : _.invert(nameToPathSmall);
-  return 'path: ' + table[path];
-};
-
-
-var getLocations = function(stateActions){
-  return _.map( _.map(stateActions,0), 'loc');
-};
-
-var getPath = function(sophisticatedOrNaive){
-  var agent = makeAgent(update(baseAgentParams, 
-                               {sophisticatedOrNaive: sophisticatedOrNaive}), world);
-
-  var out = timeit( function(){return simulate(startState, world, agent)});
-  var locs = _.map( _.map(out.value,0), 'loc');
-  console.log('Trajectory: ' + sophisticatedOrNaive, locs,
-              '\n\n runtime', out.runtimeInMilliseconds);
-  return locs;
-};
-
-
-
-
-
-var makeAgent = function (params, world) {
+var makeHyperbolicAgent = function (params, world) {
   var stateToActions = world.stateToActions;
   var transition = world.transition;
   var utility = params.utility;
@@ -90,7 +45,7 @@ var makeAgent = function (params, world) {
   };
 };
 
-var simulate = function(startState, world, agent) {
+var simulateHyperbolic = function(startState, world, agent) {
   var act = agent.act;
   var expectedUtility = agent.expectedUtility;
   var transition = world.transition;
@@ -113,7 +68,7 @@ var makeRestaurantUtilityFunction = function (world, rewards) {
     var feature = getFeature(state);
 
     if (feature.name) { return rewards[feature.name][state.timeAtRestaurant]; }
-    return -.1;
+    return -.05;
   };
 };
 
@@ -126,27 +81,28 @@ var getHyperbolicParams = function(utilityTable, discounting, alpha, world){
   };
 };
 
+var nameToPath = restaurantNameToPath;
+var pathToName = restaurantPathToName;
+
+var getLocations = function(stateActions){
+  return _.map( _.map(stateActions,0), 'loc');
+};
 
 
 // Construct MDP, i.e. world
-var getWorldStart = function(bigOrSmall){
-  var isBig = bigOrSmall=='big';
-  var loc = isBig ? [3,1] : [2,1];
-  var timeLeft = isBig ? 11 : 10;
-  
-  return { start: { loc : loc,
+var getWorldStart = function(){
+  return { start: { loc : [3,1],
                     terminateAfterAction : false,
-                    timeLeft : timeLeft
+                    timeLeft : 11
                   },
-           world: makeDonutWorld2({ big : isBig, maxTimeAtRestaurant : 2})
+           world: makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2})
          };
 };
 
-  
 // Construct hyperbolic discounting agent
 var priorUtilityTable = function(){
   var donut = [uniformDraw([0,5,10,20]), 0];
-  var veg = [ 0, uniformDraw([0,5,10,20,30])];
+  var veg = [ 0, uniformDraw([0,20,30])];
   return {'Donut N' : donut,
           'Donut S' : donut,
           'Veg'   : veg,
@@ -161,35 +117,38 @@ var priorDiscounting = function(){
 };
 
 
+
 var infer = function(observedPath, world, startState){
   return Enumerate( function(){
     var utilityTable = priorUtilityTable();
     var discounting = priorDiscounting();
     
-    var agent = makeAgent( getHyperbolicParams(utilityTable, discounting, 500, world), world);
-    var trajectory = Rejection( function(){return simulate(startState, world, agent);}, 1).MAP().val; 
+    var agent = makeHyperbolicAgent( getHyperbolicParams(utilityTable, discounting, 500, world), world);
+    var trajectory = Rejection( function(){return simulateHyperbolic(startState, world, agent);},1).MAP().val; 
     var path = getLocations(trajectory).slice(0,trajectory.length-1 );
-    //console.log('path: ', path, ' \n', utilityTable);
+
     condition( _.isEqual(observedPath, path) );
     return {utility:utilityTable, discounting: discounting};
   });
 };
 
-var bigOrSmall = 'big';
-var world = getWorldStart(bigOrSmall).world;
-var startState = getWorldStart(bigOrSmall).start;
+// Start
+var startState = getWorldStart().start;
+var world = getWorldStart().world;
 
-// var erp = infer( nameToPath('naive', bigOrSmall), world, startState );
-// printERP(erp);
-// console.log('\n\n MAP: ', erp.MAP());
+// CONDITION ON NAIVE PATH
+console.log('Observe naive');
+var erp = infer( nameToPath.naive, world, startState );
+printERP(erp);
+console.log('\n\n MAP: ', erp.MAP());
 
+// CONDITION ON SOPHISTICATED PATH
+console.log('\Observe sophisticated');
+var erp = infer( nameToPath.sophisticated, world, startState );
+printERP(erp);
+console.log('\n\n MAP: ', erp.MAP());
 
-// console.log('\nSOPH');
-// var erp = infer( nameToPath('sophisticated', bigOrSmall), world, startState );
-// printERP(erp);
-// console.log('\n\n MAP: ', erp.MAP());
-
-// ash();
+ash();
 
 
 var testAgent = function(){
@@ -210,8 +169,8 @@ var testAgent = function(){
   var alpha = 500;
   var world = worldStart.world;
   var params = getHyperbolicParams(utilityTable, discounting, alpha, world);
-  var agent = makeAgent(params,world);
-  var fullPath = getLocations( simulate(worldStart.start, world, agent) );
+  var agent = makeHyperbolicAgent(params,world);
+  var fullPath = getLocations( simulateHyperbolic(worldStart.start, world, agent) );
   return fullPath;
 };
 
