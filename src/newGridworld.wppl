@@ -273,8 +273,6 @@ var restaurantNameToPathSmall = {
 };
 
 
-  
-
 var allButLast = function(ar){return ar.slice(0,ar.length-1);};
 
 var restaurantPathToName = function(path){
@@ -282,3 +280,15 @@ var restaurantPathToName = function(path){
   var name = table[path] || 'not in table';
   return 'path: ' + name;
 };
+
+
+var makeRestaurantUtilityMDP = function (world, utilityTable) { 
+  return function(state, action) {
+    var getFeature = world.feature;
+    var feature = getFeature(state);
+
+    if (feature.name) { return utilityTable[feature.name][state.timeAtRestaurant]; }
+    return utilityTable.timeCost || -.01;
+  };
+};
+

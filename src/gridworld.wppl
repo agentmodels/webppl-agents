@@ -57,6 +57,14 @@ var printTopK = function(erp,k){
     erpValues.slice(0,k));
 };
 
+
+var getMarginal = function(erp,key){
+  return Enumerate(function(){
+    return sample(erp)[key];
+  });
+};
+
+
 var update = function(base, ext){
   return _.extend({}, base, ext);
 };
