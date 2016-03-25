@@ -24,6 +24,18 @@
 // Also, myopic agent with bound 2 has expected utilities that are too low.
 // Something else must be wrong here - maybe the agent is really myopic?
 // maybe it is actually a hyperbolic discounter?
+// note that the expected utilities are less by an additive factor, which is
+// super weird, but they become the same right before the end. Is the myopic
+// agent's expected utilities just the EU of a single arm pull?
+// increasing the boundVOI bound makes it closer, which makes this explanation
+// more likely
+
+// when I recurse on state for the myopic agent, the expected utilities become
+// very very close to the state-recurring optimal agent, but not identical
+// (like 0.05 less).
+// why? I guess because the agent isn't taking into account exploration?
+// this shouldn't matter but maybe softmax noise makes it matter? and why does
+// state vs belief recursion make such a big difference? what bug is in my code?
 
 var world = makeStochasticBanditWorld(2);
 var worldObserve = world.observe;
@@ -40,14 +52,14 @@ var timeLeft = 7;
 
 var startState = buildStochasticBanditStartState(timeLeft, trueLatent);
 
-// var prior = Enumerate(function(){
-//   var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
-// 		     1: categorical([0.6, 0.4], [probablyChampagneERP,
-// 						   probablyNothingERP])};
-//   return buildStochasticBanditStartState(timeLeft, latentState);
-// });
+var prior = Enumerate(function(){
+  var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
+		     1: categorical([0.6, 0.4], [probablyChampagneERP,
+						   probablyNothingERP])};
+  return buildStochasticBanditStartState(timeLeft, latentState);
+});
 
-var prior = deltaERP(buildStochasticBanditStartState(timeLeft, trueLatent));
+// var prior = deltaERP(buildStochasticBanditStartState(timeLeft, trueLatent));
 
 var prizeToUtility = {start: 0, nothing: 0, champagne: 2};
 var utility = makeStochasticBanditUtility(prizeToUtility);
@@ -55,6 +67,7 @@ var utility = makeStochasticBanditUtility(prizeToUtility);
 var optimalAgentParams = {utility: utility,
 			  alpha: 100,
 			  priorBelief: prior,
+			  recurseOnStateOrBelief: 'state',
 			  fastUpdateBelief: false};
 var optimalAgent = makeBeliefAgent(optimalAgentParams, world);
 
@@ -62,15 +75,16 @@ var myopicAgentParams = {utility: utility,
 			 alpha: 100,
 			 priorBelief: prior,
 			 sophisticatedOrNaive: 'naive',
-			 boundVOI: {on: true, bound: 2},
+			 boundVOI: {on: true, bound: 3},
+			 recurseOnStateOrBelief: 'belief',
 			 noDelays: false,
 			 discount: 0,
 			 myopia: {on: false, bound: 0},
 			 fastUpdateBelief: false};
 var myopicAgent = makeBeliefDelayAgent(myopicAgentParams, world);
 
-console.log('myopic prior: ');
-printERP(myopicAgentParams.priorBelief);
+// console.log('myopic prior: ');
+// printERP(myopicAgentParams.priorBelief);
 
 // it's important that we simulate the two agents such that they get the same
 // prizes when pulling the same arms, so that we can check if their
@@ -102,6 +116,7 @@ var sampleTwoSequences = function(states, priorBeliefs, actions) {
 
   // testing
   var myopicEU = myopicAgent.expectedUtility;
+  var optimalEU = optimalAgent.expectedUtilityBelief;
 
   // problem: what if the agents act differently by accident?
   var newMyopicAction = sample(myopicAct(newMyopicBelief, delay));
@@ -116,6 +131,10 @@ var sampleTwoSequences = function(states, priorBeliefs, actions) {
   console.log(myopicEU(newMyopicBelief, 0, delay));
   console.log('Myopic EU of action 1: ');
   console.log(myopicEU(newMyopicBelief, 1, delay));
+  console.log('Optimal EU of action 0: ');
+  console.log(optimalEU(newOptimalBelief, 0));
+  console.log('Optimal EU of action 1: ');
+  console.log(optimalEU(newOptimalBelief, 1));
 
   var output = [optimalState, myopicState, newOptimalAction, newMyopicAction];
 
