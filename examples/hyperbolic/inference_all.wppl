@@ -1,0 +1,93 @@
+
+// Hyperbolic Inference example 1: Naive Trajectory
+// -- Goes from bottom to Donut North
+// Inference should infer that Donut has [high,low] utility
+// and Veg the opposite.
+
+
+// TODO why does agent do weird thing when starting at [3,0]?
+var start = { 
+  loc : [3,1],
+  terminateAfterAction : false,
+  timeLeft : 13
+};
+
+var world = restaurantChoiceMDP;
+
+// Create trajectory that we'll use to condition on
+
+var getObservations = function(sophisticatedOrNaive){
+  var donutUtility = makeDonutUtility(world, {
+    'Donut N' : [10, -10],
+    'Donut S' : [10, -10],
+    'Veg'   : [-10, 20],
+    'Noodle': [0, 0]
+  });
+  
+  var actual_agent = makeHyperbolicDiscounter(
+    { utility : donutUtility,
+      alpha : 500, 
+      discount : 1, 
+      sophisticatedOrNaive  : sophisticatedOrNaive
+    }, world);
+  var observedStateAction = simulateHyperbolic(start, world, actual_agent);
+  var observedLocs = getLocationsHyperbolic(observedStateAction);   
+  var sophisticated = restaurantNameToPath[sophisticatedOrNaive];
+  assert.ok( _.isEqual( observedLocs, sophisticated), 'generated matches sophOrNaive');
+  return observedStateAction;
+};
+var sophisticatedOrNaive = 'naive';
+var observedStateAction = getObservations(sophisticatedOrNaive);
+
+// Inference only on utilities of Donut and Veg
+
+
+var getPosteriorHyperbolic = function( priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction){
+  return Enumerate(function () {
+    var utilityTable = priorUtilityTable();
+    var discounting = priorDiscounting();
+    var alpha = priorAlpha();
+  
+    var agent = makeHyperbolicDiscounter(
+      { utility   : makeDonutUtility(world, utilityTable),
+        alpha     : alpha, 
+        discount  : discounting.discount, 
+        sophisticatedOrNaive  : discounting.sophisticatedOrNaive,
+      }, world);
+    var agentAction = agent.act;
+    
+    map(function (stateAction) {
+      var state   = stateAction[0];
+      var action  = stateAction[1];
+      factor(agentAction(state, 0).score([], action)) ; 
+    }, observedStateAction);
+    
+    return {utility: utilityTable, discounting: discounting, alpha: alpha };
+  });
+};
+
+var priorDiscounting = function(){return {discount:1, sophisticatedOrNaive:'sophisticated'};};
+var priorAlpha = function(){return 500;};
+
+var priorUtilityTable = function(){
+  var Udonut1 = uniformDraw([-10,  10, 20]);
+  var Udonut2 = uniformDraw([-10,  10, 20]);
+  var Uveg1   = uniformDraw([-10,  10, 20]);
+  var Uveg2   = uniformDraw([-10,  10, 20]);
+  
+  return {
+    'Donut N' : [Udonut1, Udonut2],
+    'Donut S' : [Udonut1, Udonut2],
+    'Veg'     : [Uveg1, Uveg2],
+    'Noodle'  : [0, 0]
+  };
+};
+
+var posterior = getPosteriorHyperbolic(priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction);
+
+
+  
+if (typeof(document) !== 'undefined') { viz.print(posterior); }
+else {printTopK(posterior,10);}
+
+null

@@ -45,6 +45,18 @@ var printERP = function(x,k) {
     erpValues);
 };
 
+var printTopK = function(erp,k){
+  var erpValues = sort(erp.support(), undefined, function(v){return -erp.score([], v);});
+  map(
+    function(v){
+      var prob = Math.exp(erp.score([], v));
+      if (prob > 0.0){
+        console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
+      }
+    },
+    erpValues.slice(0,k));
+};
+
 var update = function(base, ext){
   return _.extend({}, base, ext);
 };
