@@ -4,14 +4,15 @@
 // Inference should infer that Donut has [high,low] utility
 // and Veg the opposite.
 
-// Start at bottom. 
+
+// TODO why does agent do weird thing when starting at [3,0]?
 var start = { 
-  loc : [3,0],
+  loc : [3,1],
   terminateAfterAction : false,
   timeLeft : 13
 };
 
-var world = makeDonutWorld2({ big : true, noReverse : true, maxTimeAtRestaurant : 2});
+var world = restaurantChoiceMDP;
 
 // Create trajectory that we'll use to condition on
 
@@ -31,13 +32,12 @@ var actual_agent = makeHyperbolicDiscounter(
     }, world);
 var observed = simulateHyperbolic(start, world, actual_agent);
 
+var obsPath = getLocationsHyperbolic(observed);
+var sophPath = restaurantNameToPath.sophisticated;
+console.log('obs, sophPath', obsPath, sophPath, _.isEqual(obsPath.slice(0,obsPath.length-1), sophPath));
 
 // Inference only on utilities of Donut and Veg
 
-// TODO: pull out the constants. Have a function
-// *makeHyperbolicAgent(Udonut1, Udonut2, uveg1, uveg2)*
-// So the function inside enumerate is mainly just the
-// sampling from the prior and the factor. 
 
 var posterior = Enumerate(function () {
   var discount = 1;

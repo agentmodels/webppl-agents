@@ -76,11 +76,10 @@ var simulateHyperbolic = function(startState, world, agent) {
 
 var getStatesHyperbolic = function(out){return _.map(out,0);};
 var getActionsHyperbolic = function(out){return _.map(out,1);};
+var getLocationsHyperbolic = function(out){return _.map(getStatesHyperbolic(out),'loc');};
 
 
 
-// TODO merge with simulate, use a more descriptive name. It seems that
-// ideally we'd use the MAP path, and the 
 var MAPActionPath = function(state, world, agent, actualTotalTime, statesOrActions) { 
   var perceivedTotalTime = state.timeLeft;
   assert.ok( perceivedTotalTime  > 1, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work' + JSON.stringify(state));
