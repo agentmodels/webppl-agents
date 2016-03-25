@@ -4,11 +4,13 @@
 // Inference should infer that Donut has [high,low] utility
 // and Veg the opposite.
 
+var displayMarginals = function(erp, keys){
+  map( function(key){
+    console.log('\n Marginal for : ', key);
+    printERP(getMarginal(erp, key) );
+  }, keys);
+};
 
-
-
-
-// Create trajectory that we'll use to condition on
 
 var restaurantHyperbolic = function(){
 
@@ -36,8 +38,7 @@ var restaurantHyperbolic = function(){
     return observedStateAction;
   };
 
-
-  // Inference only on utilities of Donut and Veg
+  // Functions for *getPosterior*
   var factorSequence = function(agentAction, observedStateAction){
     map(function (stateAction) {
       var state   = stateAction[0];
@@ -62,15 +63,19 @@ var restaurantHyperbolic = function(){
         { utility   : makeRestaurantUtilityMDP(world, utilityTable),
           alpha     : alpha, 
           discount  : discounting.discount, 
-          sophisticatedOrNaive  : discounting.sophisticatedOrNaive,
+          sophisticatedOrNaive : discounting.sophisticatedOrNaive,
         }, world);
       var agentAction = agent.act;
       
       factorSequence(agentAction, observedStateAction);
 
-      var sophisticatedOrNaive = discounting.sophisticatedOrNaive;
-      return {utility: utilityTable, discounting: discounting, alpha: alpha,
-              sophisticatedOrNaive: sophisticatedOrNaive};
+      var vegOverDonut = sum(utilityTable['Veg']) > sum(utilityTable['Donut N']);
+      return {utility: utilityTable, 
+              discount: discounting.discount, 
+              alpha: alpha,
+              sophisticatedOrNaive: discounting.sophisticatedOrNaive,
+              vegOverDonut: vegOverDonut
+             };
     });
   };
 
@@ -79,13 +84,12 @@ var restaurantHyperbolic = function(){
 
 
 var world = restaurantChoiceMDP;
-var start = restaurantChoiceStart;
+var start = restaurantChoiceStart; // TODO starts at [3,1]. Why does the agent do weird things when starting at [3,0]?
 var restaurantHyperbolic = restaurantHyperbolic();
 var getObservations = restaurantHyperbolic.getObservations;
 var getPosterior = restaurantHyperbolic.getPosterior;
 
 
-// TODO starts at [3,1]. Why does the agent do weird things when starting at [3,0]?
 
 var priorAlpha = function(){return 500;};
 
@@ -112,15 +116,55 @@ var priorDiscounting = function(){
   };
 };
 
-
-map( function(name){
-  var observedStateActionSequence = getObservations(world, start, name);
+// Quick examples
+var quickExamples = function(){
+  var observationName = 'vegDirect';
+  var observedStateActionSequence = getObservations(world, start, observationName);
   var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
-                                                   
-  var marginalNaive = getMarginal(posterior, 'sophisticatedOrNaive');
-  printERP(marginalNaive); console.log(' \n');
-  printTopK(posterior,1);
-}, ['naive', 'sophisticated'])//, 'vegDirect']);
+  
+  var observationName = 'naive';
+  var observedStateActionSequence = getObservations(world, start, observationName);
+  var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
+
+  var observationName = 'sophisticated';
+  var observedStateActionSequence = getObservations(world, start, observationName);
+  var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
+};
+
+// Naive detailed graph
+var priorAlpha = function(){return 500;};
+
+var priorUtilityTable = function(){
+  var c = 0;  // TODO why does this mess up when c=10?
+  var getU = function(){return uniformDraw([0, 5, 10, 15, 20, 25, 30, 35, 40])};
+
+  var donut = [getU()+c, -10+c];
+  var veg = [10, getU()+c];
+  
+  return {
+    'Donut N' : donut,
+    'Donut S' : donut,
+    'Veg'     : veg,
+    'Noodle'  : [-5+c, -5+c],
+    'timeCost': -.01
+  };
+};
+
+var priorDiscounting = function(){
+  return {
+    discount: 1,
+    sophisticatedOrNaive: 'naive'
+  };
+};
+
+var observationName = 'naive';
+var observedStateActionSequence = getObservations(world, start, observationName);
+var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
+
+
+displayMarginals(posterior, ['sophisticatedOrNaive', 'discount', 'vegOverDonut']);
+printTopK(posterior,5);
+
 
 // if (typeof(document) !== 'undefined') { viz.print(posterior); }
 // else {printTopK(posterior,4);}
