@@ -32,11 +32,11 @@ var getObservations = function(sophisticatedOrNaive){
     }, world);
   var observedStateAction = simulateHyperbolic(start, world, actual_agent);
   var observedLocs = getLocationsHyperbolic(observedStateAction);   
-  var sophisticated = restaurantNameToPath[sophisticatedOrNaive];
-  assert.ok( _.isEqual( observedLocs, sophisticated), 'generated matches sophOrNaive');
+  assert.ok( _.isEqual( observedLocs, restaurantNameToPath[sophisticatedOrNaive]), 'generated matches sophOrNaive');
+  console.log('observed locs: ',  restaurantNameToPath[sophisticatedOrNaive]);
   return observedStateAction;
 };
-var sophisticatedOrNaive = 'naive';
+var sophisticatedOrNaive = 'sophisticated';
 var observedStateAction = getObservations(sophisticatedOrNaive);
 
 // Inference only on utilities of Donut and Veg
@@ -66,7 +66,13 @@ var getPosteriorHyperbolic = function( priorUtilityTable, priorDiscounting, prio
   });
 };
 
-var priorDiscounting = function(){return {discount:1, sophisticatedOrNaive:'sophisticated'};};
+var priorDiscounting = function(){
+  return {
+    discount:1, 
+    sophisticatedOrNaive: uniformDraw(['sophisticated', 'naive'])
+  };
+};
+
 var priorAlpha = function(){return 500;};
 
 var priorUtilityTable = function(){
@@ -88,6 +94,6 @@ var posterior = getPosteriorHyperbolic(priorUtilityTable, priorDiscounting, prio
 
   
 if (typeof(document) !== 'undefined') { viz.print(posterior); }
-else {printTopK(posterior,10);}
+else {printTopK(posterior,2);}
 
 null
