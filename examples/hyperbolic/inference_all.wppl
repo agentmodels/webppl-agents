@@ -16,28 +16,28 @@ var world = restaurantChoiceMDP;
 
 // Create trajectory that we'll use to condition on
 
-var getObservations = function(sophisticatedOrNaive){
+var getObservations = function(name){
   var donutUtility = makeDonutUtility(world, {
     'Donut N' : [10, -10],
     'Donut S' : [10, -10],
     'Veg'   : [-10, 20],
     'Noodle': [0, 0]
   });
+  var discount = name=='vegDirect' ? 0 : 1;
+  var sophisticatedOrNaive = name=='naive' ? 'naive' : 'sophisticated';
   
   var actual_agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
       alpha : 500, 
-      discount : 1, 
+      discount : discount, 
       sophisticatedOrNaive  : sophisticatedOrNaive
     }, world);
   var observedStateAction = simulateHyperbolic(start, world, actual_agent);
   var observedLocs = getLocationsHyperbolic(observedStateAction);   
-  assert.ok( _.isEqual( observedLocs, restaurantNameToPath[sophisticatedOrNaive]), 'generated matches sophOrNaive');
-  console.log('observed locs: ',  restaurantNameToPath[sophisticatedOrNaive]);
+  assert.ok( _.isEqual( observedLocs, restaurantNameToPath[name]), 'generated matches stored');
+  console.log('observed locs: ',  restaurantNameToPath[name]);
   return observedStateAction;
 };
-var sophisticatedOrNaive = 'sophisticated';
-var observedStateAction = getObservations(sophisticatedOrNaive);
 
 // Inference only on utilities of Donut and Veg
 
@@ -66,9 +66,12 @@ var getPosteriorHyperbolic = function( priorUtilityTable, priorDiscounting, prio
   });
 };
 
+
+
+
 var priorDiscounting = function(){
   return {
-    discount:1, 
+    discount: uniformDraw([0,1]),
     sophisticatedOrNaive: uniformDraw(['sophisticated', 'naive'])
   };
 };
@@ -77,8 +80,8 @@ var priorAlpha = function(){return 500;};
 
 var priorUtilityTable = function(){
   var Udonut1 = uniformDraw([-10,  10, 20]);
-  var Udonut2 = uniformDraw([-10,  10, 20]);
-  var Uveg1   = uniformDraw([-10,  10, 20]);
+  var Udonut2 = Udonut1 //uniformDraw([-10,  10, 20]);
+  var Uveg1   = -10 //uniformDraw([-10,  10, 20]);
   var Uveg2   = uniformDraw([-10,  10, 20]);
   
   return {
@@ -89,11 +92,12 @@ var priorUtilityTable = function(){
   };
 };
 
-var posterior = getPosteriorHyperbolic(priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction);
+var name = 'vegDirect';  
+var posterior = getPosteriorHyperbolic(priorUtilityTable, priorDiscounting, priorAlpha, getObservations(name));
 
 
   
 if (typeof(document) !== 'undefined') { viz.print(posterior); }
-else {printTopK(posterior,2);}
+else {printTopK(posterior,20);}
 
 null
