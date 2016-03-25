@@ -93,7 +93,7 @@ var makeBeliefDelayAgent = function (params, world){
     }
   };
 
-  
+  // RECURSE ON BELIEF (BELLMAN STYLE)
   var act = dp.cache(
     function (belief, delay) {
       assert.ok( _.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
@@ -129,7 +129,55 @@ var makeBeliefDelayAgent = function (params, world){
         }));
     });
 
-  return { act:act, updateBelief:updateBelief, expectedUtility : expectedUtilityBelief, params: params};
+  // RECURSE ON STATE (FIXES THE LATENT STATE)
+  var act_recState = dp.cache(
+    function(belief, delay) {
+      assert.ok( _.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
+      return Enumerate(function(){
+	var action = uniformDraw(beliefToActions(belief));
+	var eu = expectedUtilityBelief_recState(belief, action, delay);
+	factor(params.alpha * eu);
+	return action;
+      });
+    });
+
+  var expectedUtilityBelief_recState = dp.cache(
+    function(belief, action, delay){
+      return expectation(
+        Enumerate( function(){
+          var state = sampleBelief(belief);
+          return expectedUtilityState_recState(belief,state, action, delay);
+        }));
+    });
+  
+  var expectedUtilityState_recState = dp.cache(
+    function(belief, state, action, delay){
+      return expectation(  // need this for caching
+        Enumerate( function(){
+          var u = 1.0 / (1 + params.discount * delay) * utility(state, action);
+          if (shouldTerminate(state, delay)) {
+	    return u;
+          } else {
+	    var nextState = transition(state, action);
+	    var nextObservation = observe(nextState);
+	    var transformedDelay = transformDelay(delay);
+	    var nextBelief = updateBelief(belief, nextObservation, action,
+					  transformedDelay);
+	    var nextAction = sample(act_recState(nextBelief, transformedDelay));
+            var futureU = expectedUtilityState_recState(nextBelief, nextState,
+							nextAction,
+							incrementDelay(delay));
+	    return u + futureU; 
+          }
+        }));
+    });
+
+  var act = recurseOnStateOrBelief === 'belief' ? act : act_recState;
+  var expectedUtility = recurseOnStateOrBelief === 'belief' ? 
+	expectedUtilityBelief : expectedUtilityBelief_recState;
+
+
+  return { act:act, updateBelief:updateBelief, expectedUtility : expectedUtility, params: params};
 };
 
 
