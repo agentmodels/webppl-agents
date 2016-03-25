@@ -21,6 +21,10 @@
 // always indifferent between actions. So its bleak assessment of actions must
 // be due to it not expecting to update, somehow.
 
+// Also, myopic agent with bound 2 has expected utilities that are too low.
+// Something else must be wrong here - maybe the agent is really myopic?
+// maybe it is actually a hyperbolic discounter?
+
 var world = makeStochasticBanditWorld(2);
 var worldObserve = world.observe;
 var observe = getFullObserve(worldObserve);
@@ -36,12 +40,14 @@ var timeLeft = 7;
 
 var startState = buildStochasticBanditStartState(timeLeft, trueLatent);
 
-var prior = Enumerate(function(){
-  var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
-		     1: categorical([0.6, 0.4], [probablyChampagneERP,
-						   probablyNothingERP])};
-  return buildStochasticBanditStartState(timeLeft, latentState);
-});
+// var prior = Enumerate(function(){
+//   var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
+// 		     1: categorical([0.6, 0.4], [probablyChampagneERP,
+// 						   probablyNothingERP])};
+//   return buildStochasticBanditStartState(timeLeft, latentState);
+// });
+
+var prior = deltaERP(buildStochasticBanditStartState(timeLeft, trueLatent));
 
 var prizeToUtility = {start: 0, nothing: 0, champagne: 2};
 var utility = makeStochasticBanditUtility(prizeToUtility);
@@ -56,7 +62,7 @@ var myopicAgentParams = {utility: utility,
 			 alpha: 100,
 			 priorBelief: prior,
 			 sophisticatedOrNaive: 'naive',
-			 boundVOI: {on: true, bound: 1},
+			 boundVOI: {on: true, bound: 2},
 			 noDelays: false,
 			 discount: 0,
 			 myopia: {on: false, bound: 0},
@@ -106,9 +112,10 @@ var sampleTwoSequences = function(states, priorBeliefs, actions) {
   printERP(optimalAct(newOptimalBelief));
   console.log('myopic agent:');
   printERP(myopicAct(newMyopicBelief, delay));
-  console.log('EU of myopic action: ');
-  console.log(myopicEU(newMyopicBelief, newMyopicAction, delay));
-
+  console.log('Myopic EU of action 0: ');
+  console.log(myopicEU(newMyopicBelief, 0, delay));
+  console.log('Myopic EU of action 1: ');
+  console.log(myopicEU(newMyopicBelief, 1, delay));
 
   var output = [optimalState, myopicState, newOptimalAction, newMyopicAction];
 
