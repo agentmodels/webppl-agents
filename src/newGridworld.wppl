@@ -249,7 +249,11 @@ var makeDonutWorld2 = function(options) {
 };
 
 var restaurantChoiceMDP = makeDonutWorld2({ big : true, noReverse : true, maxTimeAtRestaurant : 2});
-  
+var restaurantChoiceStart = { 
+  loc : [3,1],
+  terminateAfterAction : false,
+  timeLeft : 11
+}; 
 
 // trajectories starting from [3,1] for big donutWorld
 var restaurantNameToPath = {

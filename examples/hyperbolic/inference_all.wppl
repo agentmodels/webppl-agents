@@ -6,25 +6,19 @@
 
 
 // TODO why does agent do weird thing when starting at [3,0]?
-var start = { 
-  loc : [3,1],
-  terminateAfterAction : false,
-  timeLeft : 13
-};
 
-var world = restaurantChoiceMDP;
 
 // Create trajectory that we'll use to condition on
 
-var getObservations = function(name){
+var getObservations = function(world, start, pathName){
   var donutUtility = makeDonutUtility(world, {
     'Donut N' : [10, -10],
     'Donut S' : [10, -10],
     'Veg'   : [-10, 20],
     'Noodle': [0, 0]
   });
-  var discount = name=='vegDirect' ? 0 : 1;
-  var sophisticatedOrNaive = name=='naive' ? 'naive' : 'sophisticated';
+  var discount = pathName=='vegDirect' ? 0 : 1;
+  var sophisticatedOrNaive = pathName=='naive' ? 'naive' : 'sophisticated';
   
   var actual_agent = makeHyperbolicDiscounter(
     { utility : donutUtility,
@@ -34,12 +28,25 @@ var getObservations = function(name){
     }, world);
   var observedStateAction = simulateHyperbolic(start, world, actual_agent);
   var observedLocs = getLocationsHyperbolic(observedStateAction);   
-  assert.ok( _.isEqual( observedLocs, restaurantNameToPath[name]), 'generated matches stored');
-  console.log('observed locs: ',  restaurantNameToPath[name]);
+  assert.ok( _.isEqual( observedLocs, restaurantNameToPath[pathName]), 'generated matches stored');
+  console.log('observed locs: ',  restaurantNameToPath[pathName]);
   return observedStateAction;
 };
 
 // Inference only on utilities of Donut and Veg
+
+var factorSequence = function(agentAction, observedStateAction){
+  map(function (stateAction) {
+    var state   = stateAction[0];
+    var action  = stateAction[1];
+    factor(agentAction(state, 0).score([], action)) ; 
+  }, observedStateAction);
+};
+
+var conditionSequence = function(world, agent, observedStateAction){
+  var stateAction = Rejection( function(){return simulateHyperbolic(start, world, agent);}, 1).MAP().val;
+  condition( _.isEqual(stateAction, observedStateAction));
+};
 
 
 var getPosteriorHyperbolic = function( priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction){
@@ -56,11 +63,7 @@ var getPosteriorHyperbolic = function( priorUtilityTable, priorDiscounting, prio
       }, world);
     var agentAction = agent.act;
     
-    map(function (stateAction) {
-      var state   = stateAction[0];
-      var action  = stateAction[1];
-      factor(agentAction(state, 0).score([], action)) ; 
-    }, observedStateAction);
+    factorSequence(agentAction, observedStateAction);
     
     return {utility: utilityTable, discounting: discounting, alpha: alpha };
   });
@@ -68,6 +71,9 @@ var getPosteriorHyperbolic = function( priorUtilityTable, priorDiscounting, prio
 
 
 
+
+var world = restaurantChoiceMDP;
+var start = restaurantChoiceStart;
 
 var priorDiscounting = function(){
   return {
@@ -80,8 +86,8 @@ var priorAlpha = function(){return 500;};
 
 var priorUtilityTable = function(){
   var Udonut1 = uniformDraw([-10,  10, 20]);
-  var Udonut2 = Udonut1 //uniformDraw([-10,  10, 20]);
-  var Uveg1   = -10 //uniformDraw([-10,  10, 20]);
+  var Udonut2 = uniformDraw([-10,  10, 20]);
+  var Uveg1   = uniformDraw([-10,  10, 20]);
   var Uveg2   = uniformDraw([-10,  10, 20]);
   
   return {
@@ -92,12 +98,13 @@ var priorUtilityTable = function(){
   };
 };
 
-var name = 'vegDirect';  
-var posterior = getPosteriorHyperbolic(priorUtilityTable, priorDiscounting, priorAlpha, getObservations(name));
+map( function(name){
+  var posterior = getPosteriorHyperbolic(priorUtilityTable, priorDiscounting, priorAlpha, 
+                                         getObservations(world, start, name));
+  printTopK(posterior,4);
+}, ['naive', 'sophisticated', 'vegDirect']);
 
-
-  
-if (typeof(document) !== 'undefined') { viz.print(posterior); }
-else {printTopK(posterior,20);}
+// if (typeof(document) !== 'undefined') { viz.print(posterior); }
+// else {printTopK(posterior,4);}
 
 null
