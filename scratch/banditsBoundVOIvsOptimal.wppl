@@ -5,6 +5,21 @@
 // them to be doing.
 
 // boundVOI agent is always 50/50, and not seeing many positive utilities. weird.
+// this seems independent of the prior over probablyChampagne and
+// probablyNothing, and of the ERPs probablyChampagne etc.
+
+// However, changing the bound to 2 works. This could be because with a bound
+// of 1, you never imagine yourself updating. But if that's true, why does the
+// agent not actually update?
+
+// decreasing the bound to 1 and making a strict inequality in updateBelief
+// solves things, so it must be due to that. But I still don't get why the agent
+// isn't updating. and at any rate, I don't see why it doesn't think that arm 1
+// is good.
+
+// So the myopic agent with bound 1 *is* updating its beliefs, but *still* is
+// always indifferent between actions. So its bleak assessment of actions must
+// be due to it not expecting to update, somehow.
 
 var world = makeStochasticBanditWorld(2);
 var worldObserve = world.observe;
@@ -24,11 +39,11 @@ var startState = buildStochasticBanditStartState(timeLeft, trueLatent);
 var prior = Enumerate(function(){
   var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
 		     1: categorical([0.6, 0.4], [probablyChampagneERP,
-						 probablyNothingERP])};
+						   probablyNothingERP])};
   return buildStochasticBanditStartState(timeLeft, latentState);
 });
 
-var prizeToUtility = {start: 0, nothing: 0, champagne: 1};
+var prizeToUtility = {start: 0, nothing: 0, champagne: 2};
 var utility = makeStochasticBanditUtility(prizeToUtility);
 
 var optimalAgentParams = {utility: utility,
@@ -47,6 +62,9 @@ var myopicAgentParams = {utility: utility,
 			 myopia: {on: false, bound: 0},
 			 fastUpdateBelief: false};
 var myopicAgent = makeBeliefDelayAgent(myopicAgentParams, world);
+
+console.log('myopic prior: ');
+printERP(myopicAgentParams.priorBelief);
 
 // it's important that we simulate the two agents such that they get the same
 // prizes when pulling the same arms, so that we can check if their
@@ -71,22 +89,26 @@ var sampleTwoSequences = function(states, priorBeliefs, actions) {
   var myopicObservation = observe(myopicState);
   
   var delay = 0;
-
   var newMyopicBelief = myopicUpdateBelief(myopicPriorBelief, myopicObservation,
 					   myopicAction, delay);
   var newOptimalBelief = optimalUpdateBelief(optimalPriorBelief,
-					     optimalObservation, optimalAction,
-					     delay);
+					     optimalObservation, optimalAction);
+
+  // testing
+  var myopicEU = myopicAgent.expectedUtility;
 
   // problem: what if the agents act differently by accident?
   var newMyopicAction = sample(myopicAct(newMyopicBelief, delay));
   var newOptimalAction = sample(optimalAct(newOptimalBelief));
 
-  // console.log('actions');
-  // printERP(optimalAct(newOptimalBelief));
-  // console.log(newOptimalAction);
-  // printERP(myopicAct(newMyopicBelief, delay));
-  // console.log(newMyopicAction);
+  console.log('\naction ERPs:');
+  console.log('optimal agent:');
+  printERP(optimalAct(newOptimalBelief));
+  console.log('myopic agent:');
+  printERP(myopicAct(newMyopicBelief, delay));
+  console.log('EU of myopic action: ');
+  console.log(myopicEU(newMyopicBelief, newMyopicAction, delay));
+
 
   var output = [optimalState, myopicState, newOptimalAction, newMyopicAction];
 
