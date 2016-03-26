@@ -38,7 +38,7 @@ var restaurantHyperbolic = function(){
     return observedStateAction;
   };
 
-  // Functions for *getPosterior*
+  
   var factorSequence = function(agentAction, observedStateAction){
     map(function (stateAction) {
       var state   = stateAction[0];
@@ -46,12 +46,6 @@ var restaurantHyperbolic = function(){
       factor(agentAction(state, 0).score([], action)) ; 
     }, observedStateAction);
   };
-
-  var conditionSequence = function(world, agent, observedStateAction){
-    var stateAction = Rejection( function(){return simulateHyperbolic(start, world, agent);}, 1).MAP().val;
-    condition( _.isEqual(stateAction, observedStateAction));
-  };
-
 
   var getPosterior = function(priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction){
     return Enumerate(function () {
@@ -69,12 +63,12 @@ var restaurantHyperbolic = function(){
       
       factorSequence(agentAction, observedStateAction);
 
-      var vegOverDonut = sum(utilityTable['Veg']) > sum(utilityTable['Donut N']);
+      var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
       return {utility: utilityTable, 
               discount: discounting.discount, 
               alpha: alpha,
               sophisticatedOrNaive: discounting.sophisticatedOrNaive,
-              vegOverDonut: vegOverDonut
+              vegMinusDonut: vegMinusDonut
              };
     });
   };
@@ -90,77 +84,102 @@ var getObservations = restaurantHyperbolic.getObservations;
 var getPosterior = restaurantHyperbolic.getPosterior;
 
 
-
-var priorAlpha = function(){return 500;};
-
-var priorUtilityTable = function(){
-  var c = 0;  // TODO why does this mess up when c=10?
-  var getU = function(){return uniformDraw([-10,10,20]);};
-
-  var donut = [getU()+c, getU()+c];
-  var veg = [getU()+c, getU()+c];
-  
-  return {
-    'Donut N' : donut,
-    'Donut S' : donut,
-    'Veg'     : veg,
-    'Noodle'  : [-5+c, -5+c],
-    'timeCost': -.01
-  };
-};
-
-var priorDiscounting = function(){
-  return {
-    discount: uniformDraw([0,1]),
-    sophisticatedOrNaive: uniformDraw(['sophisticated', 'naive'])
-  };
-};
-
 // Quick examples
 var quickExamples = function(){
+
+  var priorAlpha = function(){return 500;};
+  var priorAlpha = function(){return uniformDraw([1,100]);};
+
+
+  var priorUtilityTable = function(){
+    var c = 0;  // TODO why does this mess up when c=10?
+    var getU = function(){return uniformDraw([-10,0,10,20]);};
+
+    var donut = [getU()+c, getU()+c];
+    var veg = [getU()+c, getU()+c];
+    
+    return {
+      'Donut N' : donut,
+      'Donut S' : donut,
+      'Veg'     : veg,
+      'Noodle'  : [-5+c, -5+c],
+      'timeCost': -.01
+    };
+  };
+  
+  var priorDiscounting = function(){
+    return {
+      discount: uniformDraw([0,1]),
+      sophisticatedOrNaive: uniformDraw(['sophisticated', 'naive'])
+    };
+  };
+
+  // var observationName = 'naive';
+  // var observedStateActionSequence = getObservations(world, start, observationName);
+  // var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
+  // 
+  
+  var observationName = 'sophisticated';
+  var observedStateActionSequence = getObservations(world, start, observationName);
+  var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
+  printTopK(posterior,10);
+  ash();
+  
   var observationName = 'vegDirect';
   var observedStateActionSequence = getObservations(world, start, observationName);
   var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
   
-  var observationName = 'naive';
-  var observedStateActionSequence = getObservations(world, start, observationName);
-  var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
-
-  var observationName = 'sophisticated';
-  var observedStateActionSequence = getObservations(world, start, observationName);
-  var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
 };
+quickExamples();
 
-// Naive detailed graph
-var priorAlpha = function(){return 500;};
 
+
+// Naive params that yield temptation 
+var priorAlpha = function(){return 3;};
+
+// Single variable case
 var priorUtilityTable = function(){
-  var c = 0;  // TODO why does this mess up when c=10?
-  var getU = function(){return uniformDraw([0, 5, 10, 15, 20, 25, 30, 35, 40])};
-
-  var donut = [getU()+c, -10+c];
-  var veg = [10, getU()+c];
+  var getU = function(){return uniformDraw( _.range(-4,20,1));}
+  var donut = [10, 0]; // take MAP params for all but veg 2. 
+  var veg = [10, getU()]; 
   
   return {
     'Donut N' : donut,
     'Donut S' : donut,
     'Veg'     : veg,
-    'Noodle'  : [-5+c, -5+c],
+    'Noodle'  : [-5, -5],
     'timeCost': -.01
   };
 };
 
-var priorDiscounting = function(){
+// Two variable case
+var priorUtilityTable2 = function(){
+  var getU = function(){return uniformDraw( _.range(-4,20,2));}
+  var donut = [getU(), 0]; // take MAP params for all but veg 2. 
+  var veg = [10, getU()]; 
+  
   return {
-    discount: 1,
-    sophisticatedOrNaive: 'naive'
+    'Donut N' : donut,
+    'Donut S' : donut,
+    'Veg'     : veg,
+    'Noodle'  : [-5, -5],
+    'timeCost': -.01
   };
+};
+var priorUtilityTable = priorUtilityTable2;
+
+var priorDiscounting = function(){
+  return { discount: 1, sophisticatedOrNaive: 'naive'};
 };
 
 var observationName = 'naive';
 var observedStateActionSequence = getObservations(world, start, observationName);
 var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
-
+var marginalVeg = Enumerate( function(){
+  return sample(posterior).utility.Veg[1];
+});
+console.log('marginal veg');
+printERP(marginalVeg);
 
 displayMarginals(posterior, ['sophisticatedOrNaive', 'discount', 'vegOverDonut']);
 printTopK(posterior,5);
