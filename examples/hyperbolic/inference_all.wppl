@@ -59,14 +59,14 @@ var restaurantHyperbolic = function(){
       factorSequence(agentAction, observedStateAction);
 
       var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
-      var donutSWins = sum(utilityTable['Donut S']) > sum(utilityTable['Donut N']);
+      var donutNWins = sum(utilityTable['Donut S']) < sum(utilityTable['Donut N']);
       
       return {utility: utilityTable, 
               discount: discounting.discount, 
               alpha: alpha,
               sophisticatedOrNaive: discounting.sophisticatedOrNaive,
               vegMinusDonut: vegMinusDonut,
-              donutSWins: donutSWins
+              donutNWins: donutNWins
              };
     });
   };
@@ -133,11 +133,11 @@ var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
     console.log(' \n\n', observationName, ' : '); 
     printTopK(posterior,4);
     displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
-                               'donutSWins']);
+                               'donutNWins']);
   }
-  //run('naive'); 
+  run('naive'); 
   run('sophisticated');
-  //run('vegDirect');
+  run('vegDirect');
 };
 
 
@@ -150,11 +150,13 @@ var timeCostDonut = false;
 
 // compare to model without discounting, which infers that alpha is small
 // (should not infer this for vegDirect). this seems to work. 
-var discountingOn = true;
+var discountingOn = false;
 var timeCostDonut = false;
 //hyperbolicQuick(alphaValues, discountingOn,timeCostDonut);
 
-var discountingOn = true;
+// Should learn DonutNWins for *naive*, timeCost=.5 for *sophisticated*
+// and neither for *vegDirect*
+var discountingOn = false
 var timeCostDonut = true;
 hyperbolicQuick(alphaValues, discountingOn, timeCostDonut);
 ash();
