@@ -10,13 +10,9 @@ var utilityTableToFunction = function(utilityTable,world){
   return utilityToPOMDP(makeRestaurantUtilityMDP(world,utilityTable));
 };
 
-var nameToPath = restaurantNameToPath;
-var pathToName = restaurantPathToName;
-
-
 
 // WORLD PARAMS
-var gridworldMDP = makeDonutWorld2({big: true, maxTimeAtRestaurant : 2});
+//var gridworldMDP = makeDonutWorld2({big: true, maxTimeAtRestaurant : 2});
 var gridworldMDP = restaurantChoiceMDP;
 var world = makeGridworldPOMDP(gridworldMDP);
 
@@ -30,11 +26,9 @@ var start = {manifestState: restaurantChoiceStart, //timeLeft: 11
 
                           
 // the agent's prior - agent knows starting manifest, maybe not latent
-
-var agentPrior = getPriorBeliefGridworld( start.manifestState,
-					  function(){
-					    return trueLatentState;
-					  });
+var agentPrior = getPriorBeliefGridworld( start.manifestState, 
+                                          function(){return trueLatentState;
+                                                    });
 
 var baseParams = {
   priorBelief : agentPrior,
@@ -104,7 +98,7 @@ var restaurantBelief = function(){
     return _conditionOnPath(start, priorBelief, 'noAction', 1); // is 1 the right start index?
   };
 
-  var getPosterior = function(priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction){
+  var getPosterior = function(priorUtilityTable, priorDiscounting, priorAlpha, observedPath){
     return Enumerate(function () { 
       var utilityTable = priorUtilityTable();
       var discounting = priorDiscounting();
@@ -114,12 +108,12 @@ var restaurantBelief = function(){
         utility: utilityTableToFunction(utilityTable,world),
         discount: discounting.discount,
         sophisticatedOrNaive: discounting.sophisticatedOrNaive,
-        noDelays: discount===0
+        noDelays: discounting.discount===0
       });
       
       var agent = makeBeliefDelayAgent(params, world);
       
-      conditionOnPath(agent, observedStateAction, world, start);
+      conditionOnPath(agent, world, start, observedPath);
 
       var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
       var donutNWins = sum(utilityTable['Donut S']) < sum(utilityTable['Donut N']);
@@ -141,10 +135,64 @@ var restaurantBelief = function(){
 
 var restaurantBelief = restaurantBelief()
 var getObservations = restaurantBelief.getObservations;
-var obs = getObservations(world,start,'sophisticated');
-console.log('obs', _.map(obs,1));
-ash();
+//var obs = getObservations(world,start,'sophisticated');
+var getPosterior = restaurantBelief.getPosterior;
 
+
+// TODO merge with inference_all
+var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
+  
+  var priorAlpha = function(){return uniformDraw(alphaValues);};
+
+  var priorUtilityTable = function(){
+    var getU = function(){return uniformDraw([-10,10,20]);};
+    var donut = [getU(), getU()];
+    var veg = [getU(), getU()];
+
+    var donut2 = timeCostDonut ?
+        [donut[0]+uniformDraw([-5,5]), donut[1]] : donut;
+    var timeCost = timeCostDonut ? uniformDraw([-.01, .5]) : -.01;
+    
+    return {
+      'Donut N' : donut,
+      'Donut S' : donut2,
+      'Veg'     : veg,
+      'Noodle'  : [-5, -5],
+      'timeCost': timeCost
+    };
+  };
+  
+  var priorDiscounting = function(){
+    return {
+      discount: uniformDraw([0,1]),
+      sophisticatedOrNaive: uniformDraw(['sophisticated', 'naive']),
+    };
+  };
+
+  var priorDiscounting = discountingOn ? priorDiscounting :
+      function(){return {discount:0, sophisticatedOrNaive:'naive'};}
+
+  var run = function(observationName){
+    var observedPath = restaurantNameToPath[observationName];
+    var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, 
+                                 observedPath);
+    console.log(' \n\n', observationName, ' : '); 
+    printTopK(posterior,4);
+    displayMarginals(posterior,
+                     ['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
+                      'donutNWins']);
+  }
+  run('naive'); 
+  run('vegDirect');
+  
+};
+
+var alphaValues = [1000];
+var discountingOn = false;
+var timeCostDonut = false;
+hyperbolicQuick(alphaValues, discountingOn,timeCostDonut);
+
+ash();
 
 var timePosterior = function( observedPath ){
   var thunk = function(){return posterior(observedPath)};
@@ -154,5 +202,5 @@ var timePosterior = function( observedPath ){
 };
 
 //getPosterior( nameToPath.naive);
-getPosterior( nameToPath.sophisticated);
+getPosterior( restaurantNameToPath.sophisticated);
 
