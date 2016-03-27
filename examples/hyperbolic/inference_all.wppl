@@ -1,11 +1,4 @@
 
-// Helper for displaying marginals of array of keys
-var displayMarginals = function(erp, keys){
-  map( function(key){
-    console.log('\n Marginal for : ', key);
-    printERP(getMarginal(erp, key) );
-  }, keys);
-};
 
 
 var restaurantHyperbolic = function(){
@@ -81,7 +74,7 @@ var world = restaurantChoiceMDP; // noReverse: true
 // TODO why does this not work?
 //var world = makeDonutWorld2({big:true, noReverse:false}); 
 
-
+// loc: [3,1], timeLeft:11
 var start = restaurantChoiceStart; // TODO starts at [3,1]. Why does the agent do weird things when starting at [3,0]?
 var restaurantHyperbolic = restaurantHyperbolic();
 var getObservations = restaurantHyperbolic.getObservations;

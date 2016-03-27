@@ -64,6 +64,15 @@ var getMarginal = function(erp,key){
   });
 };
 
+// Helper for displaying marginals of array of keys
+var displayMarginals = function(erp, keys){
+  map( function(key){
+    console.log('\n Marginal for : ', key);
+    printERP(getMarginal(erp, key) );
+  }, keys);
+};
+
+
 
 var update = function(base, ext){
   return _.extend({}, base, ext);
