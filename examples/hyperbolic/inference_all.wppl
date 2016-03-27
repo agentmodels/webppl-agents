@@ -1,9 +1,5 @@
 
-// Hyperbolic Inference example 1: Naive Trajectory
-// -- Goes from bottom to Donut North
-// Inference should infer that Donut has [high,low] utility
-// and Veg the opposite.
-
+// Helper for displaying marginals of array of keys
 var displayMarginals = function(erp, keys){
   map( function(key){
     console.log('\n Marginal for : ', key);
@@ -37,7 +33,6 @@ var restaurantHyperbolic = function(){
     assert.ok( _.isEqual( observedLocs, restaurantNameToPath[pathName]), 'generated matches stored');
     return observedStateAction;
   };
-
   
   var factorSequence = function(agentAction, observedStateAction){
     map(function (stateAction) {
@@ -57,18 +52,21 @@ var restaurantHyperbolic = function(){
         { utility   : makeRestaurantUtilityMDP(world, utilityTable),
           alpha     : alpha, 
           discount  : discounting.discount, 
-          sophisticatedOrNaive : discounting.sophisticatedOrNaive,
+          sophisticatedOrNaive : discounting.sophisticatedOrNaive
         }, world);
       var agentAction = agent.act;
       
       factorSequence(agentAction, observedStateAction);
 
       var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
+      var donutSWins = sum(utilityTable['Donut S']) > sum(utilityTable['Donut N']);
+      
       return {utility: utilityTable, 
               discount: discounting.discount, 
               alpha: alpha,
               sophisticatedOrNaive: discounting.sophisticatedOrNaive,
-              vegMinusDonut: vegMinusDonut
+              vegMinusDonut: vegMinusDonut,
+              donutSWins: donutSWins
              };
     });
   };
@@ -77,60 +75,91 @@ var restaurantHyperbolic = function(){
 };
 
 
-var world = restaurantChoiceMDP;
+
+var world = restaurantChoiceMDP; // noReverse: true
+
+// TODO why does this not work?
+//var world = makeDonutWorld2({big:true, noReverse:false}); 
+
+
 var start = restaurantChoiceStart; // TODO starts at [3,1]. Why does the agent do weird things when starting at [3,0]?
 var restaurantHyperbolic = restaurantHyperbolic();
 var getObservations = restaurantHyperbolic.getObservations;
 var getPosterior = restaurantHyperbolic.getPosterior;
 
 
-// Quick examples
-var quickExamples = function(){
+// Condition on naive/soph/vegDirect with the same prior
+// Prior includes utilities and discouting with a minimal number of parameters
 
-  var priorAlpha = function(){return 500;};
-  var priorAlpha = function(){return uniformDraw([1,100]);};
-
+// *discountingOn* allows for discount>0
+// *timeCostDonut* includes possibly +ve timeCost and different values for DonutS and donutN
+var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
+  
+  var priorAlpha = function(){return uniformDraw(alphaValues);};
 
   var priorUtilityTable = function(){
     var c = 0;  // TODO why does this mess up when c=10?
-    var getU = function(){return uniformDraw([-10,0,10,20]);};
-
+    var getU = function(){return uniformDraw([-10,10,20]);};
     var donut = [getU()+c, getU()+c];
     var veg = [getU()+c, getU()+c];
+
+    var donut2 = timeCostDonut ?
+        [donut[0]+uniformDraw([-5,5]), donut[1]] : donut;
+    var timeCost = timeCostDonut ? uniformDraw([-.01, .5]) : -.01;
     
     return {
       'Donut N' : donut,
-      'Donut S' : donut,
+      'Donut S' : donut2,
       'Veg'     : veg,
       'Noodle'  : [-5+c, -5+c],
-      'timeCost': -.01
+      'timeCost': timeCost
     };
   };
   
   var priorDiscounting = function(){
     return {
       discount: uniformDraw([0,1]),
-      sophisticatedOrNaive: uniformDraw(['sophisticated', 'naive'])
+      sophisticatedOrNaive: uniformDraw(['sophisticated', 'naive']),
     };
   };
 
-  // var observationName = 'naive';
-  // var observedStateActionSequence = getObservations(world, start, observationName);
-  // var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
-  // 
-  
-  var observationName = 'sophisticated';
-  var observedStateActionSequence = getObservations(world, start, observationName);
-  var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
-  printTopK(posterior,10);
-  ash();
-  
-  var observationName = 'vegDirect';
-  var observedStateActionSequence = getObservations(world, start, observationName);
-  var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
-  
+  var priorDiscounting = discountingOn ? priorDiscounting :
+      function(){return {discount:0, sophisticatedOrNaive:'naive'};}
+
+  var run = function(observationName){
+    var observedStateActionSequence = getObservations(world, start, observationName);
+    var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, 
+                                 observedStateActionSequence);
+    console.log(' \n\n', observationName, ' : '); 
+    printTopK(posterior,4);
+    displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
+                               'donutSWins']);
+  }
+  //run('naive'); 
+  run('sophisticated');
+  //run('vegDirect');
 };
-quickExamples();
+
+
+// TODO: with noReverse=true, with alpha=50, we don't infer naive/soph marginals correctly
+// (but this does work OK with alpha=500)
+var alphaValues = [.5, 10, 50, 500];
+var discountingOn = true;
+var timeCostDonut = false;
+//hyperbolicQuick(alphaValues, discountingOn,timeCostDonut);
+
+// compare to model without discounting, which infers that alpha is small
+// (should not infer this for vegDirect). this seems to work. 
+var discountingOn = true;
+var timeCostDonut = false;
+//hyperbolicQuick(alphaValues, discountingOn,timeCostDonut);
+
+var discountingOn = true;
+var timeCostDonut = true;
+hyperbolicQuick(alphaValues, discountingOn, timeCostDonut);
+ash();
+
+
 
 
 
@@ -185,7 +214,7 @@ displayMarginals(posterior, ['sophisticatedOrNaive', 'discount', 'vegOverDonut']
 printTopK(posterior,5);
 
 
-// if (typeof(document) !== 'undefined') { viz.print(posterior); }
-// else {printTopK(posterior,4);}
+
+
 
 null
