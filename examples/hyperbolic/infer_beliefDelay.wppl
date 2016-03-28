@@ -210,24 +210,24 @@ var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
 
     var newBaseParams = update(baseParams, {sophisticatedOrNaive: 'naive', discount: 1});
 
-    return inferGridWorldPOMDP(world, start, newBaseParams, trueAgentParams, prior, agentTypeAndFunctions, 'offPolicy', 0);
+    var erp =  inferGridWorldPOMDP(world, start, newBaseParams, trueAgentParams, prior, agentTypeAndFunctions, 'offPolicy', 0);
+    printTopK(erp,4);
   };
   
   return { 
     naive: run('naive'),  
     vegDirect: run('vegDirect'), 
     sophisticated:run('sophisticated'),
-    generalInferNaive: generalInferNaive();
+    //generalInferNaive: generalInferNaive();
   }
 };
 
 // Model with discounting
 var alphaValues = [1000];
-var discountingOn = false ;//true;
+var discountingOn = true;//true;
 var timeCostDonut = false;
 var out = hyperbolicQuick(alphaValues, discountingOn,timeCostDonut);
-var erp = out.oldNaive;
-printTopK(erp,4);
+
 
 ash();
 
