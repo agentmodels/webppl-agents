@@ -54,6 +54,7 @@ var temptationUtility = {
   'timeCost': -.01,
 };
 
+
 var restaurantBelief = function(){
   
   var getObservations = function(world, start, pathName){ 
@@ -193,21 +194,31 @@ var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
     return posterior;
   };
 
-  var runOld = function(){
-    var prior = {priorUtilityTable: Enumerate(function(){return priorUtilityTable();}), priorAgentPrior:deltaERP(agentPrior)};
-    var agentTypeAndFunctions = {makeAgent: makeBeliefDelayAgent, simulate:simulateBeliefDelayAgent,
+
+  // TODO fix this so we can condition on states- one of the softmax factors
+  // when simulating has a NaN eu. 
+  var runGeneralInfer = function(){
+    var prior = {priorUtilityTable: Enumerate(function(){return priorUtilityTable();}), 
+                 priorAgentPrior:deltaERP(agentPrior)};
+    var agentTypeAndFunctions = {makeAgent: makeBeliefDelayAgent, 
+                                 simulate:simulateBeliefDelayAgent,
                                  beliefOrBeliefDelay: 'beliefDelay'};
+
     var trueAgentParams = update(baseParams, {utility: utilityTableToFunction(temptationUtility,world),
                                               sophisticatedOrNaive: 'naive',
                                               discount: 1});
-    var baseParams = update(baseParams, {sophisticatedOrNaive: 'naive', discount: 1});
-    return inferGridWorldPOMDP(world, start, baseParams, trueAgentParams, prior, agentTypeAndFunctions, 'offPolicy', 0)
+
+    var newBaseParams = update(baseParams, {sophisticatedOrNaive: 'naive', discount: 1});
+
+    return inferGridWorldPOMDP(world, start, newBaseParams, trueAgentParams, prior, agentTypeAndFunctions, 'offPolicy', 0);
   };
   
-  return {naive: run('naive'),  oldNaive: runOld(),
-//          vegDirect: run('vegDirect'), 
-//          sophisticated:run('sophisticated')
-         }
+  return { 
+    naive: run('naive'),  
+    vegDirect: run('vegDirect'), 
+    sophisticated:run('sophisticated'),
+    generalInferNaive: generalInferNaive();
+  }
 };
 
 // Model with discounting
@@ -231,4 +242,8 @@ var timePosterior = function( observedPath ){
 
 //getPosterior( nameToPath.naive);
 getPosterior( restaurantNameToPath.sophisticated);
+
+
+
+
 

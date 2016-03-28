@@ -166,6 +166,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   // get observations using trueAgentParams
   var agent = makeAgent(trueAgentParams, world);
   var observedStateAction = simulate(startState, world, agent, 'stateAction');
+
   
   assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferGridWorld');
 
@@ -212,6 +213,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
             agentAct(nextBelief) : agentAct(nextBelief, delay); 
 
         var observedAction = observedStateAction[timeIndex][1];
+
         factor(nextActionERP.score([], observedAction));
 
         // condition on next world state, passing through updated internal state
@@ -221,6 +223,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
 
     var doInfer = (trajectoryOrOffPolicy=='trajectory') ? factorOnTrajectory() : 
         factorSequenceOffPolicy(priorBelief,'noAction', 0);
+    
     
     return {utilityTable: utilityTable,
 	    priorBelief: priorBelief};

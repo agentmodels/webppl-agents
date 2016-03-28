@@ -95,6 +95,7 @@ var makeBeliefDelayAgent = function (params, world){
       return Enumerate(function () {
         var action = uniformDraw(beliefToActions(belief));
         var eu = expectedUtilityBelief(belief, action, delay);
+
         factor(params.alpha * eu);
         return action;
       });
@@ -106,6 +107,7 @@ var makeBeliefDelayAgent = function (params, world){
         Enumerate(function () {
           var state = sampleBelief(belief);
           var u = 1.0 / (1 + params.discount * delay) * utility(state, action);
+
           if (shouldTerminate(state, delay)){
             return u;
           } else {
