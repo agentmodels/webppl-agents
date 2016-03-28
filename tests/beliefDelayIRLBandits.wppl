@@ -435,7 +435,6 @@ var testBoundVOI = function(){
       eitherAorB_B: {start: 'start'}
     };
     
-    
     var transition = function(state, action){
       var newTimeLeft = state.manifestState.timeLeft - 1;
       var terminateAfterAction = (newTimeLeft ==1);
@@ -455,7 +454,6 @@ var testBoundVOI = function(){
       else {return 'noObservation';}
     };
     
-
     var world = {manifestStateToActions: manifestStateToActions, transition:transition, observe:observe};
     var start = buildState({timeLeft:perceivedTime, loc:'start', terminateAfterAction:false}, 'gotoA');
     return {world:world, startState:start, transitionTable:transitionTable};
@@ -464,10 +462,6 @@ var testBoundVOI = function(){
   
   var makeThreePathsAgent = function(utilityTable, baseAgentParams, worldAndStart){
     var transitionTable = worldAndStart.transitionTable;
-    
-    var priorBelief = baseAgentParams.priorBelief;
-    assert.ok( _.isFinite(priorBelief.score([],worldAndStart.startState.latentState)), 
-             'makeIRLBanditAgent does not have true latent in support');
     
     var utility = function(state,action){
       var loc = state.manifestState.loc;
@@ -491,14 +485,19 @@ var testBoundVOI = function(){
   var runThreePaths = function( totalTime, utilityTable, paramsUpdate ){
 
     var worldAndStart = makeThreePathsWorldAndStart(totalTime);
-    
+
+    var priorBelief = Enumerate( function(){
+      var latentState = flip() ? 'gotoA' : 'gotoB';
+      return buildState( worldAndStart.startState.manifestState, latentState);
+    });
+      
     var baseAgentParams = {
       alpha: 101,
       noDelays: false,
       discount: 0.1,
       sophisticatedOrNaive: 'naive',
       myopia: {on:false, bound:0},
-      priorBelief: Enumerate(function(){return flip() ? 'gotoA' : 'gotoB';}),
+      priorBelief: priorBelief,
       boundVOI: {on:false, bound:0}
     };
     
@@ -507,9 +506,15 @@ var testBoundVOI = function(){
     return simulateBeliefDelayAgent(worldAndStart.startState, worldAndStart.world, agent, 'states');
   };
 
+  // TESTS
+
+  // NB: agent will get obseration 'gotoA' in "eitherAorB_0" and so
+  // will know that A is best.
   
+  // Best prize is from "eitherAorB" branch
   var utilityTable = {eitherAorBPrize: 10, immediatePrize: 6, certainPrize: 9};  
   var totalTime = 3;
+
   
   // low discount agent
   var paramsUpdate = {discount: 0.1};
@@ -526,11 +531,21 @@ var testBoundVOI = function(){
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
   assert.ok( arraysEqual( out, [ 'start', 'immediate0', 'immediate1' ]), 'test boundVOI 3');
 
+  var paramsUpdate = {discount:0, myopia: {on:true, bound:2} };
+  var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
+  assert.ok( arraysEqual( out, [ 'start', 'eitherAorB_0', 'eitherAorB_A' ]), 'test boundVOI 3');
+
+  
   // boundVOI agent
   var paramsUpdate = {discount:0, boundVOI:{on:true, bound:1} };
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
   assert.ok( arraysEqual( out, [ 'start', 'certain0', 'certain1' ]), 'test boundVOI 4');
 
+  var paramsUpdate = {discount:0, boundVOI:{on:true, bound:2} };
+  var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
+  assert.ok( arraysEqual( out, [ 'start', 'eitherAorB_0', 'eitherAorB_A' ]), 'test boundVOI 4');
+
+  
   console.log('\n Passed all boundVOI tests');
 };
 
@@ -549,17 +564,17 @@ var beliefAgentTests = function(){
 
 
 var beliefDelayAgentTests = function(){
+  testBoundVOI(); 
   IRLBanditGenerativeNoDelay('beliefDelay');
   IRLBanditGenerativeDelay();
   testInferIRLBandit('beliefDelay');   
   speedTestIRLBandits('beliefDelay');
-  // testBoundVOI(); TODO Fix this test
 };
 
-
-beliefAgentTests();
 console.log('\n\n------\n  BELIEF DELAY \n');
 beliefDelayAgentTests();
+console.log('\n\n------\n  BELIEF \n');
+beliefAgentTests();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null
 

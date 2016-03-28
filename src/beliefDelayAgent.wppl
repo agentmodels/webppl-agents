@@ -19,9 +19,6 @@ var exampleMakeAgentParams = {
 
 
 
-// Use fast beliefUpdate (which puts ERP only on latentState)
-var fastUpdate = true;
-
 
 var makeBeliefDelayAgent = function (params, world){
 
@@ -36,7 +33,8 @@ var makeBeliefDelayAgent = function (params, world){
     'myopia and boundVOI require Naive agent with delays');
   }
 
-  var params = update({ recurseOnStateOrBelief : 'belief', fastUpdateBelief : true}, params);
+  // Use optimizations that for Gridworld/Bandits for POMDP agents
+  var params = update({fastUpdateBelief : true}, params);
 
   // Variables for methods
   var transition = world.transition;
@@ -46,10 +44,6 @@ var makeBeliefDelayAgent = function (params, world){
   var worldObserve = world.observe;
   var observe = getFullObserve(worldObserve);
   var beliefToActions = getBeliefToActions( manifestStateToActions );
-
-  // Optimizations that work in bandits and gridworld (not for boundVOI agent)
-  var recurseOnStateOrBelief = params.recurseOnStateOrBelief;
-  var fastUpdateBelief = params.fastUpdateBelief;
   
 
   // Update the *delay* parameter in *expectedUtility* for sampling actions and future utilities
@@ -74,7 +68,7 @@ var makeBeliefDelayAgent = function (params, world){
   };
 
   
-  var _updateBelief = fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
+  var _updateBelief = params.fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
       getUpdateBeliefSimple(transition, observe);
 
   
@@ -86,7 +80,7 @@ var makeBeliefDelayAgent = function (params, world){
         var state = sampleBelief(belief);
         return transition(state,action); 
       });
-      return fastUpdate ? toERPOverLatent(nextBelief) : nextBelief;
+      return params.fastUpdateBelief ? toERPOverLatent(nextBelief) : nextBelief;
       
     } else {
       return _updateBelief(belief, observation, action);
