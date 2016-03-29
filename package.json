@@ -14,16 +14,17 @@
   "webppl": {
     "wppl": [
       "src/gridworld.wppl",
+      "src/mdpAgent.wppl",
       "src/hyperbolic.wppl",
       "src/newGridworld.wppl",
+      "src/restaurantHyperbolic.wppl",
       "src/POMDPUtils.wppl",
       "src/gridworldPOMDP.wppl",
       "src/beliefAgent.wppl",
       "src/beliefDelayAgent.wppl",
       "src/deterministicBandits.wppl",
       "src/irlBandits.wppl",
-      "src/stochasticBandits.wppl",
-      "src/mdpAgent.wppl"
+      "src/stochasticBandits.wppl"
     ]
   },
   "repository": {

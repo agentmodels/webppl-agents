@@ -1,73 +1,6 @@
 
 
 
-var getRestaurantHyperbolicInfer = function(){
-
-  var getObservations = function(world, start, pathName){
-    var temptationUtility = makeRestaurantUtilityMDP(world, {
-      'Donut N' : [10, -10],
-      'Donut S' : [10, -10],
-      'Veg'   : [-10, 20],
-      'Noodle': [-5, -5],
-      'timeCost': -.01,
-    });
-    
-    var discount = pathName=='vegDirect' ? 0 : 1;
-    var sophisticatedOrNaive = pathName=='naive' ? 'naive' : 'sophisticated';
-    
-    var agent = makeHyperbolicDiscounter(
-      { utility : temptationUtility,
-        alpha : 500, 
-        discount : discount, 
-        sophisticatedOrNaive  : sophisticatedOrNaive
-      }, world);
-    var observedStateAction = simulateHyperbolic(start, world, agent);
-    var observedLocs = getLocationsHyperbolic(observedStateAction);   
-    assert.ok( _.isEqual( observedLocs, restaurantNameToPath[pathName]), 'generated matches stored');
-    return observedStateAction;
-  };
-  
-  var factorSequence = function(agentAction, observedStateAction){
-    map(function (stateAction) {
-      var state   = stateAction[0];
-      var action  = stateAction[1];
-      factor(agentAction(state, 0).score([], action)) ; 
-    }, observedStateAction);
-  };
-
-  var getPosterior = function(priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction){
-    return Enumerate(function () {
-      var utilityTable = priorUtilityTable();
-      var discounting = priorDiscounting();
-      var alpha = priorAlpha();
-      
-      var agent = makeHyperbolicDiscounter(
-        { utility   : makeRestaurantUtilityMDP(world, utilityTable),
-          alpha     : alpha, 
-          discount  : discounting.discount, 
-          sophisticatedOrNaive : discounting.sophisticatedOrNaive
-        }, world);
-      var agentAction = agent.act;
-      
-      factorSequence(agentAction, observedStateAction);
-
-      var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
-      var donutNWins = sum(utilityTable['Donut S']) < sum(utilityTable['Donut N']);
-      
-      return {utility: utilityTable, 
-              discount: discounting.discount, 
-              alpha: alpha,
-              sophisticatedOrNaive: discounting.sophisticatedOrNaive,
-              vegMinusDonut: vegMinusDonut,
-              donutNWins: donutNWins
-             };
-    });
-  };
-
-  return {getObservations: getObservations, getPosterior: getPosterior};
-};
-
-
 
 var world = restaurantChoiceMDP; // noReverse: true
 
@@ -76,9 +9,9 @@ var world = restaurantChoiceMDP; // noReverse: true
 
 // loc: [3,1], timeLeft:11
 var start = restaurantChoiceStart; // TODO starts at [3,1]. Why does the agent do weird things when starting at [3,0]?
-var restaurantHyperbolic = getRestaurantHyperbolicInfer();
-var getObservations = restaurantHyperbolic.getObservations;
-var getPosterior = restaurantHyperbolic.getPosterior;
+var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();
+var getObservations = restaurantHyperbolicInfer.getObservations;
+var getPosterior = restaurantHyperbolicInfer.getPosterior;
 
 
 
@@ -121,7 +54,7 @@ var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
 
   var run = function(observationName){
     var observedStateActionSequence = getObservations(world, start, observationName);
-    var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, 
+    var posterior = getPosterior(world, priorUtilityTable, priorDiscounting, priorAlpha, 
                                  observedStateActionSequence);
     console.log(' \n\n', observationName, ' : '); 
     printTopK(posterior,4);
@@ -157,8 +90,8 @@ var runHyperbolicQuick = function(){
   //hyperbolicQuick(alphaValues, discountingOn, timeCostDonut);
 };
 
-// runHyperbolicQuick();
-// ash();
+runHyperbolicQuick();
+ash();
 
 
 
@@ -202,7 +135,7 @@ var priorDiscounting = function(){
 
 // var observationName = 'naive';
 // var observedStateActionSequence = getObservations(world, start, observationName);
-// var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
+// var posterior = getPosterior(world,priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
 // var marginalVeg = Enumerate( function(){
 //   return sample(posterior).utility.Veg[1];
 // });
@@ -217,18 +150,16 @@ var priorDiscounting = function(){
 
 
 
-var exampleGetPosterior = function(priorUtilityTable, priorDiscounting, observedStateAction){
+var exampleGetPosterior = function(priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction){
   return Enumerate(function () {
     // Sample parameters from prior
     var utilityTable = priorUtilityTable();
-    var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
-
-    var sophisticatedOrNaive = priorSophisticatedOrNaive();
+    var sophisticatedOrNaive = priorDiscounting().sophisticatedOrNaive;
 
     // Create agent with those parameters
     var agent = makeHyperbolicDiscounter(
       { utility   : makeRestaurantUtilityMDP(world, utilityTable),
-        alpha     : 1000, 
+        alpha     : priorAlpha(), 
         discount  : 1,
         sophisticatedOrNaive : sophisticatedOrNaive
       }, world);
@@ -241,7 +172,9 @@ var exampleGetPosterior = function(priorUtilityTable, priorDiscounting, observed
       var action  = stateAction[1];
       factor(agentAction(state, 0).score([], action)) ; 
     }, observedStateAction);
-    
+
+    // return parameters
+    var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
     return {
       utility: utilityTable, 
       sophisticatedOrNaive: discounting.sophisticatedOrNaive,
@@ -255,11 +188,11 @@ var example1_inferType = function(){
   // Fold
   var runInference = function(observationName){
     var restaurantHyperbolic = getRestaurantHyperbolicInfer();
-    var getObservations = restaurantHyperbolic.getObservations;
-    var getPosterior = restaurantHyperbolic.getPosterior;
+    var getObservations = restaurantHyperbolicInfer.getObservations;
+    var getPosterior = restaurantHyperbolicInfer.getPosterior;
     
     var observedStateActionSequence = getObservations(world, start, observationName);
-    return getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, 
+    return getPosterior(world,priorUtilityTable, priorDiscounting, priorAlpha, 
                         observedStateActionSequence);
   };
  
