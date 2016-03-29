@@ -44,6 +44,7 @@ var makeBeliefDelayAgent = function (params, world){
   var worldObserve = world.observe;
   var observe = getFullObserve(worldObserve);
   var beliefToActions = getBeliefToActions( manifestStateToActions );
+  var recurseOnStateOrBelief = params.recurseOnStateOrBelief;
   
 
   // Update the *delay* parameter in *expectedUtility* for sampling actions and future utilities
@@ -80,7 +81,7 @@ var makeBeliefDelayAgent = function (params, world){
         var state = sampleBelief(belief);
         return transition(state,action); 
       });
-      return fastUpdateBelief ? toERPOverLatent(nextBelief) : nextBelief;
+      return params.fastUpdateBelief ? toERPOverLatent(nextBelief) : nextBelief;
       
     } else {
       return _updateBelief(belief, observation, action);
