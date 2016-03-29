@@ -23,7 +23,7 @@ var startState = buildStochasticBanditStartState(timeLeft, trueLatent);
 var prior = Enumerate(function(){
   var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
 		     1: categorical([0.6, 0.4], [probablyChampagneERP,
-						   probablyNothingERP])};
+						 probablyNothingERP])};
   return buildStochasticBanditStartState(timeLeft, latentState);
 });
 
@@ -139,13 +139,79 @@ var sampleTwoSequences = function(states, priorBeliefs, actions) {
 };
 
 var startAction = 'noAction';
-
-console.log(sampleTwoSequences([startState, startState], [prior, prior],
-			       [startAction, startAction]));
-
-// console.log(simulateBeliefAgent(startState, world, optimalAgent, 'stateAction'));
-
-
+// console.log('Comparison of myopic and optimal with 2 arms:');
+// console.log(sampleTwoSequences([startState, startState], [prior, prior],
+// 			       [startAction, startAction]));
 
 // then, look at what boundVOI does with 3 arms
+
+var world2 = makeStochasticBanditWorld(3);
+var worldObserve2 = world2.observe;
+var observe2 = getFullObserve(worldObserve2);
+var transition2 = world2.transition;
+
+var timeLeft2 = 4;
+
+var trueLatent2 = {0: probablyNothingERP,
+		   1: probablyChampagneERP,
+		   2: probablyNothingERP};
+
+var startState2 = buildStochasticBanditStartState(timeLeft2, trueLatent2);
+
+var prior2 = Enumerate(function(){
+  var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
+		     1: categorical([0.6, 0.4], [probablyChampagneERP,
+						 probablyNothingERP]),
+		     2: categorical([0.6, 0.4], [probablyChampagneERP,
+						 probablyNothingERP])};
+  return buildStochasticBanditStartState(timeLeft2, latentState);
+});
+
+// var prior = deltaERP(buildStochasticBanditStartState(timeLeft, trueLatent));
+
+var myopicAgentParams2 = {utility: utility,
+			  alpha: 100,
+			  priorBelief: prior2,
+			  sophisticatedOrNaive: 'naive',
+			  boundVOI: {on: true, bound: 1},
+			  noDelays: false,
+			  discount: 0,
+			  myopia: {on: false, bound: 0},
+			  fastUpdateBelief: false};
+var myopicAgent2 = makeBeliefDelayAgent(myopicAgentParams2, world2);
+
+
+var optimalAgentParams2 = {utility: utility,
+			   alpha: 100,
+			   priorBelief: prior2,
+			   fastUpdateBelief: false};
+var optimalAgent2 = makeBeliefAgent(optimalAgentParams2, world2);
+
+
+// console.log('\n Myopic with 3 arms:');
+// console.log(simulateBeliefDelayAgent(startState2, world2, myopicAgent2, 'stateAction'));
+
+var f = function(){
+  return simulateBeliefDelayAgent(startState2, world2, myopicAgent2, 'stateAction');
+};
+
+var g = function(){
+  return simulateBeliefDelayAgent(startState2, world2, optimalAgent2, 'stateAction');
+};
+
+
+console.log('Time to run optimal agent: ');
+console.log(timeit(g).runtimeInMilliseconds);
+
+console.log('Time to run myopic agent: ');
+console.log(timeit(f).runtimeInMilliseconds);
+
+// myopic is taking longer than optimal...
+// is the caching not working as I expect, maybe to do with issues around erp
+// equality? how would I tell? is there just a problem with these arguments?
+// fundamentally, something really weird needs to be happening, since neither
+// agent is taking advantage of fastUpdateBelief, so surely the optimal agent
+// would be doing at least as much work? Maybe not having delays makes life
+// easier for the optimal agent?
+
 // see how it scales
