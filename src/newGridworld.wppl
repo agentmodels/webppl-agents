@@ -96,7 +96,7 @@ var makeGridMap = function(rfeatures)  {
 
 
 var makeHike = function(transitionNoiseProb, options) {
-  assert.ok(_.isFinite(transitionNoiseProb) && 0 <= transitionNoiseProb
+  assert.ok( _.isFinite(transitionNoiseProb) && 0 <= transitionNoiseProb
 	    && transitionNoiseProb <= 1,
 	    'something wrong with transitionNoiseProb argument to makeHike');
 
