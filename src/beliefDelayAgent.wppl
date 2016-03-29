@@ -16,11 +16,13 @@ var exampleMakeAgentParams = {
   boundVOI: {on:false, bound:0}
 };
 
+// optional arguments include recurseOnStateOrBelief and fastUpdate
+
 
 
 
 // Use fast beliefUpdate (which puts ERP only on latentState)
-var fastUpdate = true;
+var fastUpdate_ = true;
 
 
 var makeBeliefDelayAgent = function (params, world){
@@ -49,6 +51,9 @@ var makeBeliefDelayAgent = function (params, world){
 
   // Optimizations that work in bandits and gridworld (not for boundVOI agent)
   var recurseOnStateOrBelief = params.recurseOnStateOrBelief;
+  var paramsFastUpdate = params.fastUpdate;
+  var fastUpdate = _.isUndefined(paramsFastUpdate) ? fastUpdate_
+	: paramsFastUpdate;
   var fastUpdateBelief = params.fastUpdateBelief;
   
 
@@ -79,7 +84,7 @@ var makeBeliefDelayAgent = function (params, world){
 
   
   var updateBelief = function (belief, observation, action, delay) {
-    if (params.boundVOI.on && (delay >= params.boundVOI.bound)){
+    if (params.boundVOI.on && (delay > params.boundVOI.bound)){
             
       // update manifestState (assuming no possibility that isNullAction(action))
       var nextBelief = Enumerate(function(){  
@@ -97,7 +102,6 @@ var makeBeliefDelayAgent = function (params, world){
   var act = dp.cache(
     function (belief, delay) {
       assert.ok( _.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
-
       return Enumerate(function () {
         var action = uniformDraw(beliefToActions(belief));
         var eu = expectedUtilityBelief(belief, action, delay);
@@ -120,7 +124,7 @@ var makeBeliefDelayAgent = function (params, world){
 	    var nextObservation = observe(nextState);
             var transformedDelay = transformDelay(delay);
 
-	    var nextBelief = updateBelief(belief, nextObservation, action, transformedDelay);            
+	    var nextBelief = updateBelief(belief, nextObservation, action, transformedDelay); 
 	    var nextAction = sample(act(nextBelief, transformedDelay));
             
 	    var futureU = expectedUtilityBelief(nextBelief, nextAction, incrementDelay(delay));
