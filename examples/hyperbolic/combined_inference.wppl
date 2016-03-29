@@ -150,7 +150,9 @@ var priorDiscounting = function(){
 
 
 
-var exampleGetPosterior = function(priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction){
+// This is *not* the function we actually use. But it is a slightly simplified
+// version of the library function 
+var _getPosterior = function(world, priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction){
   return Enumerate(function () {
     // Sample parameters from prior
     var utilityTable = priorUtilityTable();
@@ -192,7 +194,7 @@ var example1_inferType = function(){
     var getPosterior = restaurantHyperbolicInfer.getPosterior;
     
     var observedStateActionSequence = getObservations(world, start, observationName);
-    return getPosterior(world,priorUtilityTable, priorDiscounting, priorAlpha, 
+    return getPosterior(world, priorUtilityTable, priorDiscounting, priorAlpha, 
                         observedStateActionSequence);
   };
  
@@ -225,3 +227,4 @@ var example1_inferType = function(){
 };
 
 example1_inferType(); ash();
+
