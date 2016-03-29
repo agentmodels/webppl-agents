@@ -18,11 +18,10 @@ var testBandits = function () {
     return buildDeterministicBanditStartState(totalTime, latent);
   });
   var trajectory = runBeliefAgentBandit(numArms, armToRewards, priorBelief,
-			      totalTime);
+					totalTime);
   // console.log(printOut(trajectory));
   map( function(index){assert.ok( trajectory[index].manifestState.loc == 0,
 				  'test1');}, [1,2] );
-
 
   // Agent thinks 0 is likely better, but tries 1 for the VOI.
   // 1 is worse, so it goes back to 0.
@@ -34,7 +33,7 @@ var testBandits = function () {
     return buildDeterministicBanditStartState(totalTime2, latent);
   });
   var trajectory2 = runBeliefAgentBandit(numArms, armToRewards, priorBelief2,
-			       totalTime2);
+					 totalTime2);
   assert.ok(trajectory2[1].manifestState.loc == 1);
   map( function(index){assert.ok( trajectory2[index].manifestState.loc == 0,
 				  'test2');},
@@ -43,7 +42,7 @@ var testBandits = function () {
   // Same as above, but 1 is actually better
   var armToRewards3 = {'start': 0, rewards: [10, 15]};
   var trajectory3 = runBeliefAgentBandit(numArms, armToRewards3, priorBelief2,
-			       totalTime2);
+					 totalTime2);
   map( function(index){assert.ok( trajectory3[index].manifestState.loc == 1,
 				  'test3');},
        [1,2,3] );
@@ -60,7 +59,7 @@ var testBandits = function () {
     return buildDeterministicBanditStartState(totalTime2, latent);
   });
   var trajectory4 = runBeliefAgentBandit(numArms4, armToRewards4, priorBelief4,
-			       totalTime2);
+					 totalTime2);
   // console.log(printOut(trajectory4));
   assert.ok( arraysEqual([1, 2, 0],
 			 map(function(index){
@@ -71,7 +70,7 @@ var testBandits = function () {
   // three arms, explore 1, then stick with 2.
   var armToRewards5 = {'start': 0, rewards: [1,0,150]};
   var trajectory5 = runBeliefAgentBandit(numArms4, armToRewards5, priorBelief4,
-			       totalTime2);
+					 totalTime2);
   assert.ok( arraysEqual([1,2,2],
 			 map(function(index){
 			   return trajectory5[index].manifestState.loc;},
