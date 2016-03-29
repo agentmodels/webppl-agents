@@ -33,7 +33,8 @@ var makeBeliefDelayAgent = function (params, world){
   }
 
   // Use optimizations that for Gridworld/Bandits for POMDP agents
-  var params = update({fastUpdateBelief : true}, params);
+  var params = update({recurseOnStateOrBelief: 'belief',
+		       fastUpdateBelief : true}, params);
 
   // Variables for methods
   var transition = world.transition;
