@@ -60,3 +60,10 @@ var runBeliefAgentBandit = function(numArms, armToRewards, priorBelief,
 
   return simulateBeliefAgent(startState, world, agent, 'states');
 };
+
+var buildDeterministicBanditStartState = function(timeLeft, latentState) {
+  return {manifestState: {loc: 'start',
+			  timeLeft: timeLeft,
+			  terminateAfterAction: false},
+	  latentState: latentState};
+};

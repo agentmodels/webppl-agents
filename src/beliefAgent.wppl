@@ -45,6 +45,7 @@ var ERPOverLatent = function(belief){
 };
 
 // Convert to form for fastUpdateBelief
+// NB: only works for deterministic transitions
 var toERPOverLatent = function(belief){
 
   var manifestState = belief.support()[0].manifestState;
