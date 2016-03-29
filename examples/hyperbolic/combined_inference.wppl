@@ -188,16 +188,20 @@ var _getPosterior = function(world, priorUtilityTable, priorDiscounting, priorAl
 
 var example1_inferType = function(){
   // Fold
+  
   var runInference = function(observationName){
+    // library function for getting observations and computing posterior for Restaurant Choice MDP
     var restaurantHyperbolic = getRestaurantHyperbolicInfer();
     var getObservations = restaurantHyperbolicInfer.getObservations;
     var getPosterior = restaurantHyperbolicInfer.getPosterior;
-    
+
+    // From world and start, get a sequence of observations (which we later condition on)
     var observedStateActionSequence = getObservations(world, start, observationName);
     return getPosterior(world, priorUtilityTable, priorDiscounting, priorAlpha, 
                         observedStateActionSequence);
   };
- 
+
+  // Prior on agent's utility function
   var priorUtilityTable = function(){
     var utilityValues = [-10,0,10,20];
     var getUtilityPair = function(){return [uniformDraw(utilityValues), uniformDraw(utilityValues)];};
@@ -211,7 +215,9 @@ var example1_inferType = function(){
       'timeCost': -.05
     };
   };
-  
+
+  // Prior on discount constant is fixed on 1, but we do attempt to learn whether
+  // agent is Sophisticated or Naive. 
   var priorDiscounting = function(){
     return {
       discount: 1,
