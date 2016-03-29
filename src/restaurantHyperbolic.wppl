@@ -1,0 +1,66 @@
+var getRestaurantHyperbolicInfer = function(){
+
+  var getObservations = function(world, start, pathName){
+    var temptationUtility = makeRestaurantUtilityMDP(world, {
+      'Donut N' : [10, -10],
+      'Donut S' : [10, -10],
+      'Veg'   : [-10, 20],
+      'Noodle': [-5, -5],
+      'timeCost': -.01,
+    });
+    
+    var discount = pathName=='vegDirect' ? 0 : 1;
+    var sophisticatedOrNaive = pathName=='naive' ? 'naive' : 'sophisticated';
+    
+    var agent = makeHyperbolicDiscounter(
+      { utility : temptationUtility,
+        alpha : 500, 
+        discount : discount, 
+        sophisticatedOrNaive  : sophisticatedOrNaive
+      }, world);
+    var observedStateAction = simulateHyperbolic(start, world, agent);
+    var observedLocs = getLocationsHyperbolic(observedStateAction);   
+    assert.ok( _.isEqual( observedLocs, restaurantNameToPath[pathName]), 'generated matches stored');
+    return observedStateAction;
+  };
+  
+  var factorSequence = function(agentAction, observedStateAction){
+    map(function (stateAction) {
+      var state   = stateAction[0];
+      var action  = stateAction[1];
+      factor(agentAction(state, 0).score([], action)) ; 
+    }, observedStateAction);
+  };
+
+  var getPosterior = function(world, priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction){
+    return Enumerate(function () {
+      var utilityTable = priorUtilityTable();
+      var discounting = priorDiscounting();
+      var alpha = priorAlpha();
+      
+      var agent = makeHyperbolicDiscounter(
+        { utility   : makeRestaurantUtilityMDP(world, utilityTable),
+          alpha     : alpha, 
+          discount  : discounting.discount, 
+          sophisticatedOrNaive : discounting.sophisticatedOrNaive
+        }, world);
+      var agentAction = agent.act;
+      
+      factorSequence(agentAction, observedStateAction);
+
+      var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
+      var donutNWins = sum(utilityTable['Donut S']) < sum(utilityTable['Donut N']);
+      
+      return {utility: utilityTable, 
+              discount: discounting.discount, 
+              alpha: alpha,
+              sophisticatedOrNaive: discounting.sophisticatedOrNaive,
+              vegMinusDonut: vegMinusDonut,
+              donutNWins: donutNWins
+             };
+    });
+  };
+
+  return {getObservations: getObservations, getPosterior: getPosterior};
+};
+
