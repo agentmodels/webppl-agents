@@ -91,6 +91,9 @@ var restaurantBelief = function(){
     };
 
     // TODO why conditon on states and not actions?
+
+    // Inference: assumes gridworld (by matching manifestState.loc)
+    // Generates observations for the agent (rather than conditioning on them)
     var _conditionOnPath = function(state, priorBelief, action, i) {
       var observation = observe(state);
       var delay = 0;
@@ -222,14 +225,16 @@ var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
   }
 };
 
-// Model with discounting
-var alphaValues = [1000];
-var discountingOn = true;//true;
-var timeCostDonut = false;
-var out = hyperbolicQuick(alphaValues, discountingOn,timeCostDonut);
-
-
+var runHyperbolicQuick = function(){
+  // Model with discounting
+  var alphaValues = [1000];
+  var discountingOn = true;//true;
+  var timeCostDonut = false;
+  var out = hyperbolicQuick(alphaValues, discountingOn,timeCostDonut);
+  // NB: takes 6 mins! compare to hyperbolic agent in combined_inference.wppl which takes 50s for same computation
+};
 ash();
+
 
 
 

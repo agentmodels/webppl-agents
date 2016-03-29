@@ -1,7 +1,7 @@
 
 
 
-var restaurantHyperbolic = function(){
+var getRestaurantHyperbolicInfer = function(){
 
   var getObservations = function(world, start, pathName){
     var temptationUtility = makeRestaurantUtilityMDP(world, {
@@ -76,15 +76,15 @@ var world = restaurantChoiceMDP; // noReverse: true
 
 // loc: [3,1], timeLeft:11
 var start = restaurantChoiceStart; // TODO starts at [3,1]. Why does the agent do weird things when starting at [3,0]?
-var restaurantHyperbolic = restaurantHyperbolic();
+var restaurantHyperbolic = getRestaurantHyperbolicInfer();
 var getObservations = restaurantHyperbolic.getObservations;
 var getPosterior = restaurantHyperbolic.getPosterior;
 
 
+
 // Condition on naive/soph/vegDirect with the same prior
 // Prior includes utilities and discouting with a minimal number of parameters
-
-// *discountingOn* allows for discount>0
+// *discountingOn* allows for discount > 0
 // *timeCostDonut* includes possibly +ve timeCost and different values for DonutS and donutN
 var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
   
@@ -134,27 +134,31 @@ var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
 };
 
 
-// TODO: with noReverse=true, with alpha=50, we don't infer naive/soph marginals correctly
-// (but this does work OK with alpha=500)
-var alphaValues = [.5, 10, 50, 500];
-var discountingOn = true;
-var timeCostDonut = false;
-//hyperbolicQuick(alphaValues, discountingOn,timeCostDonut);
-
-// compare to model without discounting, which infers that alpha is small
-// (should not infer this for vegDirect). this seems to work. 
-var discountingOn = false;
-var timeCostDonut = false;
-//hyperbolicQuick(alphaValues, discountingOn,timeCostDonut);
-
-// Should learn DonutNWins for *naive*, timeCost=.5 for *sophisticated*
-// and neither for *vegDirect*
-var discountingOn = false
-var timeCostDonut = true;
-hyperbolicQuick(alphaValues, discountingOn, timeCostDonut);
-ash();
 
 
+var runHyperbolicQuick = function(){
+  // TODO: with noReverse=true, with alpha=50, we don't infer naive/soph marginals correctly
+  // (but this does work OK with alpha=500)
+  var alphaValues = [.5, 10, 50, 500];
+  var discountingOn = true;
+  var timeCostDonut = false;
+  hyperbolicQuick(alphaValues, discountingOn,timeCostDonut);
+
+  // compare to model without discounting, which infers that alpha is small
+  // (should not infer this for vegDirect). this seems to work. 
+  var discountingOn = false;
+  var timeCostDonut = false;
+  //hyperbolicQuick(alphaValues, discountingOn,timeCostDonut);
+
+  // Should learn DonutNWins for *naive*, timeCost=.5 for *sophisticated*
+  // and neither for *vegDirect*
+  var discountingOn = false
+  var timeCostDonut = true;
+  //hyperbolicQuick(alphaValues, discountingOn, timeCostDonut);
+};
+
+// runHyperbolicQuick();
+// ash();
 
 
 
@@ -196,20 +200,95 @@ var priorDiscounting = function(){
   return { discount: 1, sophisticatedOrNaive: 'naive'};
 };
 
-var observationName = 'naive';
-var observedStateActionSequence = getObservations(world, start, observationName);
-var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
-var marginalVeg = Enumerate( function(){
-  return sample(posterior).utility.Veg[1];
-});
-console.log('marginal veg');
-printERP(marginalVeg);
+// var observationName = 'naive';
+// var observedStateActionSequence = getObservations(world, start, observationName);
+// var posterior = getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
+// var marginalVeg = Enumerate( function(){
+//   return sample(posterior).utility.Veg[1];
+// });
+// console.log('marginal veg');
+// printERP(marginalVeg);
 
-displayMarginals(posterior, ['sophisticatedOrNaive', 'discount', 'vegOverDonut']);
-printTopK(posterior,5);
-
-
+// displayMarginals(posterior, ['sophisticatedOrNaive', 'discount', 'vegOverDonut']);
+// printTopK(posterior,5);
 
 
 
-null
+
+
+
+var exampleGetPosterior = function(priorUtilityTable, priorDiscounting, observedStateAction){
+  return Enumerate(function () {
+    // Sample parameters from prior
+    var utilityTable = priorUtilityTable();
+    var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
+
+    var sophisticatedOrNaive = priorSophisticatedOrNaive();
+
+    // Create agent with those parameters
+    var agent = makeHyperbolicDiscounter(
+      { utility   : makeRestaurantUtilityMDP(world, utilityTable),
+        alpha     : 1000, 
+        discount  : 1,
+        sophisticatedOrNaive : sophisticatedOrNaive
+      }, world);
+    
+    var agentAction = agent.act;
+
+    // Condition on observed actions
+    map(function (stateAction) {
+      var state   = stateAction[0];
+      var action  = stateAction[1];
+      factor(agentAction(state, 0).score([], action)) ; 
+    }, observedStateAction);
+    
+    return {
+      utility: utilityTable, 
+      sophisticatedOrNaive: discounting.sophisticatedOrNaive,
+      vegMinusDonut: vegMinusDonut,
+    };
+  });
+};
+
+
+var example1_inferType = function(){
+  // Fold
+  var runInference = function(observationName){
+    var restaurantHyperbolic = getRestaurantHyperbolicInfer();
+    var getObservations = restaurantHyperbolic.getObservations;
+    var getPosterior = restaurantHyperbolic.getPosterior;
+    
+    var observedStateActionSequence = getObservations(world, start, observationName);
+    return getPosterior(priorUtilityTable, priorDiscounting, priorAlpha, 
+                        observedStateActionSequence);
+  };
+ 
+  var priorUtilityTable = function(){
+    var utilityValues = [-10,0,10,20];
+    var getUtilityPair = function(){return [uniformDraw(utilityValues), uniformDraw(utilityValues)];};
+    var donut = getUtilityPair();
+    var veg = getUtilityPair();
+    return {
+      'Donut N' : donut,
+      'Donut S' : donut,
+      'Veg'     : veg,
+      'Noodle'  : [-10, -10],
+      'timeCost': -.05
+    };
+  };
+  
+  var priorDiscounting = function(){
+    return {
+      discount: 1,
+      sophisticatedOrNaive: uniformDraw(['sophisticated', 'naive']),
+    };
+  };
+
+  var priorAlpha = function(){return 1000;};
+  
+  runInference('naive'); 
+  runInference('sophisticated');
+  runInference('vegDirect');
+};
+
+example1_inferType(); ash();
