@@ -265,9 +265,9 @@ var IRLBanditGenerativeDelay = function(){
                  trajectoryToLocations(out.value), out.runtimeInMilliseconds + ' ms');
   };
   console.log('\n BOUND VOI \n BoundVOI should be similar in runtime to discount');
-  testBoundVOI(1,'not');
-  testBoundVOI(2,'explore');
-  testBoundVOI(2,'explore');
+  testBoundVOI(0,'not');
+  testBoundVOI(1,'explore');
+  testBoundVOI(1,'explore');
 
   console.log('\n Passed IRLBanditGenerativeDelay');
 };
