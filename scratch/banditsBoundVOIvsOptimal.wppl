@@ -46,8 +46,7 @@ var myopicAgentParams = {utility: utility,
 			 noDelays: false,
 			 discount: 0,
 			 myopia: {on: false, bound: 0},
-			 fastUpdateBelief: false,
-			 fastUpdate: false};
+			 fastUpdateBelief: false};
 var myopicAgent = makeBeliefDelayAgent(myopicAgentParams, world);
 
 var nearlyEqualActionERPs = function(erp1, erp2) {

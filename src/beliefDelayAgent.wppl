@@ -16,14 +16,7 @@ var exampleMakeAgentParams = {
   boundVOI: {on:false, bound:0}
 };
 
-// optional arguments include recurseOnStateOrBelief and fastUpdate
-
-
-
-
-// Use fast beliefUpdate (which puts ERP only on latentState)
-var fastUpdate_ = true;
-
+// optional arguments include recurseOnStateOrBelief and fastUpdateBelief
 
 var makeBeliefDelayAgent = function (params, world){
 
@@ -51,9 +44,6 @@ var makeBeliefDelayAgent = function (params, world){
 
   // Optimizations that work in bandits and gridworld (not for boundVOI agent)
   var recurseOnStateOrBelief = params.recurseOnStateOrBelief;
-  var paramsFastUpdate = params.fastUpdate;
-  var fastUpdate = _.isUndefined(paramsFastUpdate) ? fastUpdate_
-	: paramsFastUpdate;
   var fastUpdateBelief = params.fastUpdateBelief;
   
 
@@ -91,7 +81,7 @@ var makeBeliefDelayAgent = function (params, world){
         var state = sampleBelief(belief);
         return transition(state,action); 
       });
-      return fastUpdate ? toERPOverLatent(nextBelief) : nextBelief;
+      return fastUpdateBelief ? toERPOverLatent(nextBelief) : nextBelief;
       
     } else {
       return _updateBelief(belief, observation, action);
