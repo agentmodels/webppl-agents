@@ -1,3 +1,10 @@
+// Note: the action ERPs for the myopic agent and the optimal agent are not
+// identical because the myopic agent thinks the EUs are lower (because it
+// doesn't forsee exploiting from future exploration) and softmax noise means
+// that this is reflected in the action ERPs. However, they are close, and the
+// MAP is always the same (meaning that they would act the same if they had no
+// softmax noise and broke ties in the same way).
+
 var world = makeStochasticBanditWorld(2);
 var worldObserve = world.observe;
 var observe = getFullObserve(worldObserve);
@@ -28,7 +35,6 @@ var utility = makeStochasticBanditUtility(prizeToUtility);
 var optimalAgentParams = {utility: utility,
 			  alpha: 100,
 			  priorBelief: prior,
-			  recurseOnStateOrBelief: 'state',
 			  fastUpdateBelief: false};
 var optimalAgent = makeBeliefAgent(optimalAgentParams, world);
 
@@ -37,13 +43,20 @@ var myopicAgentParams = {utility: utility,
 			 priorBelief: prior,
 			 sophisticatedOrNaive: 'naive',
 			 boundVOI: {on: true, bound: 1},
-			 recurseOnStateOrBelief: 'belief',
 			 noDelays: false,
 			 discount: 0,
 			 myopia: {on: false, bound: 0},
 			 fastUpdateBelief: false,
 			 fastUpdate: false};
 var myopicAgent = makeBeliefDelayAgent(myopicAgentParams, world);
+
+var nearlyEqualActionERPs = function(erp1, erp2) {
+  var nearlyEqual = function(float1, float2) {
+    return Math.abs(float1 - float2) < 0.05;
+  };
+  return nearlyEqual(erp1.score([], 0), erp2.score([], 0))
+    && nearlyEqual(erp1.score([], 1), erp2.score([], 1));
+};
 
 // it's important that we simulate the two agents such that they get the same
 // prizes when pulling the same arms, so that we can check if their
@@ -77,25 +90,29 @@ var sampleTwoSequences = function(states, priorBeliefs, actions) {
   var myopicEU = myopicAgent.expectedUtility;
   var optimalEU = optimalAgent.expectedUtilityBelief;
 
-  // problem: what if the agents act differently by accident?
-  // solution: if ERPs are nearly equal, sample from one and set that to be the
-  // action of both agents
-  var newMyopicAction = sample(myopicAct(newMyopicBelief, delay));
-  var newOptimalAction = sample(optimalAct(newOptimalBelief));
+  var newMyopicActionERP = myopicAct(newMyopicBelief, delay);
+  var newOptimalActionERP = optimalAct(newOptimalBelief);
 
-  console.log('\naction ERPs:');
-  console.log('optimal agent:');
-  printERP(optimalAct(newOptimalBelief));
-  console.log('myopic agent:');
-  printERP(myopicAct(newMyopicBelief, delay));
-  console.log('Myopic EU of action 0: ');
-  console.log(myopicEU(newMyopicBelief, 0, delay));
-  console.log('Myopic EU of action 1: ');
-  console.log(myopicEU(newMyopicBelief, 1, delay));
-  console.log('Optimal EU of action 0: ');
-  console.log(optimalEU(newOptimalBelief, 0));
-  console.log('Optimal EU of action 1: ');
-  console.log(optimalEU(newOptimalBelief, 1));
+  var newMyopicAction = sample(newMyopicActionERP);
+  var newOptimalAction = nearlyEqualActionERPs(newMyopicActionERP,
+					       newOptimalActionERP)
+	? newMyopicAction : sample(newOptimalActionERP);
+
+  // console.log('\naction ERPs:');
+  // console.log('optimal agent:');
+  // printERP(optimalAct(newOptimalBelief));
+  // console.log('myopic agent:');
+  // printERP(myopicAct(newMyopicBelief, delay));
+  // console.log('Are these ERPs nearly equal?');
+  // console.log(nearlyEqualActionERPs(newMyopicActionERP, newOptimalActionERP));
+  // console.log('Myopic EU of action 0: ');
+  // console.log(myopicEU(newMyopicBelief, 0, delay));
+  // console.log('Myopic EU of action 1: ');
+  // console.log(myopicEU(newMyopicBelief, 1, delay));
+  // console.log('Optimal EU of action 0: ');
+  // console.log(optimalEU(newOptimalBelief, 0));
+  // console.log('Optimal EU of action 1: ');
+  // console.log(optimalEU(newOptimalBelief, 1));
 
   var output = [optimalState, myopicState, newOptimalAction, newMyopicAction];
 
