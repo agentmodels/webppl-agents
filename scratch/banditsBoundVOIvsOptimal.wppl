@@ -1,42 +1,3 @@
-// TODO: print out nicely
-
-// pretty sure something is screwy here, but not sure what
-// my suspicion is that one or both of these agents are not doing what I expect
-// them to be doing.
-
-// boundVOI agent is always 50/50, and not seeing many positive utilities. weird.
-// this seems independent of the prior over probablyChampagne and
-// probablyNothing, and of the ERPs probablyChampagne etc.
-
-// However, changing the bound to 2 works. This could be because with a bound
-// of 1, you never imagine yourself updating. But if that's true, why does the
-// agent not actually update?
-
-// decreasing the bound to 1 and making a strict inequality in updateBelief
-// solves things, so it must be due to that. But I still don't get why the agent
-// isn't updating. and at any rate, I don't see why it doesn't think that arm 1
-// is good.
-
-// So the myopic agent with bound 1 *is* updating its beliefs, but *still* is
-// always indifferent between actions. So its bleak assessment of actions must
-// be due to it not expecting to update, somehow.
-
-// Also, myopic agent with bound 2 has expected utilities that are too low.
-// Something else must be wrong here - maybe the agent is really myopic?
-// maybe it is actually a hyperbolic discounter?
-// note that the expected utilities are less by an additive factor, which is
-// super weird, but they become the same right before the end. Is the myopic
-// agent's expected utilities just the EU of a single arm pull?
-// increasing the boundVOI bound makes it closer, which makes this explanation
-// more likely
-
-// when I recurse on state for the myopic agent, the expected utilities become
-// very very close to the state-recurring optimal agent, but not identical
-// (like 0.05 less).
-// why? I guess because the agent isn't taking into account exploration?
-// this shouldn't matter but maybe softmax noise makes it matter? and why does
-// state vs belief recursion make such a big difference? what bug is in my code?
-
 var world = makeStochasticBanditWorld(2);
 var worldObserve = world.observe;
 var observe = getFullObserve(worldObserve);
@@ -75,16 +36,14 @@ var myopicAgentParams = {utility: utility,
 			 alpha: 100,
 			 priorBelief: prior,
 			 sophisticatedOrNaive: 'naive',
-			 boundVOI: {on: true, bound: 3},
+			 boundVOI: {on: true, bound: 1},
 			 recurseOnStateOrBelief: 'belief',
 			 noDelays: false,
 			 discount: 0,
 			 myopia: {on: false, bound: 0},
-			 fastUpdateBelief: false};
+			 fastUpdateBelief: false,
+			 fastUpdate: false};
 var myopicAgent = makeBeliefDelayAgent(myopicAgentParams, world);
-
-// console.log('myopic prior: ');
-// printERP(myopicAgentParams.priorBelief);
 
 // it's important that we simulate the two agents such that they get the same
 // prizes when pulling the same arms, so that we can check if their
@@ -119,6 +78,8 @@ var sampleTwoSequences = function(states, priorBeliefs, actions) {
   var optimalEU = optimalAgent.expectedUtilityBelief;
 
   // problem: what if the agents act differently by accident?
+  // solution: if ERPs are nearly equal, sample from one and set that to be the
+  // action of both agents
   var newMyopicAction = sample(myopicAct(newMyopicBelief, delay));
   var newOptimalAction = sample(optimalAct(newOptimalBelief));
 
