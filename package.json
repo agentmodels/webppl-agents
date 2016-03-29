@@ -20,7 +20,6 @@
       "src/gridworldPOMDP.wppl",
       "src/beliefAgent.wppl",
       "src/beliefDelayAgent.wppl",
-      "src/deterministicBandits.wppl",
       "src/irlBandits.wppl",
       "src/stochasticBandits.wppl",
       "src/mdpAgent.wppl"
