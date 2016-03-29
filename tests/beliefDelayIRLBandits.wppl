@@ -537,11 +537,11 @@ var testBoundVOI = function(){
 
   
   // boundVOI agent
-  var paramsUpdate = {discount:0, boundVOI:{on:true, bound:1} };
+  var paramsUpdate = {discount:0, boundVOI:{on:true, bound:0} };
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
   assert.ok( arraysEqual( out, [ 'start', 'certain0', 'certain1' ]), 'test boundVOI 4');
 
-  var paramsUpdate = {discount:0, boundVOI:{on:true, bound:2} };
+  var paramsUpdate = {discount:0, boundVOI:{on:true, bound:1} };
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
   assert.ok( arraysEqual( out, [ 'start', 'eitherAorB_0', 'eitherAorB_A' ]), 'test boundVOI 4');
 
