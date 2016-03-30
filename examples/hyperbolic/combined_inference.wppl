@@ -212,7 +212,7 @@ var example1_inferType = function(){
       'Donut S' : donut,
       'Veg'     : veg,
       'Noodle'  : [-10, -10],
-      'timeCost': -.05
+      'timeCost': -.01
     };
   };
 
@@ -248,7 +248,7 @@ var example2_optimal = function(){
   };
   ///
   
-  // Prior on agent's utility function
+  // Prior as above
   var priorUtilityTable = function(){
     var utilityValues = [-10,0,10,20,30,40];
     var getUtilityPair = function(){return [uniformDraw(utilityValues), 0];};
@@ -258,8 +258,8 @@ var example2_optimal = function(){
       'Donut N' : donut,
       'Donut S' : donut,
       'Veg'     : veg,
-      'Noodle'  : [-10, -10],
-      'timeCost': -.05
+      'Noodle'  : [-5, -5],
+      'timeCost': -.01
     };
   };
 
@@ -272,9 +272,9 @@ var example2_optimal = function(){
     };
   };
 
-  var priorAlpha = function(){return uniformDraw([0.1, 1, 10,100,1000]);};
+  var priorAlpha = function(){return uniformDraw([0.1, 10, 100, 1000]);};
   
-  var posterior = runInference('naive'); 
+  //var posterior = runInference('naive'); 
   var posterior = runInference('sophisticated');
   printTopK(posterior,4);
   displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
@@ -282,11 +282,12 @@ var example2_optimal = function(){
 
   //runInference('vegDirect');
 };
+//example2_optimal(); ash();
 
 
 var example3_biased = function(){
   ///fold:
-  var runInference = function(observationName){
+  var runInference = function(observationName, numberMHSamples, repeatObservations){
     // library function for getting observations and computing posterior for Restaurant Choice MDP
     var restaurantHyperbolic = getRestaurantHyperbolicInfer();
     var getObservations = restaurantHyperbolicInfer.getObservations;
@@ -295,7 +296,7 @@ var example3_biased = function(){
     // From world and start, get a sequence of observations (which we later condition on)
     var observedStateActionSequence = getObservations(world, start, observationName);
     return getPosterior(world, priorUtilityTable, priorDiscounting, priorAlpha, 
-                        observedStateActionSequence);
+                        observedStateActionSequence,numberMHSamples, repeatObservations);
   };
   ///
 
@@ -303,16 +304,16 @@ var example3_biased = function(){
   var priorUtilityTable = function(){
     var utilityValues =  [-10,0,10,20,30];
     var getUtilityPair = function(){return [uniformDraw(utilityValues), uniformDraw(utilityValues)];};
-    //var donut = getUtilityPair();
-    var donut = [uniformDraw(utilityValues), 0];
+    
+    var donut = [uniformDraw(utilityValues), uniformDraw(utilityValues)];
     //var veg = getUtilityPair();
-    var veg = [uniformDraw(utilityValues), 10];
+    var veg = [uniformDraw(utilityValues), 20];
     return {
       'Donut N' : donut,
       'Donut S' : donut,
       'Veg'     : veg,
-      'Noodle'  : [-10, -10],
-      'timeCost': -2
+      'Noodle'  : [-5, -5],
+      'timeCost': -.01
     };
   };
 
@@ -320,16 +321,18 @@ var example3_biased = function(){
   // agent is Sophisticated or Naive. 
   var priorDiscounting = function(){
     return {
-      discount: uniformDraw([0,1,2]),
+      discount: uniformDraw([0,1]),
       sophisticatedOrNaive: uniformDraw(['sophisticated','naive'])
     };
   };
 
-  var priorAlpha = function(){return uniformDraw([0.1, 1, 500, 1000]);};
-  
-  var posterior = runInference('naive'); 
+  var priorAlpha = function(){return uniformDraw([0.1, 10, 1000]);};
+
+  var numberMHSamples = undefined;
+  var repeatObservations = undefined;
+  var posterior = runInference('naive', numberMHSamples, repeatObservations);
   //var posterior = runInference('sophisticated');
-  printTopK(posterior,4);
+  printTopK(posterior,8);
   displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
                               'donutNWins']);
 
