@@ -64,6 +64,16 @@ var getMarginal = function(erp,key){
   });
 };
 
+var getMarginalObject = function(erp,key){
+  return Enumerate(function(){
+    var s = sample(erp);
+    var keys = _.keys(s);
+    var omitKeys = filter(function(el){
+      return el !== key;}, keys);
+    return _.omit(s,omitKeys);
+  });
+};
+
 // Helper for displaying marginals of array of keys
 var displayMarginals = function(erp, keys){
   map( function(key){
