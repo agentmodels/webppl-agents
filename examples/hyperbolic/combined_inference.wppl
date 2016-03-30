@@ -248,7 +248,7 @@ var example2_optimal = function(){
   };
   ///
   
-  // Prior as above
+  // Prior as above but we set the delayed utilities to zero
   var priorUtilityTable = function(){
     var utilityValues = [-10,0,10,20,30,40];
     var getUtilityPair = function(){return [uniformDraw(utilityValues), 0];};
@@ -263,8 +263,7 @@ var example2_optimal = function(){
     };
   };
 
-  // Prior on discount constant is fixed on 1, but we do attempt to learn whether
-  // agent is Sophisticated or Naive. 
+  // We assume no discounting (so *sophisticated* has no effect here)
   var priorDiscounting = function(){
     return {
       discount: 0,
@@ -274,17 +273,16 @@ var example2_optimal = function(){
 
   var priorAlpha = function(){return uniformDraw([0.1, 10, 100, 1000]);};
   
-  //var posterior = runInference('naive'); 
-  var posterior = runInference('sophisticated');
+  var posterior = runInference('naive'); 
+  //var posterior = runInference('sophisticated');
   printTopK(posterior,4);
   displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
                               'donutNWins']);
-
-  //runInference('vegDirect');
 };
-//example2_optimal(); ash();
+example2_optimal(); ash();
 
 
+// TODO try this with noReverse=false and see if it works better
 var example3_biased = function(){
   ///fold:
   var runInference = function(observationName, numberMHSamples, repeatObservations){
