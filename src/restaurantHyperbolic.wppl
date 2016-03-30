@@ -32,8 +32,14 @@ var getRestaurantHyperbolicInfer = function(){
     }, observedStateAction);
   };
 
-  var getPosterior = function(world, priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction){
-    return Enumerate(function () {
+ 
+  
+  var getPosterior = function(world, priorUtilityTable, priorDiscounting, priorAlpha, 
+                              observedStateAction, numberMHSamples, repeatObservations){
+    var Infer = (_.isUndefined(numberMHSamples) || numberMHSamples == 0) ? Enumerate :
+        function(f){return MH(f,numberMHSamples);};
+    
+    return Infer(function () {
       var utilityTable = priorUtilityTable();
       var discounting = priorDiscounting();
       var alpha = priorAlpha();
@@ -47,6 +53,9 @@ var getRestaurantHyperbolicInfer = function(){
       var agentAction = agent.act;
       
       factorSequence(agentAction, observedStateAction);
+      if (! _.isUndefined(repeatObservations) ){ 
+        repeat(repeatObservations, function(){factorSequence(agentAction, observedStateAction);});
+      }
 
       var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
       var donutNWins = sum(utilityTable['Donut S']) < sum(utilityTable['Donut N']);
