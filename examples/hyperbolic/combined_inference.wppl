@@ -90,8 +90,8 @@ var runHyperbolicQuick = function(){
   //hyperbolicQuick(alphaValues, discountingOn, timeCostDonut);
 };
 
-runHyperbolicQuick();
-ash();
+// runHyperbolicQuick();
+// ash();
 
 
 
@@ -231,6 +231,8 @@ var example1_inferType = function(){
   runInference('sophisticated');
   runInference('vegDirect');
 };
+
+
 
 example1_inferType(); ash();
 
