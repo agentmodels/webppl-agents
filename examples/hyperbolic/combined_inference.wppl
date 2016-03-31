@@ -131,16 +131,16 @@ var runHyperbolicQuick = function(){
 
 // INFER WHETHER NAIVE OR SOPH -- ASSUMES DISCOUNTING
 var example1_inferType = function(){
-  // Fold
+  var world = makeDonutWorld2({big:true, noReverse:true});
+  var start31 = restaurantChoiceStart;
+  var start30 = update(restaurantChoiceStart,{loc: [3,0]});
+  var start = start31;
   
   var runInference = function(observationName){
     // library function for getting observations and computing posterior for Restaurant Choice MDP
     var restaurantHyperbolic = getRestaurantHyperbolicInfer();
-    var getObservations = restaurantHyperbolicInfer.getObservations;
-    var getPosterior = restaurantHyperbolicInfer.getPosterior;
-
-    // From world and start, get a sequence of observations (which we later condition on)
-    var observedStateActionSequence = getObservations(world, start, observationName);
+    var getPosterior = restaurantHyperbolic.getPosterior;
+    var observedStateActionSequence =  restaurantNameToObservationTime11[observationName];
     return getPosterior(world, priorUtilityTable, priorDiscounting, priorAlpha, 
                         observedStateActionSequence);
   };
@@ -171,20 +171,25 @@ var example1_inferType = function(){
 
   var priorAlpha = function(){return 1000;};
   
-  runInference('naive'); 
-  runInference('sophisticated');
-  runInference('vegDirect');
+  var posterior = runInference('naive');
+  displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
+                              'donutNWins']);
+//  runInference('sophisticated');
+ // runInference('vegDirect');
 };
+
+example1_inferType(); ash();
 
 
 // ASSUME OPTIMAL
 var example2_optimal = function(){
 
   var world = makeDonutWorld2({big:true, noReverse:true});
-  var start31 = restaurantChoiceStart;
-  var start30 = update(restaurantChoiceStart,{loc: [3,0]});
-  var start = start31;
-
+  // var start31 = restaurantChoiceStart;
+  // var start30 = update(restaurantChoiceStart,{loc: [3,0]});
+  //var start = start31;
+  var start = restaurantChoiceStart;
+  
   var runInference = function(observationName){
     // library function for getting observations and computing posterior for Restaurant Choice MDP
     var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();

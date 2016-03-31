@@ -278,6 +278,23 @@ var restaurantNameToPathSmall = {
   sophisticated: [[2,1], [2,2], [2,3], [3,3], [4,3], [4,4], [4,5], [3,5], [3,6]]
 };
 
+var restaurantNameToObservationTime11 = {
+  naive: 
+  [[{"loc":[3,1],"terminateAfterAction":false,"timeLeft":11},"u"],
+   [{"loc":[3,2],"terminateAfterAction":false,"timeLeft":10,"previousLoc":[3,1]},"u"],
+   [{"loc":[3,3],"terminateAfterAction":false,"timeLeft":9,"previousLoc":[3,2]},"u"],
+   [{"loc":[3,4],"terminateAfterAction":false,"timeLeft":8,"previousLoc":[3,3]},"u"],
+   [{"loc":[3,5],"terminateAfterAction":false,"timeLeft":7,"previousLoc":[3,4]},"l"],
+   [{"loc":[2,5],"terminateAfterAction":false,"timeLeft":6,"previousLoc":[3,5],"timeAtRestaurant":0},"l"],
+   [{"loc":[2,5],"terminateAfterAction":true,"timeLeft":6,"previousLoc":[2,5],"timeAtRestaurant":1},"l"]],
+
+  sophisticated:
+  [[{"loc":[3,1],"terminateAfterAction":false,"timeLeft":11},"u"],[{"loc":[3,2],"terminateAfterAction":false,"timeLeft":10,"previousLoc":[3,1]},"u"],[{"loc":[3,3],"terminateAfterAction":false,"timeLeft":9,"previousLoc":[3,2]},"r"],[{"loc":[4,3],"terminateAfterAction":false,"timeLeft":8,"previousLoc":[3,3]},"r"],[{"loc":[5,3],"terminateAfterAction":false,"timeLeft":7,"previousLoc":[4,3]},"u"],[{"loc":[5,4],"terminateAfterAction":false,"timeLeft":6,"previousLoc":[5,3]},"u"],[{"loc":[5,5],"terminateAfterAction":false,"timeLeft":5,"previousLoc":[5,4]},"u"],[{"loc":[5,6],"terminateAfterAction":false,"timeLeft":4,"previousLoc":[5,5]},"l"],[{"loc":[4,6],"terminateAfterAction":false,"timeLeft":3,"previousLoc":[5,6]},"u"],[{"loc":[4,7],"terminateAfterAction":false,"timeLeft":2,"previousLoc":[4,6],"timeAtRestaurant":0},"l"],[{"loc":[4,7],"terminateAfterAction":true,"timeLeft":2,"previousLoc":[4,7],"timeAtRestaurant":1},"l"]],
+
+  vegDirect: 
+  [[{"loc":[3,1],"terminateAfterAction":false,"timeLeft":11},"u"],[{"loc":[3,2],"terminateAfterAction":false,"timeLeft":10,"previousLoc":[3,1]},"u"],[{"loc":[3,3],"terminateAfterAction":false,"timeLeft":9,"previousLoc":[3,2]},"u"],[{"loc":[3,4],"terminateAfterAction":false,"timeLeft":8,"previousLoc":[3,3]},"u"],[{"loc":[3,5],"terminateAfterAction":false,"timeLeft":7,"previousLoc":[3,4]},"u"],[{"loc":[3,6],"terminateAfterAction":false,"timeLeft":6,"previousLoc":[3,5]},"r"],[{"loc":[4,6],"terminateAfterAction":false,"timeLeft":5,"previousLoc":[3,6]},"u"],[{"loc":[4,7],"terminateAfterAction":false,"timeLeft":4,"previousLoc":[4,6],"timeAtRestaurant":0},"l"],[{"loc":[4,7],"terminateAfterAction":true,"timeLeft":4,"previousLoc":[4,7],"timeAtRestaurant":1},"l"]]
+};
+
 
 var allButLast = function(ar){return ar.slice(0,ar.length-1);};
 
