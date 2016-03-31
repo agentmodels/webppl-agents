@@ -6,6 +6,6 @@ npm link ../webppl-timeit
 npm link ../webppl-dp 
 npm link ../webppl-viz
 npm link ../webppl 
-npm install grunt uglify browserify lodash
+npm install grunt uglify browserify
 npm install -g grunt-cli 
 npm install
