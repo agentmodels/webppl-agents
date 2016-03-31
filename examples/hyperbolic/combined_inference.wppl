@@ -1,16 +1,16 @@
 
 
 // GLOBALS
-var world = restaurantChoiceMDP; // noReverse: true
+// var world = restaurantChoiceMDP; // noReverse: true
 
-// TODO why does this not work?
-//var world = makeDonutWorld2({big:true, noReverse:false}); 
+// // TODO why does this not work?
+// //var world = makeDonutWorld2({big:true, noReverse:false}); 
 
-// loc: [3,1], timeLeft:11
-var start = restaurantChoiceStart; // TODO starts at [3,1]. Why does the agent do weird things when starting at [3,0]?
-var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();
-var getObservations = restaurantHyperbolicInfer.getObservations;
-var getPosterior = restaurantHyperbolicInfer.getPosterior;
+// // loc: [3,1], timeLeft:11
+// var start = restaurantChoiceStart; // TODO starts at [3,1]. Why does the agent do weird things when starting at [3,0]?
+// var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();
+// var getObservations = restaurantHyperbolicInfer.getObservations;
+// var getPosterior = restaurantHyperbolicInfer.getPosterior;
 
 
 
@@ -66,8 +66,6 @@ var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
   run('vegDirect');
 };
 
-
-
 var runHyperbolicQuick = function(){
   // TODO: with noReverse=true, with alpha=50, we don't infer naive/soph marginals correctly
   // (but this does work OK with alpha=500)
@@ -91,42 +89,42 @@ var runHyperbolicQuick = function(){
 
 
 // Naive params that yield temptation 
-var priorAlpha = function(){return 3;};
+// var priorAlpha = function(){return 3;};
 
-// Single variable case
-var priorUtilityTable = function(){
-  var getU = function(){return uniformDraw( _.range(-4,20,1));}
-  var donut = [10, 0]; // take MAP params for all but veg 2. 
-  var veg = [10, getU()]; 
+// // Single variable case
+// var priorUtilityTable = function(){
+//   var getU = function(){return uniformDraw( _.range(-4,20,1));}
+//   var donut = [10, 0]; // take MAP params for all but veg 2. 
+//   var veg = [10, getU()]; 
   
-  return {
-    'Donut N' : donut,
-    'Donut S' : donut,
-    'Veg'     : veg,
-    'Noodle'  : [-5, -5],
-    'timeCost': -.01
-  };
-};
+//   return {
+//     'Donut N' : donut,
+//     'Donut S' : donut,
+//     'Veg'     : veg,
+//     'Noodle'  : [-5, -5],
+//     'timeCost': -.01
+//   };
+// };
 
-// Two variable case
-var priorUtilityTable2 = function(){
-  var getU = function(){return uniformDraw( _.range(-4,20,2));}
-  var donut = [getU(), 0]; // take MAP params for all but veg 2. 
-  var veg = [10, getU()]; 
+// // Two variable case
+// var priorUtilityTable2 = function(){
+//   var getU = function(){return uniformDraw( _.range(-4,20,2));}
+//   var donut = [getU(), 0]; // take MAP params for all but veg 2. 
+//   var veg = [10, getU()]; 
   
-  return {
-    'Donut N' : donut,
-    'Donut S' : donut,
-    'Veg'     : veg,
-    'Noodle'  : [-5, -5],
-    'timeCost': -.01
-  };
-};
-var priorUtilityTable = priorUtilityTable2;
+//   return {
+//     'Donut N' : donut,
+//     'Donut S' : donut,
+//     'Veg'     : veg,
+//     'Noodle'  : [-5, -5],
+//     'timeCost': -.01
+//   };
+// };
+// var priorUtilityTable = priorUtilityTable2;
 
-var priorDiscounting = function(){
-  return { discount: 1, sophisticatedOrNaive: 'naive'};
-};
+// var priorDiscounting = function(){
+//   return { discount: 1, sophisticatedOrNaive: 'naive'};
+// };
 
 
 
@@ -187,11 +185,9 @@ var example2_optimal = function(){
   var start30 = update(restaurantChoiceStart,{loc: [3,0]});
   var start = start31;
 
-  
-  ///fold:
   var runInference = function(observationName){
     // library function for getting observations and computing posterior for Restaurant Choice MDP
-    var restaurantHyperbolic = getRestaurantHyperbolicInfer();
+    var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();
     var getObservations = restaurantHyperbolicInfer.getObservations;
     var getPosterior = restaurantHyperbolicInfer.getPosterior;
 
@@ -200,9 +196,7 @@ var example2_optimal = function(){
     return getPosterior(world, priorUtilityTable, priorDiscounting, priorAlpha, 
                         observedStateActionSequence);
   };
-  ///
-  
-  // Prior as above but we set the delayed utilities to zero
+
   var priorUtilityTable = function(){
     var utilityValues = [-10,0,10,20,30,40];
     var getUtilityPair = function(){return [uniformDraw(utilityValues), 0];};
@@ -233,6 +227,9 @@ var example2_optimal = function(){
   displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
                               'donutNWins']);
 };
+example2_optimal();
+ash();
+
 
 
 // TODO try this with noReverse=false and see if it works better
@@ -297,5 +294,5 @@ var example3_biased = function(){
 
 
 
-example3_biased(); ash();
-
+//example3_biased(); ash();
+null
