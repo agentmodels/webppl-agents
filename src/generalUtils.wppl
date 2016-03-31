@@ -1,0 +1,91 @@
+var GridWorld = webpplGridworld; // reference to the exports of gridworld.js
+
+
+
+// GridWorld library and MDP agent
+
+
+// Agent models helper functions
+var argMax = function(f,ar){return maxWith(f,ar)[0]};
+
+
+// Helper Functions
+var update = function(base, ext){
+  return _.extend({}, base, ext);
+};
+
+var ash = function(){assert.ok(0,'assert halt');};
+
+var range = function(n){
+  if (n===0){return [];} 
+  else {return range(n-1).concat([n-1]);}
+};
+
+var downToOne = function(n){
+  if (n==0){return [];}
+  else {return [n].concat(downToOne(n-1));}
+};
+
+
+var arraysEqual = function(xs, ys){
+  return JSON.stringify(xs) === JSON.stringify(ys);
+};
+
+var printERP = function(x,k) {
+  var erpValues = sort(x.support(), undefined, function(v){return -x.score([], v);});
+  var erpValues = typeof(k)=='undefined' ? erpValues : erpValues.slice(0,k);
+  map(
+    function(v){
+      var prob = Math.exp(x.score([], v));
+      if (prob > 0.0){
+        console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
+      }
+    },
+    erpValues);
+};
+
+var printTopK = function(erp,k){
+  var erpValues = sort(erp.support(), undefined, function(v){return -erp.score([], v);});
+  map(
+    function(v){
+      var prob = Math.exp(erp.score([], v));
+      if (prob > 0.0){
+        console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
+      }
+    },
+    erpValues.slice(0,k));
+};
+
+
+var getMarginal = function(erp,key){
+  return Enumerate(function(){
+    return sample(erp)[key];
+  });
+};
+
+var getMarginalObject = function(erp,key){
+  return Enumerate(function(){
+    var s = sample(erp);
+    var keys = _.keys(s);
+    var omitKeys = filter(function(el){
+      return el !== key;}, keys);
+    return _.omit(s,omitKeys);
+  });
+};
+
+// Helper for displaying marginals of array of keys
+var displayMarginals = function(erp, keys){
+  map( function(key){
+    console.log('\n Marginal for : ', key);
+    printERP(getMarginal(erp, key) );
+  }, keys);
+};
+
+
+var hasProperties = function(object, listProperties){
+  assert.ok( _.isObject(object) && _.isArray(listProperties), 'fail hasProperties');
+  return _.all( map( 
+    function(property){ 
+      return _.has(object, property);
+    }, listProperties));
+};
