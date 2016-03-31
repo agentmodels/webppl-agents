@@ -1,7 +1,6 @@
 
 
-
-
+// GLOBALS
 var world = restaurantChoiceMDP; // noReverse: true
 
 // TODO why does this not work?
@@ -12,6 +11,7 @@ var start = restaurantChoiceStart; // TODO starts at [3,1]. Why does the agent d
 var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();
 var getObservations = restaurantHyperbolicInfer.getObservations;
 var getPosterior = restaurantHyperbolicInfer.getPosterior;
+
 
 
 
@@ -68,7 +68,6 @@ var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
 
 
 
-
 var runHyperbolicQuick = function(){
   // TODO: with noReverse=true, with alpha=50, we don't infer naive/soph marginals correctly
   // (but this does work OK with alpha=500)
@@ -89,10 +88,6 @@ var runHyperbolicQuick = function(){
   var timeCostDonut = true;
   //hyperbolicQuick(alphaValues, discountingOn, timeCostDonut);
 };
-
-// runHyperbolicQuick();
-// ash();
-
 
 
 // Naive params that yield temptation 
@@ -133,59 +128,10 @@ var priorDiscounting = function(){
   return { discount: 1, sophisticatedOrNaive: 'naive'};
 };
 
-// var observationName = 'naive';
-// var observedStateActionSequence = getObservations(world, start, observationName);
-// var posterior = getPosterior(world,priorUtilityTable, priorDiscounting, priorAlpha, observedStateActionSequence);
-// var marginalVeg = Enumerate( function(){
-//   return sample(posterior).utility.Veg[1];
-// });
-// console.log('marginal veg');
-// printERP(marginalVeg);
-
-// displayMarginals(posterior, ['sophisticatedOrNaive', 'discount', 'vegOverDonut']);
-// printTopK(posterior,5);
 
 
 
-
-
-
-// This is *not* the function we actually use. But it is a slightly simplified
-// version of the library function 
-var _getPosterior = function(world, priorUtilityTable, priorDiscounting, priorAlpha, observedStateAction){
-  return Enumerate(function () {
-    // Sample parameters from prior
-    var utilityTable = priorUtilityTable();
-    var sophisticatedOrNaive = priorDiscounting().sophisticatedOrNaive;
-
-    // Create agent with those parameters
-    var agent = makeHyperbolicDiscounter(
-      { utility   : makeRestaurantUtilityMDP(world, utilityTable),
-        alpha     : priorAlpha(), 
-        discount  : 1,
-        sophisticatedOrNaive : sophisticatedOrNaive
-      }, world);
-    
-    var agentAction = agent.act;
-
-    // Condition on observed actions
-    map(function (stateAction) {
-      var state   = stateAction[0];
-      var action  = stateAction[1];
-      factor(agentAction(state, 0).score([], action)) ; 
-    }, observedStateAction);
-
-    // return parameters
-    var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
-    return {
-      utility: utilityTable, 
-      sophisticatedOrNaive: discounting.sophisticatedOrNaive,
-      vegMinusDonut: vegMinusDonut,
-    };
-  });
-};
-
-
+// INFER WHETHER NAIVE OR SOPH -- ASSUMES DISCOUNTING
 var example1_inferType = function(){
   // Fold
   
@@ -233,7 +179,14 @@ var example1_inferType = function(){
 };
 
 
+// ASSUME OPTIMAL
 var example2_optimal = function(){
+
+  var world = makeDonutWorld2({big:true, noReverse:true});
+  var start31 = restaurantChoiceStart;
+  var start30 = update(restaurantChoiceStart,{loc: [3,0]});
+  var start = start31;
+
   
   ///fold:
   var runInference = function(observationName){
