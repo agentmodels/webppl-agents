@@ -1,666 +1,296 @@
-/* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
+var inGrid_ = function(gridMap, loc) {
+  return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
+          loc[1] >= 0 && loc[1] < gridMap.yLim);
+}
 
-var GridWorld = webpplGridworld; // reference to the exports of gridworld.js
+var isBlockedLoc = function(gridMap, loc) {
+  var getFeature = gridMap.feature;
+  var feature = getFeature({ loc : loc});
+  return feature === '#';
+}
 
-
-
-// GridWorld library and MDP agent
-
-
-// Agent models helper functions
-var argMax = function(f,ar){return maxWith(f,ar)[0]};
-
-
-// Helper Functions
-var ash = function(){assert.ok(0,'assert halt');};
-
-var range = function(n){
-  if (n===0){return [];} 
-  else {return range(n-1).concat([n-1]);}
+var isAllowedState_ = function(gridMap, loc) {
+  return (inGrid_(gridMap, loc)) && !isBlockedLoc(gridMap, loc);
 };
 
-var downToOne = function(n){
-  if (n==0){return [];}
-  else {return [n].concat(downToOne(n-1));}
-};
-
-var selectIndex = function(ar,i){
-    return  map(function(tuple){return tuple[i];}, ar);
-};
-
-var arraysEqual = function(xs, ys){
-  return JSON.stringify(xs) === JSON.stringify(ys);
-};
-
-var printERP = function(x,k) {
-  var erpValues = sort(x.support(), undefined, function(v){return -x.score([], v);});
-  var erpValues = typeof(k)=='undefined' ? erpValues : erpValues.slice(0,k);
-  map(
-    function(v){
-      var prob = Math.exp(x.score([], v));
-      if (prob > 0.0){
-        console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
-      }
-    },
-    erpValues);
-};
-
-var printTopK = function(erp,k){
-  var erpValues = sort(erp.support(), undefined, function(v){return -erp.score([], v);});
-  map(
-    function(v){
-      var prob = Math.exp(erp.score([], v));
-      if (prob > 0.0){
-        console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
-      }
-    },
-    erpValues.slice(0,k));
-};
-
-
-var getMarginal = function(erp,key){
-  return Enumerate(function(){
-    return sample(erp)[key];
+var advanceStateTime = function(state) { 
+  return update(state, { 
+    timeLeft : state.timeLeft - 1, 
+    terminateAfterAction : state.timeLeft - 1> 1 ? state.terminateAfterAction : true, 
+    previousLoc : state.loc
   });
 };
 
-var getMarginalObject = function(erp,key){
-  return Enumerate(function(){
-    var s = sample(erp);
-    var keys = _.keys(s);
-    var omitKeys = filter(function(el){
-      return el !== key;}, keys);
-    return _.omit(s,omitKeys);
-  });
+var addPrevious = function(state) { 
+  return update(state, { previousLoc : state.loc });
 };
 
-// Helper for displaying marginals of array of keys
-var displayMarginals = function(erp, keys){
-  map( function(key){
-    console.log('\n Marginal for : ', key);
-    printERP(getMarginal(erp, key) );
-  }, keys);
+var advanceRestaurant = function(state, maxTimeAtRestaurant) { 
+  var timeAtRestaurant = (state.timeAtRestaurant === undefined) ? 0 : state.timeAtRestaurant + 1 ;
+  var state = update(state, { timeAtRestaurant : timeAtRestaurant }); 
+
+  if (state.timeAtRestaurant < maxTimeAtRestaurant - 1) {
+    return state;
+  } else {
+    return update(state, { terminateAfterAction : true });
+  }
 };
 
+var moveState = function(gridMap, state, action) { 
+  var loc = state.loc;
+  var gridTransition = {l: [loc[0]-1, loc[1]],
+                        r: [loc[0]+1, loc[1]],
+                        u: [loc[0], loc[1]+1],
+                        d: [loc[0], loc[1]-1]};
 
+  var possibleNextLoc = gridTransition[action];
+  assert.ok(possibleNextLoc != undefined, 'action was not found');
 
-var update = function(base, ext){
-  return _.extend({}, base, ext);
+  var nextLoc = isAllowedState_(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
+  return update(state, { loc : nextLoc });
 };
 
-//for checking the parameter object has all require params
-var assertHas = function(object, params, message) { 
-  assert.ok(_.has(object, params), message + JSON.stringify(object) + ' required ' + JSON.stringify(params));
-};
-
-
-var hasProperties = function(object, listProperties){
-  assert.ok( _.isObject(object) && _.isArray(listProperties), 'fail hasProperties');
-  return _.all( map( 
-    function(property){ 
-      return _.has(object, property);
-    }, listProperties));
-};
-
-       
-
-
-// GRIDWORLD LIBRARY
-
-// States have form [x,y] with Cartesian coordinates
-// Grid dimenions are called xLim and yLim
-// Actions don't include "stay" or diagonal moves.
-// Agent gets rewards on exiting a state. 
-// Transition function can be stochastic. 
-
-var gridActions = ['l','r','u','d'];  // left, right, up, down
-
-
-// NB: treats the postTerminal as distinct from the terminal
-var gridEqual = function(state1,state2){
-  return arraysEqual(state1,state2);
-};
-
-// a gridworld state is in an array of states
-var stateInArray = function(state,ar){
-  assert.ok(state.length==2 & ar.length >= 0, 'stateInArray args');
-  return any( function(x){return x===true;},
-              map( function(x){return gridEqual(x,state)}, ar));
-};
-
-// After entering a terminal, agent goes to "postTerminal" for rest of time
-var isPostTerminal = function(state){return state[0]=='terminateAfterAction';};
-
-var inGrid = function(xLim, yLim, state){ 
-  return (indexOf(state[0],range(xLim)) != undefined) & (indexOf(state[1],range(yLim)) != undefined);
-};
-
-var isBlockedState = function(state,blockedStates){
-  return stateInArray(state,blockedStates);
-};
-
-var openToBlocked = function(open, xLim, yLim){
-  var fullGrid = GridWorld.getGridStates(xLim, yLim);
-  return filter( function(state){return !stateInArray(state,open);}, fullGrid);
-};
-
-
-
-//  Construct gridworld transition function
-var makeGridTransition = function(xLim, yLim, blockedStates, terminals){
-  
-  assert.ok( xLim>1 | yLim>1, 'makeGridTransition');
-
-  var isAllowedState = function(state){
-    return (inGrid(xLim, yLim, state) | isPostTerminal(state)) & !isBlockedState(state,blockedStates) ;
-  };
-
-  return function(state,action){    
-    assert.ok( isAllowedState(state), 'current state is not allowed');
-    assert.ok( indexOf( action, gridActions ) != undefined, 'action in gridActions');
-    
-    var gridTransition = {l: [state[0]-1, state[1]],
-                          r: [state[0]+1, state[1]],
-                          u: [state[0], state[1]+1],
-                          d: [state[0], state[1]-1]};
-
-    // terminals: ignore action
-    if (stateInArray(state, terminals)){return ['terminateAfterAction', state[0], state[1]];}
-    if (isPostTerminal(state)){return state;}
-
-    var possibleNextState = gridTransition[action];
-    return isAllowedState(possibleNextState) ? possibleNextState : state
-  };
-};
-
-// Build a closure for {state: actions_in_state}, where actions are those
-// that transition to a different states. Won't work if we add a 'stay' action
-// to gridworld actions
-
-var getStateToActions = function(detTransition, blockedStates, xLim, yLim){
-  var allStates = GridWorld.getGridStates(xLim,yLim);
-  var states = filter( function(s){return !stateInArray(s,blockedStates);}, allStates);
-  var actions = ['l','r','u','d'];
-  
-  var actionsAr = map(function(state){
-    return filter(function(a){ 
-      return !gridEqual(detTransition(state,a), state);
-    }, actions);
-  }, states);
-
-  // [state, actions] -> {state:actions}
-  var stateToActions = GridWorld.zipToObject( zip(states,actionsAr) );
-                          
-  return function(state){return stateToActions[state];};
-};
-
-
-
-// Standard stochastic transitions, where agent sometimes goes in orthogonal direction
-// to the one intended. We implement this by using a deterministic transition function
-// and stochastically changing the action the agent performs.
-
-var makeStochasticGridTransition = function(xLim, yLim, blockedStates, transitionNoiseProb, terminals){
-
-  var detTransition = makeGridTransition(xLim, yLim, blockedStates, terminals);
-
-  // If agent selects *key*, with *transitionNoiseProb* they do one of the two orthogonal actions
-  var noiseActionTable = {u: ['l','r'], d: ['l','r'], l: ['u','d'], r: ['u','d'] };
-  
+var makeGridTransition_ = function(gridMap, options) {
   return function(state,action){
-    sample(Enumerate( function(){
-      return flip(1-transitionNoiseProb) ? detTransition(state,action) : 
-        detTransition(state, uniformDraw(noiseActionTable[action]))
-    }))
+    var getFeature = gridMap.feature;
+    var state = options.noReverse ? addPrevious(state) : state;
+    var state = !getFeature(state).name ? advanceStateTime(state) : state;
+
+    var state = !getFeature(state).name ? moveState(gridMap, state, action) : state;
+    var state = getFeature(state).name ? advanceRestaurant(state, options.maxTimeAtRestaurant) : state;
+
+    return state;
+  };
+};
+
+var makeNoisyGridTransition_ = function(gridMap, options, transitionNoiseProb) {
+  var deterministicTransition = makeGridTransition_(gridMap, options);
+  // If agent selects *key*, with *transitionNoiseProb* they do one of the two
+  // orthogonal actions
+  var noiseActionTable = {u: ['l','r'],
+			  d: ['l','r'],
+			  l: ['u','d'],
+			  r: ['u','d']};
+
+  return function(state,action){
+    return flip(1-transitionNoiseProb) ? deterministicTransition(state,action)
+      : deterministicTransition(state, uniformDraw(noiseActionTable[action]));
   };
 };
 
 
-// All params for gridworld
-var makeBlockedGridParams = function(xLim, yLim, blockedStates, terminals, utilityFunction, transitionNoiseProb, alpha, labels){
-  var t = transitionNoiseProb==0 ? makeGridTransition(xLim, yLim, blockedStates, terminals) : 
-      makeStochasticGridTransition(xLim, yLim, blockedStates, transitionNoiseProb, terminals)
-  return {utility: utilityFunction,
-          transition: t,
-          actions: gridActions,
-          terminals: terminals,
-          alpha: alpha,
-          blockedStates: blockedStates,
-          xLim: xLim,
-          yLim: yLim, 
-          labels : labels};
-};
-
-
-// Map states to their features and then display via JS library function
-var displayGrid = function(params){
-  var u = params.utility;
-  var states = GridWorld.getGridStates(params.xLim, params.yLim);
-
-  var out = map( function(state){
-    if ( stateInArray(state, params.blockedStates) ){return '#';}
-    if ( stateInArray(state, params.terminals) ){return u(state,'u')+'t';}
-    if ( u(state,'u') != 0 ){ return JSON.stringify(u(state,'u'));}
-    if ( true ){return '_';}
-  }, states);
-
-  var zipGrid = zip(states,out);
-  GridWorld.zipToDisplayGrid( zipGrid, params.xLim, params.yLim);
-  return zipGrid;
-};
-
-
-// 3x3 grid where you go from anywhere to top-right
-var _makeSmall = function(transitionNoiseProb, alpha, xLim, yLim){
-  var u = function(state,action){
-    if (gridEqual(state,[2,2])){return 1;}
-    if (isPostTerminal(state)){return 0;}
-    return -0.05;
+var makeGridMap = function(rfeatures)  { 
+  var features = rfeatures.reverse();
+  return { 
+    features : features,
+    xLim : features[0].length,
+    yLim : features.length,
+    feature : function (state) { 
+      return features[state.loc[1]][state.loc[0]];
+    }
   };
-  var blockedStates = [];
-  var terminals = [ [2,2]];
-  return makeBlockedGridParams(xLim, yLim, blockedStates, terminals, u, transitionNoiseProb, alpha);
-};
-
-var makeSmall = function(transitionNoiseProb, alpha){return _makeSmall(transitionNoiseProb, alpha, 3, 3);};
-
-
-// Russell-Norvig basic example
-var make43 = function(transitionNoiseProb, alpha){
-  var utility = function(state,action){
-    if (gridEqual(state,[3,2]) ){ return 1;}
-    if (gridEqual(state,[3,1]) ){ return -1;}
-    if (isPostTerminal(state)){ return 0;}
-    return -.1;
-  };
-  var blockedStates = [[1,1] ];
-  var terminals = [[3,2], [3,1]];
-  return makeBlockedGridParams(4,3, blockedStates, terminals, utility, transitionNoiseProb, alpha);
-};
-
-
-// Donut example from AAAI paper
-var makeDonut = function(transitionNoiseProb, alpha){
-  var blockedStates = [ [0,5], [1,5], [2,5],      [4,5], [5,5],
-                        [0,4], [1,4],                    [5,4],  
-                        [0,3],              [3,3],       
-                        [0,2], [1,2],       [3,2],       [5,2],
-                                                         [5,1],
-                        [0,0], [1,0],       [3,0], [4,0], [5,0] ];
-  var terminals = [[0,1], [1,3], [5,3], [3,5] ];
-  var labels = [ 
-      { point : [0, 1], content : "Donut"},
-      { point : [1, 3], content : "Donut"},
-      { point : [3, 5], content : "Veg"},
-      { point : [5, 3], content : "Noodle"},
-      { point : [2, 0], content : "Start"}
-  ];
-
-  var u = function(state,action){
-    if (gridEqual(state,[3,5])){return 4;}
-    if (isPostTerminal(state)){return 0;};
-    if (stateInArray(state,terminals)){return 1;}
-    return -0.1;
-  };
-  return makeBlockedGridParams(6,6, blockedStates, terminals, u, transitionNoiseProb, alpha, labels);
-};
-
-
-// Better Donut example
-// *smallVersion*==false means a bigger grid that looks more like AAAI paper grid
-var makeDonutInfer = function(smallVersion, utilityTable, alpha, transitionNoiseProb){
-  assert.ok( typeof(smallVersion)=='boolean' & typeof(utilityTable.veg) == 'number' &
-             typeof(utilityTable.timeCost) == 'number' & alpha >= 0 & transitionNoiseProb >= 0, 'makeDonutInfer args');
-
-  var smallParams = {openStates : [ [0,0], [0,1],
-                                    [1,1], [1,4],
-                                    [2,0], [2,1], [2,2], [2,3], [2,4], [2,5],
-                                    [3,3], [3,5], [3,6],
-                                    [4,2], [4,3], [4,4], [4,5] ],
-                     xLim: 5, yLim: 7,
-                     terminals:  [[0,0], [1,4], [4,2], [3,6] ],
-                     stateToRestaurantTable: { '[0,0]': 'donutSouth',
-                                               '[1,4]': 'donutNorth', 
-                                               '[3,6]': 'veg',
-                                               '[4,2]': 'noodle' },
-                     defaultStartState : [2,0]
-                    };
-  
-  var bigParams = {openStates: [[0,0], [0,1],
-                                [1,1],
-                                [2,1], [2,5],
-                                [3,0], [3,1], [3,2], [3,3], [3,4], [3,5], [3,6],
-                                [4,3], [4,6], [4,7],
-                                [5,2], [5,3], [5,4], [5,5], [5,6] ],
-                   xLim: 6, yLim: 8,
-                   terminals:  [[0,0], [2,5], [5,2], [4,7] ],
-                   stateToRestaurantTable: { '[0,0]': 'donutSouth',
-                                             '[2,5]': 'donutNorth', 
-                                             '[4,7]': 'veg',
-                                             '[5,2]': 'noodle' },
-                   defaultStartState : [3,0]
-
-                  };
-  
-  var params = smallVersion ? smallParams : bigParams;
-  var smallLabels = [
-      { point: [0,0], content: 'Donut' },
-      { point: [1,4], content: 'Donut' },
-      { point: [3,6], content: 'Veg' },
-      { point: [4,2], content: 'Noodle' }
-  ];
-  var bigLabels = [
-      { point: [0,0], content: 'Donut' },
-      { point: [2,5], content: 'Donut' },
-      { point: [4,7], content: 'Veg' },
-      { point: [5,2], content: 'Noodle' }
-  ];
-  var labels = smallVersion ? smallLabels : bigLabels;
-  var blockedStates = openToBlocked(params.openStates, params.xLim, params.yLim);
-
-  var stateToRestaurant = function(state){
-    var table = params.stateToRestaurantTable;
-    return table[JSON.stringify(state)] ? table[JSON.stringify(state)] : false;
-  };
-  
-  var u = function(state,action){
-    if (isPostTerminal(state)){return 0;};
-    if (stateToRestaurant(state)){return utilityTable[ stateToRestaurant(state) ];}
-    return utilityTable['timeCost'];
-  };
-  var outParams = makeBlockedGridParams(params.xLim, params.yLim, blockedStates, params.terminals, u, transitionNoiseProb, alpha);
-  return update(outParams, {defaultStartState : params.defaultStartState, labels : labels});
-};
-
-
-var makeHike = function(transitionNoiseProb, alpha, utilityTable){
-  
-  map( function(input){assert.ok( typeof(input)=='number', 'makeHike inputs' );},
-       [transitionNoiseProb, alpha, utilityTable.east, utilityTable.west, utilityTable.hill, utilityTable.timeCost] );
-  assert.ok(transitionNoiseProb >= 0 & alpha >= 0, 'makeHike inputs' );
-
-  
-  var xLim = 5;
-  var yLim = 5;
-  var blockedStates = [ [1,2], [1,3], [3,2] ];
-  var terminals = [ [0,0], [1,0], [2,0], [3,0], [4,0], [2,2], [4,2] ]; 
-
-  var labels = [
-    { point: [0,0], content: 'hill '+utilityTable.hill },
-    { point: [1,0], content: 'hill '+utilityTable.hill },
-    { point: [2,0], content: 'hill '+utilityTable.hill },
-    { point: [3,0], content: 'hill '+utilityTable.hill },
-    { point: [4,0], content: 'hill '+utilityTable.hill },
-    
-    { point: [2,2], content: 'west '+utilityTable.west },
-    { point: [4,2], content: 'east '+utilityTable.east }
-  ];
-  
-  var u = function(state,action){
-    if (gridEqual(state,[2,2])){return utilityTable.west;}
-    if (gridEqual(state,[4,2])){return utilityTable.east;}
-    if (isPostTerminal(state)){return 0;};
-    if (stateInArray(state,terminals)) {return utilityTable.hill;}
-    return utilityTable.timeCost;
-  };
-  var out =  makeBlockedGridParams(xLim, yLim, blockedStates, terminals, u, transitionNoiseProb, alpha);
-  return update(out, {labels:labels});
-};
-
-
-
-var makeHikeBig = function(transitionNoiseProb, alpha, utilityTable){
-  
-  map( function(input){assert.ok( typeof(input)=='number', 'makeHike inputs' );},
-       [transitionNoiseProb, alpha, utilityTable.east, utilityTable.west, utilityTable.hill, utilityTable.timeCost] );
-  
-  assert.ok(transitionNoiseProb >= 0 & alpha >= 0, 'makeHike inputs' );
-
-  
-  var xLim = 6;
-  var yLim = 6;
-  var blockedStates = [ [2,2], [2,3], [4,2] ];
-  var terminals = [ [0,0], [1,0], [2,0], [3,0], [4,0], [5,0], [3,2], [5,2] ]; 
-
-  var labels = [
-    { point: [0,0], content: 'hill '+utilityTable.hill },
-    { point: [1,0], content: 'hill '+utilityTable.hill },
-    { point: [2,0], content: 'hill '+utilityTable.hill },
-    { point: [3,0], content: 'hill '+utilityTable.hill },
-    { point: [4,0], content: 'hill '+utilityTable.hill },
-    { point: [5,0], content: 'hill '+utilityTable.hill },
-    
-    { point: [3,2], content: 'west '+utilityTable.west },
-    { point: [5,2], content: 'east '+utilityTable.east }
-  ];
-  
-  var u = function(state,action){
-    if (gridEqual(state,[3,2])){return utilityTable.west;}
-    if (gridEqual(state,[5,2])){return utilityTable.east;}
-    if (isPostTerminal(state)){return 0;};
-    if (stateInArray(state,terminals)) {return utilityTable.hill;}
-    return utilityTable.timeCost;
-  };
-  var out =  makeBlockedGridParams(xLim, yLim, blockedStates, terminals, u, transitionNoiseProb, alpha);
-  return update(out, {labels:labels});
 };
 
 
 
 
 
-// MDP AGENT
+var makeHike = function(transitionNoiseProb, options) {
+  assert.ok(_.isFinite(transitionNoiseProb) && 0 <= transitionNoiseProb
+	    && transitionNoiseProb <= 1,
+	    'something wrong with transitionNoiseProb argument to makeHike');
 
-// *actualTotalTime*: how many steps we run *simulate* for
-// *perceivedTotalTime*: how many steps agent perceives in the future (*actualTotalTime* could be less)
-
-// *mdpParams*: has *transition*, *utility*, *alpha* as attributes. For gridworld, constructor is *makeBlockedGridParams*.
-
-// *outputParams* specify options for (a) the form of the ERP over trajectories (the main output of *mdpSimulate*)
-// and (b) extra outputs such as *expUtility(state,action)* for state-action pairs and ERPs for each state
-// given in *conditionOnStates*.
-
-// Attributes for *outputParams* are:
-
-// *trajectoryNumRejectionSamples*: if set to zero, use Enumerate for simulating trajectories, otherwise use Rejection
-// with given number of samples.
-
-// *erpOverStatesOrActions*: *simulate* either outputs states, actions, or both ([state,action]). Values are following strings:
-// 'states', 'actions', 'both'. 
-
-// *conditionOnStates* should be a state sequence, typically with length == perceivedTotalTime. If not conditioning on
-// states, set to false.
-
-
-var mdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, mdpParams, outputParams){
-
-  // CHECK AND ABBREVIATE INPUT ARGS
-  // shorten variable names for convenience
-  var params = mdpParams;
-  var erpOverStatesOrActions = outputParams.erpOverStatesOrActions;
-
-  assert.ok(perceivedTotalTime >= actualTotalTime  &  mdpParams.alpha >= 0  & 
-            (['actions','states','both'].indexOf(outputParams.erpOverStatesOrActions) > -1)  &
-            outputParams.trajectoryNumRejectionSamples >= 0, 'mdpSimulate args');
+  var H = {name: 'Hill'};
+  var W = {name: 'West'};
+  var E = {name: 'East'};
+  var __ = ' ';
   
-  if (outputParams.conditionOnStates){
-    assert.ok( outputParams.conditionOnStates.length >= 0, 'conditionOnStates argument');}
+  var smallFeatures =
+	[[ __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ , '#',  __ ,  __ ,  __ ],
+	 [ __ , '#',  W , '#',  E ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ H ,  H ,  H ,  H ,  H ]];
 
+  var bigFeatures =
+	[[ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ ,  __ , '#',  __ ,  __ ,  __ ],
+	 [ __ ,  __ , '#',  W , '#',  E ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ H ,  H ,  H ,  H ,  H ,  H ]];
+
+  var options_ = options ? options : {big: false};
   
-  // FIX CHECKING FOR TERMINAL STATES
-  var terminalCheck = true; // toggle whether trajectory end sat terminals (if false, agent stays in postTerminal state --
-  // this is equivalent in terms of the agent's plans but means sequences of states are longer)
-
-  // At a terminal, agent takes a single action and then transitions to a "postTerminal" state
-  // which has form [ 'terminateAfterAction', [x,y] ] where [x,y] is terminal's coordinates.
-  var isTerminal = function(state){return terminalCheck & isPostTerminal(state);}; 
+  var features = options_.big ? bigFeatures : smallFeatures;
+  
+  return makeNoisyGridworld(features, options_, transitionNoiseProb);
+};
 
 
-  var agent = cache( 
-    function(_agent, _expUtility, state, timeLeft, params){
-     
-      return Enumerate(function(){
-        var action = uniformDraw(params.actions);
-        var eu = _expUtility(_agent, _expUtility, state, action, timeLeft, params);    
-        factor(params.alpha * eu);
-        return action;
-      });      
+var makeGridWorld = function(features, options) {
+  var defaults = { noReverse : false, maxTimeAtRestaurant : 1 };
+
+  var options = update(defaults, options);
+  var gridMap = makeGridMap(features); 
+
+  var transition = makeGridTransition_(gridMap, options);
+  var actions = ['l', 'r', 'u', 'd'];
+
+  var stateToActions = function (state) { 
+
+    var possibleActions = filter(function (action) { 
+      var newState = transition(state, action);
+      if (options.noReverse && 
+          state.previousLoc && 
+          state.previousLoc[0] === newState.loc[0] && state.previousLoc[1] === newState.loc[1]) { return false; }
+      return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
+    }, actions);
+
+    if (possibleActions.length > 0) {
+      return possibleActions;
+    } else { 
+      return [actions[0]];
+    }
+  };
+
+  return update(gridMap,
+    { transition : transition, 
+      actions    : actions,
+      stateToActions    : stateToActions
     });
+};
 
-  
-  var expUtility = cache(
-    function(_agent, _expUtility, state, action, timeLeft, params){
-      var utility = params.utility;
-      var u = utility(state,action);
-      
-      if (timeLeft - 1 == 0 | isTerminal(state)){
-        return u; 
-      } else {                     
-        return u + expectation( Enumerate(function(){
-          var transition = params.transition;
-          var nextState = transition(state, action); 
-          var nextAction = sample(_agent(_agent, _expUtility, nextState, timeLeft-1, params));
-          return _expUtility(_agent, _expUtility, nextState, nextAction, timeLeft-1, params);  
-        }));
-      }                      
+
+var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
+  var defaults = { noReverse: false, maxTimeAtRestaurant : 1 };
+
+  var options = update(defaults, inputOptions);
+  var gridMap = makeGridMap(features); 
+
+  var transition = makeNoisyGridTransition_(gridMap, options,
+					    transitionNoiseProb);
+  var actions = ['l', 'r', 'u', 'd'];
+
+  var stateToActions = function (state) { 
+    var possibleActions = filter(function (action) {
+      // if noReverse, check that MAP of newState doesn't reverse you
+      var transitionERP = Enumerate(function(){
+	return transition(state, action);
+      });
+      var likelyNewState = MAP(transitionERP).val;
+      if (options.noReverse && state.previousLoc
+	  && state.previousLoc[0] === likelyNewState.loc[0]
+	  && state.previousLoc[1] === likelyNewState.loc[1]) {
+	return false;
+      } else {
+	return state.loc[0] !== likelyNewState.loc[0]
+	  || state.loc[1] !== likelyNewState.loc[1];
+      }}, actions);
+			
+
+    if (possibleActions.length > 0) {
+      return possibleActions;
+    } else { 
+      return [actions[0]];
+    }
+  };
+
+  return update(gridMap,
+    { transition : transition, 
+      actions : actions,
+      stateToActions : stateToActions
     });
-
-  
-  // GET DISTRIBUTION ON TRAJECTORIES
-  var simulate = function(startState, actualTotalTime, perceivedTotalTime, params, erpOverStatesOrActions){
-
-    var sampleSequence = function(state, actualTimeLeft, perceivedTimeLeft){
-      if (actualTimeLeft==0 | isTerminal(state)){
-        return [];
-      } else {
-        var action = sample(agent(agent, expUtility, state, perceivedTimeLeft, params));
-        var transition = params.transition;
-        var nextState = transition(state,action); 
-        var out = {states:state, actions:action, both:[state,action]}[erpOverStatesOrActions];
-        return [ out ].concat( sampleSequence(nextState,actualTimeLeft-1, perceivedTimeLeft-1));
-      }
-    };
-    // Either enumerate over trajectories or use rejection
-    return outputParams.trajectoryNumRejectionSamples==0 ? 
-      Enumerate(function(){
-        return sampleSequence(startState, actualTotalTime, perceivedTotalTime); 
-      }) : 
-    Rejection(function(){
-      return sampleSequence(startState, actualTotalTime, perceivedTotalTime); 
-    }, outputParams.trajectoryNumRejectionSamples, undefined, true);
-  };
-
-
-  // GET ADDITIONAL CACHED OUTPUTS
-  
-  // Get expU for each state visited in MAP() and for all four possible actions
-  // output has form: [ [state0,[EU(state0,'l'), EU(state0,'r'), EU(state0,'u'), EU(state0,'d') ] ], .... ]
-  // TODO give some warning because expUtilities are misleading for single action
-  var getExpUtility = function(){
-    
-    var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, 'states');
-    var states = erp.MAP().val;
-    var timeStates = zip(downToOne(states.length), states);
-    
-    return map( function(timeState){
-      return [JSON.stringify(timeState[1]), map(function(action){
-        return expUtility(agent, expUtility, timeState[1], action, timeState[0], params);
-      }, params.actions)];
-    }, timeStates);
-   
-  };
-
-  // Input is a sequence of states, typically an observed agent trajectory. 
-  // States are assumed to be ordered and to start at startState.
-  // *timeStates* = [ [t, states[0]], [t-1, states[1] ], ... ], where t is *perceivedTotalTime*
-  var getStateActionERPs = function( states ){
-    var timeStates = zip(downToOne(perceivedTotalTime).slice(0,states.length), states); // assumes states begin at start
-    return map( function(timeState){
-      var time = timeState[0];
-      var state = timeState[1];
-      return agent(agent, expUtility, state, time, params);
-    }, timeStates);
-  };
-
-  
-  // ASSEMBLE OUTPUTS
-
-  // standard output is ERP over state, action or state-action sequences
-  var erp = simulate(startState, actualTotalTime, perceivedTotalTime, params, erpOverStatesOrActions);
-
-  // extra outputs: normally using values already cached by simulate
-  var expUtilityValues = outputParams.getExpUtilityValues ? getExpUtility() : [];
-  var stateActionERPs = outputParams.conditionOnStates != false ? 
-      getStateActionERPs(outputParams.conditionOnStates) : [];
-  
-  return {erp: erp, expUtilityValues: expUtilityValues, stateActionERPs: stateActionERPs }; 
-  
 };
 
 
 
 
 
+// Restaurant Choice Constructor and Helpers
 
+var restaurant = {
+  donutN : { name : 'Donut N'},
+  donutS : { name : 'Donut S'},
+  veg   : { name : 'Veg'},
+  noodle: { name : 'Noodle'}
+};
 
+var makeDonutWorld2 = function(options) { 
+  var __ = ' '; 
+  var DN = restaurant.donutN;
+  var DS = restaurant.donutS;
+  var V = restaurant.veg;
+  var N = restaurant.noodle;
 
+  var options = options || {};
 
-// THIS IS USED IN CHAPTER 5. TODO: USE MORE DESCRIPTIVE NAMES.
-// *mdpSimulate* function above should be used for inference/MDP experiments
-var mdpSimulateGridworld = function(startState, totalTime, params, numRejectionSamples){
-  var alpha = params.alpha;
-  var transition = params.transition;
-  var utility = params.utility;
-  var actions = params.actions;
-  var isTerminal = function(state){return state[0]=='terminateAfterAction';};
+  var small = 
+    [['#', '#', '#',  V , '#'],
+     ['#', '#',  __ ,  __ ,  __ ],  
+     ['#', DN ,  __ , '#',  __ ],
+     ['#', '#',  __ ,  __ ,  __ ],
+     ['#', '#',  __ , '#',  N ],
+     [ __ ,  __ ,  __ , '#', '#'],
+     [DS , '#',  __ , '#', '#']];
 
+  var big = 
+    [['#', '#', '#', '#',  V , '#'],
+     ['#', '#', '#',  __ ,  __ ,  __ ],  
+     ['#', '#', DN ,  __ , '#',  __ ],
+     ['#', '#', '#',  __ , '#',  __ ],
+     ['#', '#', '#',  __ ,  __ ,  __ ],
+     ['#', '#', '#',  __ , '#',  N ],
+     [ __ ,  __ ,  __ ,  __ , '#', '#'],
+     [DS , '#', '#',  __ , '#', '#']];
 
-  var agent = dp.cache(function(state, timeLeft){
-    return Enumerate(function(){
-      var action = uniformDraw(actions);
-      var eu = expUtility(state, action, timeLeft);    
-      factor( alpha * eu);
-    return action;
-    });      
-  });
-  
-  
-  var expUtility = dp.cache(function(state, action, timeLeft){
-    var u = utility(state,action);
-    var newTimeLeft = timeLeft - 1;
-    
-    if (newTimeLeft == 0 | isTerminal(state)){
-      return u; 
-    } else {                     
-      return u + expectation( Enumerate(function(){
-        var nextState = transition(state, action); 
-        var nextAction = sample(agent(nextState, newTimeLeft));
-        return expUtility(nextState, nextAction, newTimeLeft);  
-      }));
-    }                      
-  });
-  
-  var simulate = function(startState, totalTime){
-  
-    var sampleSequence = function(state, timeLeft){
-      var action = sample(agent(state, timeLeft));
-        var nextState = transition(state,action); 
-      if (timeLeft == 0 | isTerminal(state)){
-        return [[state,action]];
-      } else {
-        return [[state,action]].concat( sampleSequence(nextState,timeLeft-1 ));
-      }
-    };
-    return Rejection(function(){return sampleSequence(startState, totalTime);}, numRejectionSamples);
-  };
+  var features = options.big ? big : small;
+  return makeGridWorld(features, options);
+};
 
-  return simulate(startState, totalTime);
+var restaurantChoiceMDP = makeDonutWorld2({ big : true, noReverse : true, maxTimeAtRestaurant : 2});
+var restaurantChoiceStart = { 
+  loc : [3,1],
+  terminateAfterAction : false,
+  timeLeft : 11
 };
 
 
 
 
+// trajectories starting from [3,1] for big donutWorld
+var restaurantNameToPath = {
+  naive: [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5], [2,5]],
+  
+  sophisticated: [[ 3, 1 ],[ 3, 2 ],[ 3, 3 ],[ 4, 3 ], [ 5, 3 ],
+                  [ 5, 4 ], [ 5, 5 ], [ 5, 6 ], [4, 6 ], [ 4, 7 ], [4,7] ],
+  
+  donutSouth: [[3,1], [2,1], [1,1], [0,1], [0,0], [0,0]],
+  
+  vegDirect: [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7], [4,7]]
+};
+
+var restaurantNameToPathSmall = {
+  naive: [[2,1], [2,2], [2,3], [2,4], [1,4]],
+  sophisticated: [[2,1], [2,2], [2,3], [3,3], [4,3], [4,4], [4,5], [3,5], [3,6]]
+};
 
 
+var allButLast = function(ar){return ar.slice(0,ar.length-1);};
+
+var restaurantPathToName = function(path){
+  var table = _.invert(restaurantNameToPath);
+  var name = table[path] || 'not in table';
+  return 'path: ' + name;
+};
 
 
+var makeRestaurantUtilityMDP = function (world, utilityTable) { 
+  return function(state, action) {
+    var getFeature = world.feature;
+    var feature = getFeature(state);
+
+    if (feature.name) { return utilityTable[feature.name][state.timeAtRestaurant]; }
+    return utilityTable.timeCost || -.01;
+  };
+};
