@@ -232,6 +232,7 @@ var example1_inferType = function(){
   runInference('vegDirect');
 };
 
+
 var example2_optimal = function(){
   
   ///fold:
@@ -279,7 +280,6 @@ var example2_optimal = function(){
   displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
                               'donutNWins']);
 };
-example2_optimal(); ash();
 
 
 // TODO try this with noReverse=false and see if it works better
@@ -296,6 +296,14 @@ var example3_biased = function(){
     return getPosterior(world, priorUtilityTable, priorDiscounting, priorAlpha, 
                         observedStateActionSequence,numberMHSamples, repeatObservations);
   };
+
+  var displayResults = function(erp){
+    print('MAP utilities: ' + JSON.stringify(erp.MAP().val.utility));
+    viz.vegaPrint(getMarginalObject(erp,'vegMinusDonut'));
+    viz.vegaPrint(getMarginalObject(erp,'sophisticatedOrNaive'));
+    viz.vegaPrint(getMarginalObject(erp,'alpha'));
+    print(JSON.stringify( getMarginalObject(erp,'alpha') ) )
+  };
   ///
 
   // Prior on agent's utility function
@@ -304,7 +312,6 @@ var example3_biased = function(){
     var getUtilityPair = function(){return [uniformDraw(utilityValues), uniformDraw(utilityValues)];};
     
     var donut = [uniformDraw(utilityValues), uniformDraw(utilityValues)];
-    //var veg = getUtilityPair();
     var veg = [uniformDraw(utilityValues), 20];
     return {
       'Donut N' : donut,
@@ -326,15 +333,13 @@ var example3_biased = function(){
 
   var priorAlpha = function(){return uniformDraw([0.1, 10, 1000]);};
 
-  var numberMHSamples = undefined;
+  var numberMHSamples = 100; //1000 //undefined;
   var repeatObservations = undefined;
-  var posterior = runInference('naive', numberMHSamples, repeatObservations);
-  //var posterior = runInference('sophisticated');
+  //var posterior = runInference('naive', numberMHSamples, repeatObservations);
+  var posterior = runInference('sophisticated');
   printTopK(posterior,8);
   displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
                               'donutNWins']);
-
-  //runInference('vegDirect');
 };
 
 

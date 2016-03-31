@@ -103,21 +103,21 @@ var makeHike = function(transitionNoiseProb, options) {
   var H = {name: 'Hill'};
   var W = {name: 'West'};
   var E = {name: 'East'};
-  var _ = ' ';
+  var __ = ' ';
   
   var smallFeatures =
-	[[ _ ,  _ ,  _ ,  _ ,  _ ],
-	 [ _ , '#',  _ ,  _ ,  _ ],
-	 [ _ , '#',  W , '#',  E ],
-	 [ _ ,  _ ,  _ ,  _ ,  _ ],
+	[[ __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ , '#',  __ ,  __ ,  __ ],
+	 [ __ , '#',  W , '#',  E ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ],
 	 [ H ,  H ,  H ,  H ,  H ]];
 
   var bigFeatures =
-	[[ _ ,  _ ,  _ ,  _ ,  _ ,  _ ],
-	 [ _ ,  _ ,  _ ,  _ ,  _ ,  _ ],
-	 [ _ ,  _ , '#',  _ ,  _ ,  _ ],
-	 [ _ ,  _ , '#',  W , '#',  E ],
-	 [ _ ,  _ ,  _ ,  _ ,  _ ,  _ ],
+	[[ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ ,  __ , '#',  __ ,  __ ,  __ ],
+	 [ __ ,  __ , '#',  W , '#',  E ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
 	 [ H ,  H ,  H ,  H ,  H ,  H ]];
 
   var options_ = options ? options : {big: false};
@@ -217,7 +217,7 @@ var restaurant = {
 };
 
 var makeDonutWorld2 = function(options) { 
-  var _ = ' '; 
+  var __ = ' '; 
   var DN = restaurant.donutN;
   var DS = restaurant.donutS;
   var V = restaurant.veg;
@@ -227,22 +227,22 @@ var makeDonutWorld2 = function(options) {
 
   var small = 
     [['#', '#', '#',  V , '#'],
-     ['#', '#',  _ ,  _ ,  _ ],  
-     ['#', DN ,  _ , '#',  _ ],
-     ['#', '#',  _ ,  _ ,  _ ],
-     ['#', '#',  _ , '#',  N ],
-     [ _ ,  _ ,  _ , '#', '#'],
-     [DS , '#',  _ , '#', '#']];
+     ['#', '#',  __ ,  __ ,  __ ],  
+     ['#', DN ,  __ , '#',  __ ],
+     ['#', '#',  __ ,  __ ,  __ ],
+     ['#', '#',  __ , '#',  N ],
+     [ __ ,  __ ,  __ , '#', '#'],
+     [DS , '#',  __ , '#', '#']];
 
   var big = 
     [['#', '#', '#', '#',  V , '#'],
-     ['#', '#', '#',  _ ,  _ ,  _ ],  
-     ['#', '#', DN ,  _ , '#',  _ ],
-     ['#', '#', '#',  _ , '#',  _ ],
-     ['#', '#', '#',  _ ,  _ ,  _ ],
-     ['#', '#', '#',  _ , '#',  N ],
-     [ _ ,  _ ,  _ ,  _ , '#', '#'],
-     [DS , '#', '#',  _ , '#', '#']];
+     ['#', '#', '#',  __ ,  __ ,  __ ],  
+     ['#', '#', DN ,  __ , '#',  __ ],
+     ['#', '#', '#',  __ , '#',  __ ],
+     ['#', '#', '#',  __ ,  __ ,  __ ],
+     ['#', '#', '#',  __ , '#',  N ],
+     [ __ ,  __ ,  __ ,  __ , '#', '#'],
+     [DS , '#', '#',  __ , '#', '#']];
 
   var features = options.big ? big : small;
   return makeGridWorld(features, options);
@@ -294,4 +294,3 @@ var makeRestaurantUtilityMDP = function (world, utilityTable) {
     return utilityTable.timeCost || -.01;
   };
 };
-
