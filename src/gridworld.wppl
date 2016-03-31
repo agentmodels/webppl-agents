@@ -1,3 +1,6 @@
+// import gridworld-viz library
+var GridWorld = webpplGridworld;
+
 var inGrid_ = function(gridMap, loc) {
   return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
           loc[1] >= 0 && loc[1] < gridMap.yLim);
