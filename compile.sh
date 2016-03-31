@@ -13,8 +13,8 @@ else
   cd $WEBPPL_PATH
 fi
 
-grunt compile:../webppl-timeit:../webppl-dp:../webppl-viz:$CURRENT_PATH
-cp compiled/webppl.js $CURRENT_PATH/runHtml/assets/js/
+grunt bundle:../webppl-timeit:../webppl-dp:../webppl-viz:$CURRENT_PATH
+cp bundle/webppl.js $CURRENT_PATH/runHtml/assets/js/
 
 cd $CURRENT_PATH
 sh run.sh $SCRIPT
