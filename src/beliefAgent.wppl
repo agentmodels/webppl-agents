@@ -26,7 +26,7 @@ var getFullObserve = function(observeLatent){
 var getBeliefToActions = function(manifestStateToActions){
   return function(belief){
     var manifestState = ERPOverLatent(belief) ? belief.manifestState : 
-        sample(belief).manifestState;
+          sample(belief).manifestState;
     return manifestStateToActions( manifestState );
   };
 };

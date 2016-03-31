@@ -121,6 +121,27 @@ var getBigDonutWorld = function(){
   return update(makeGridworldPOMDP(gridworldMDP), {feature:feature, gridworldMDP:gridworldMDP});
 };
 
+// make restaurant choice POMDP with variable maxTimeAtRestaurant
+var getRestaurantChoicePOMDP = function(maxTimeAtRestaurant_){
+  var maxTimeAtRestaurant = _.isUndefined(maxTimeAtRestaurant_) ? 1
+	: maxTimeAtRestaurant_;
+  var gridworldMDP = makeDonutWorld2({big: true, noReverse: true,
+				      maxTimeAtRestaurant: maxTimeAtRestaurant});
+  var feature = gridworldMDP.feature;
+  return update(makeGridworldPOMDP(gridworldMDP), {feature: feature,
+						   restaurantChoiceMDP: gridworldMDP});
+};
+
+var allOpenRestaurantChoiceStart = {
+  manifestState: { loc: [3,1],
+		   terminateAfterAction: false,
+		   timeLeft: 11},
+  latentState: {'Donut N': true,
+		'Donut S': true,
+		Veg: true,
+		Noodle: true}
+};
+
 
 var tableToUtilityFunction = function(table, feature) {  
   return function(state, action) {
