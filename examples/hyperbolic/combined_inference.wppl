@@ -178,6 +178,8 @@ var example1_inferType = function(){
  // runInference('vegDirect');
 };
 
+var obs = restaurantNameToObservationTime11Reverse('naive');
+console.log('obs: ', obs);
 example1_inferType(); ash();
 
 
