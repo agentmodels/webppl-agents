@@ -143,75 +143,175 @@ var startAction = 'noAction';
 // console.log(sampleTwoSequences([startState, startState], [prior, prior],
 // 			       [startAction, startAction]));
 
-// then, look at what boundVOI does with 3 arms
+// // then, look at what boundVOI does with 3 arms
 
-var world2 = makeStochasticBanditWorld(3);
-var worldObserve2 = world2.observe;
-var observe2 = getFullObserve(worldObserve2);
-var transition2 = world2.transition;
+// var world2 = makeStochasticBanditWorld(3);
+// var worldObserve2 = world2.observe;
+// var observe2 = getFullObserve(worldObserve2);
+// var transition2 = world2.transition;
 
-var timeLeft2 = 4;
+// var timeLeft2 = 7;
 
-var trueLatent2 = {0: probablyNothingERP,
-		   1: probablyChampagneERP,
-		   2: probablyNothingERP};
+// var trueLatent2 = {0: probablyNothingERP,
+// 		   1: probablyChampagneERP,
+// 		   2: probablyNothingERP};
 
-var startState2 = buildStochasticBanditStartState(timeLeft2, trueLatent2);
+// var startState2 = buildStochasticBanditStartState(timeLeft2, trueLatent2);
 
-var prior2 = Enumerate(function(){
-  var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
-		     1: categorical([0.6, 0.4], [probablyChampagneERP,
-						 probablyNothingERP]),
-		     2: categorical([0.6, 0.4], [probablyChampagneERP,
-						 probablyNothingERP])};
-  return buildStochasticBanditStartState(timeLeft2, latentState);
-});
+// var prior2 = Enumerate(function(){
+//   var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
+// 		     1: categorical([0.6, 0.4], [probablyChampagneERP,
+// 						 probablyNothingERP]),
+// 		     2: categorical([0.6, 0.4], [probablyChampagneERP,
+// 						 probablyNothingERP])};
+//   return buildStochasticBanditStartState(timeLeft2, latentState);
+// });
 
-// var prior = deltaERP(buildStochasticBanditStartState(timeLeft, trueLatent));
+// // var prior = deltaERP(buildStochasticBanditStartState(timeLeft, trueLatent));
 
-var myopicAgentParams2 = {utility: utility,
-			  alpha: 100,
-			  priorBelief: prior2,
-			  sophisticatedOrNaive: 'naive',
-			  boundVOI: {on: true, bound: 1},
-			  noDelays: false,
-			  discount: 0,
-			  myopia: {on: false, bound: 0},
-			  fastUpdateBelief: false};
-var myopicAgent2 = makeBeliefDelayAgent(myopicAgentParams2, world2);
-
-
-var optimalAgentParams2 = {utility: utility,
-			   alpha: 100,
-			   priorBelief: prior2,
-			   fastUpdateBelief: false};
-var optimalAgent2 = makeBeliefAgent(optimalAgentParams2, world2);
+// var myopicAgentParams2 = {utility: utility,
+// 			  alpha: 100,
+// 			  priorBelief: prior2,
+// 			  sophisticatedOrNaive: 'naive',
+// 			  boundVOI: {on: true, bound: 1},
+// 			  noDelays: false,
+// 			  discount: 0,
+// 			  myopia: {on: false, bound: 0},
+// 			  fastUpdateBelief: false};
+// var myopicAgent2 = makeBeliefDelayAgent(myopicAgentParams2, world2);
 
 
-// console.log('\n Myopic with 3 arms:');
-// console.log(simulateBeliefDelayAgent(startState2, world2, myopicAgent2, 'stateAction'));
-
-var f = function(){
-  return simulateBeliefDelayAgent(startState2, world2, myopicAgent2, 'stateAction');
-};
-
-var g = function(){
-  return simulateBeliefDelayAgent(startState2, world2, optimalAgent2, 'stateAction');
-};
+// var optimalAgentParams2 = {utility: utility,
+// 			   alpha: 100,
+// 			   priorBelief: prior2,
+// 			   fastUpdateBelief: false};
+// var optimalAgent2 = makeBeliefAgent(optimalAgentParams2, world2);
 
 
-console.log('Time to run optimal agent: ');
-console.log(timeit(g).runtimeInMilliseconds);
+// // console.log('\n Myopic with 3 arms:');
+// // console.log(simulateBeliefDelayAgent(startState2, world2, myopicAgent2, 'stateAction'));
 
-console.log('Time to run myopic agent: ');
-console.log(timeit(f).runtimeInMilliseconds);
+// var f = function(){
+//   return simulateBeliefDelayAgent(startState2, world2, myopicAgent2, 'stateAction');
+// };
 
-// myopic is taking longer than optimal...
-// is the caching not working as I expect, maybe to do with issues around erp
-// equality? how would I tell? is there just a problem with these arguments?
-// fundamentally, something really weird needs to be happening, since neither
-// agent is taking advantage of fastUpdateBelief, so surely the optimal agent
-// would be doing at least as much work? Maybe not having delays makes life
-// easier for the optimal agent?
+// var g = function(){
+//   return simulateBeliefDelayAgent(startState2, world2, optimalAgent2, 'stateAction');
+// };
+
+
+// console.log('Time to run optimal agent: ');
+// console.log(timeit(g).runtimeInMilliseconds);
+
+// console.log('Time to run myopic agent: ');
+// console.log(timeit(f).runtimeInMilliseconds);
+
+// I thought that the myopic agent was taking longer than the optimal agent, but
+// this went away asymptotically (starting at t = 6).
+
+// That being said, it still takes quite a long time (1 minute if you want it to
+// be faster than the optimal agent), and I'm not sure how valuable it is to
+// show what the boundVOI agent does without demonstrating deviation from
+// optimal behaviour
 
 // see how it scales
+
+var varyTime = function(n) {
+  console.log(n);
+  var world = makeStochasticBanditWorld(2);
+
+  var probablyChampagneERP = categoricalERP([0.2, 0.8], ['nothing', 'champagne']);
+  var probablyNothingERP = categoricalERP([0.8, 0.2], ['nothing', 'champagne']);
+
+  var trueLatent = {0: deltaERP('chocolate'),
+  		    1: probablyChampagneERP};
+  var falseLatent = update(trueLatent, {1: probablyNothingERP});
+
+  var startState = buildStochasticBanditStartState(n, trueLatent);
+
+  var prior = Enumerate(function(){
+    var latent = uniformDraw([trueLatent, falseLatent]);
+    return buildStochasticBanditStartState(n, latent);
+  });
+
+  var prizeToUtility = {start: 0, nothing: 0, chocolate: 1, champagne: 1.5};
+  var utility = makeStochasticBanditUtility(prizeToUtility);
+
+  var agentParams = {utility: utility,
+	             alpha: 100,
+		     priorBelief: prior,
+		     sophisticatedOrNaive: 'naive',
+		     boundVOI: {on: true, bound: 1},
+		     noDelays: false,
+		     discount: 0,
+		     myopia: {on: false, bound: 0},		     
+		     fastUpdateBelief: false};
+  var agent = makeBeliefDelayAgent(agentParams, world);
+
+  var f = function() {
+    return simulateBeliefDelayAgent(startState, world, agent, 'stateAction');
+  };
+
+  return timeit(f).runtimeInMilliseconds.toPrecision(3) * 0.001;
+};
+
+// Varying the lifetime of the agent
+console.log('Varying lifetimes for myopic agent');
+var lifetimes = _.range(16).slice(2);
+var runtimes = map(varyTime, lifetimes);
+
+console.log('\nLifetimes: ' + lifetimes);
+console.log('Runtimes in seconds: ' + runtimes);
+
+var varyArms = function(n) {
+  console.log(n);
+  var world = makeStochasticBanditWorld(n);
+
+  var probablyChampagneERP = categoricalERP([0.2, 0.8], ['nothing', 'champagne']);
+  var probablyNothingERP = categoricalERP([0.8, 0.2], ['nothing', 'champagne']);
+  
+  var makeLatentState = function(numArms) {
+    return map(function(x){return probablyChampagneERP;}, _.range(numArms));
+  };
+
+  var startState = buildStochasticBanditStartState(5, makeLatentState(n));
+
+  var latentSampler = function(numArms) {
+    return map(function(x){return uniformDraw([probablyNothingERP,
+					       probablyChampagneERP]);},
+	       _.range(numArms));
+  };
+  var prior = Enumerate(function(){
+    var latentState = latentSampler(n);
+    return buildStochasticBanditStartState(5, latentState);
+  });
+
+  var prizeToUtility = {start: 0, nothing: 0, champagne: 1};
+
+  var utility = makeStochasticBanditUtility(prizeToUtility);
+  var agentParams = {utility: utility,
+		     alpha: 100,
+		     priorBelief: prior,
+		     sophisticatedOrNaive: 'naive',
+		     boundVOI: {on: true, bound: 1},
+		     noDelays: false,
+		     discount: 0,
+		     myopia: {on: false, bound: 0},
+		     fastUpdateBelief: false};
+  var agent = makeBeliefDelayAgent(agentParams, world);
+
+  var f = function() {
+    var trajectory = simulateBeliefDelayAgent(startState, world, agent, 'stateAction');
+    return trajectory;
+  };
+
+  return timeit(f).runtimeInMilliseconds.toPrecision(3) * 0.001;
+
+};
+
+// varying the number of arms
+console.log('\nVarying the number of arms for myopic agent');
+var arms = [1,2,3];
+var runtimes_arms = map(varyArms, arms);
+console.log('\nNumber of arms:' + arms);
+console.log('Runtimes in sec:' + runtimes_arms);
