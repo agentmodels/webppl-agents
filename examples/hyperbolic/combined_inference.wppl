@@ -131,16 +131,23 @@ var runHyperbolicQuick = function(){
 
 // INFER WHETHER NAIVE OR SOPH -- ASSUMES DISCOUNTING
 var example1_inferType = function(){
-  var world = makeDonutWorld2({big:true, noReverse:true});
-  var start31 = restaurantChoiceStart;
-  var start30 = update(restaurantChoiceStart,{loc: [3,0]});
-  var start = start31;
+  
+  var world = makeDonutWorld2({big:true, noReverse:true, maxTimeAtRestaurant:2});
+  var start = restaurantChoiceStart;
   
   var runInference = function(observationName){
-    // library function for getting observations and computing posterior for Restaurant Choice MDP
+   
     var restaurantHyperbolic = getRestaurantHyperbolicInfer();
     var getPosterior = restaurantHyperbolic.getPosterior;
+    var getObservations = restaurantHyperbolic.getObservations;
+    var generatedObservations = getObservations(world, start, observationName);
     var observedStateActionSequence =  restaurantNameToObservationTime11[observationName];
+    console.log('stored obs: ', JSON.stringify(observedStateActionSequence), '\n\n gen obs: ', 
+                JSON.stringify(generatedObservations));
+
+    console.log('\n stored obs: ', getLocationsHyperbolic(observedStateActionSequence), '\n\n gen obs: ', 
+                getLocationsHyperbolic(generatedObservations));
+    ash();
     return getPosterior(world, priorUtilityTable, priorDiscounting, priorAlpha, 
                         observedStateActionSequence);
   };
@@ -171,7 +178,7 @@ var example1_inferType = function(){
 
   var priorAlpha = function(){return 1000;};
   
-  var posterior = runInference('naive');
+  var posterior = runInference('sophisticated');
   displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
                               'donutNWins']);
 //  runInference('sophisticated');
