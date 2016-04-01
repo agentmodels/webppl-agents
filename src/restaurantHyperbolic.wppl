@@ -60,9 +60,9 @@ var getRestaurantHyperbolicInfer = function(){
       
       factorSequence(agentAction, observedStateAction);
 
-        if (! _.isUndefined(repeatObservations) ){ 
-          repeat(repeatObservations, function(){factorSequence(agentAction, observedStateAction);});
-        }
+      if (! _.isUndefined(repeatObservations) ){ 
+        repeat(repeatObservations, function(){factorSequence(agentAction, observedStateAction);});
+      }
       
 
       var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
