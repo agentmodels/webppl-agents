@@ -1,25 +1,13 @@
 
 
-// GLOBALS
-// var world = restaurantChoiceMDP; // noReverse: true
-
-// // TODO why does this not work?
-// //var world = makeDonutWorld2({big:true, noReverse:false}); 
-
-// // loc: [3,1], timeLeft:11
-// var start = restaurantChoiceStart; // TODO starts at [3,1]. Why does the agent do weird things when starting at [3,0]?
-// var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();
-// var getObservations = restaurantHyperbolicInfer.getObservations;
-// var getPosterior = restaurantHyperbolicInfer.getPosterior;
-
-
-
-
 // Condition on naive/soph/vegDirect with the same prior
 // Prior includes utilities and discouting with a minimal number of parameters
 // *discountingOn* allows for discount > 0
 // *timeCostDonut* includes possibly +ve timeCost and different values for DonutS and donutN
 var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
+
+  var world = makeDonutWorld2({big:true, noReverse:true, maxTimeAtRestaurant:2});
+  var start = restaurantChoiceStart;
   
   var priorAlpha = function(){return uniformDraw(alphaValues);};
 
@@ -136,18 +124,10 @@ var example1_inferType = function(){
   var start = restaurantChoiceStart;
   
   var runInference = function(observationName){
-   
     var restaurantHyperbolic = getRestaurantHyperbolicInfer();
     var getPosterior = restaurantHyperbolic.getPosterior;
     var getObservations = restaurantHyperbolic.getObservations;
-    var generatedObservations = getObservations(world, start, observationName);
-    var observedStateActionSequence =  restaurantNameToObservationTime11[observationName];
-    console.log('stored obs: ', JSON.stringify(observedStateActionSequence), '\n\n gen obs: ', 
-                JSON.stringify(generatedObservations));
-
-    console.log('\n stored obs: ', getLocationsHyperbolic(observedStateActionSequence), '\n\n gen obs: ', 
-                getLocationsHyperbolic(generatedObservations));
-    ash();
+    var observedStateActionSequence = getObservations(world, start, observationName);   
     return getPosterior(world, priorUtilityTable, priorDiscounting, priorAlpha, 
                         observedStateActionSequence);
   };
@@ -185,18 +165,14 @@ var example1_inferType = function(){
  // runInference('vegDirect');
 };
 
-var obs = restaurantNameToObservationTime11Reverse('naive');
-console.log('obs: ', obs);
-example1_inferType(); ash();
+//var obs = restaurantNameToObservationTime11Reverse('naive');
+//example1_inferType(); ash();
 
 
 // ASSUME OPTIMAL
 var example2_optimal = function(){
 
-  var world = makeDonutWorld2({big:true, noReverse:true});
-  // var start31 = restaurantChoiceStart;
-  // var start30 = update(restaurantChoiceStart,{loc: [3,0]});
-  //var start = start31;
+  var world = makeDonutWorld2({big:true, noReverse:true, maxTimeAtRestaurant:2});
   var start = restaurantChoiceStart;
   
   var runInference = function(observationName){
@@ -241,17 +217,16 @@ var example2_optimal = function(){
   displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
                               'donutNWins']);
 };
-example2_optimal();
-ash();
-
 
 
 // TODO try this with noReverse=false and see if it works better
 var example3_biased = function(){
+  
+  
   ///fold:
-  var runInference = function(observationName, numberMHSamples, repeatObservations){
+  var runInference = function(world, start, observationName, numberMHSamples, repeatObservations){
     // library function for getting observations and computing posterior for Restaurant Choice MDP
-    var restaurantHyperbolic = getRestaurantHyperbolicInfer();
+    var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();
     var getObservations = restaurantHyperbolicInfer.getObservations;
     var getPosterior = restaurantHyperbolicInfer.getPosterior;
 
@@ -262,20 +237,21 @@ var example3_biased = function(){
   };
 
   var displayResults = function(erp){
-    print('MAP utilities: ' + JSON.stringify(erp.MAP().val.utility));
+    print('MAP utility table: ' + JSON.stringify(erp.MAP().val.utility));
     viz.vegaPrint(getMarginalObject(erp,'vegMinusDonut'));
     viz.vegaPrint(getMarginalObject(erp,'sophisticatedOrNaive'));
     viz.vegaPrint(getMarginalObject(erp,'alpha'));
     print(JSON.stringify( getMarginalObject(erp,'alpha') ) )
   };
   ///
-
+  
   // Prior on agent's utility function
   var priorUtilityTable = function(){
     var utilityValues =  [-10,0,10,20,30];
     var getUtilityPair = function(){return [uniformDraw(utilityValues), uniformDraw(utilityValues)];};
+    //var donut = [uniformDraw(utilityValues), uniformDraw(utilityValues)];
+    var donut = [uniformDraw(utilityValues), -10];
     
-    var donut = [uniformDraw(utilityValues), uniformDraw(utilityValues)];
     var veg = [uniformDraw(utilityValues), 20];
     return {
       'Donut N' : donut,
@@ -291,20 +267,26 @@ var example3_biased = function(){
   var priorDiscounting = function(){
     return {
       discount: uniformDraw([0,1]),
-      sophisticatedOrNaive: uniformDraw(['sophisticated','naive'])
+      sophisticatedOrNaive: uniformDraw(['naive','sophisticated'])
     };
   };
 
-  var priorAlpha = function(){return uniformDraw([0.1, 10, 1000]);};
+  var priorAlpha = function(){return uniformDraw([.1, 10, 1000]);};
 
-  var numberMHSamples = 100; //1000 //undefined;
-  var repeatObservations = undefined;
-  //var posterior = runInference('naive', numberMHSamples, repeatObservations);
-  var posterior = runInference('sophisticated');
+  var world = makeDonutWorld2({big:true, noReverse:true, maxTimeAtRestaurant:2});
+  var start = restaurantChoiceStart;
+
+  var numberMHSamples = undefined; //1000 //undefined;
+  var repeatObservations = 2;
+  var posterior = runInference(world, start, 'naive', numberMHSamples, repeatObservations);
+  //var posterior = runInference(world, start, 'sophisticated', numberMHSamples, repeatObservations);
   printTopK(posterior,8);
-  displayMarginals(posterior,['alpha', 'discount', 'sophisticatedOrNaive', 'vegMinusDonut',
-                              'donutNWins']);
+  displayMarginals(posterior, ['alpha', 'discount', 'sophisticatedOrNaive',
+                               'vegMinusDonut', 'donutNWins']);
 };
+
+example3_biased();
+ash();
 
 
 
