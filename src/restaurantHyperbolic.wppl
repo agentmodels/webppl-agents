@@ -36,10 +36,14 @@ var getRestaurantHyperbolicInfer = function(){
 
  
   
-  var getPosterior = function(world, priorUtilityTable, priorDiscounting, priorAlpha, 
-                              observedStateAction, numberMHSamples, repeatObservations){
-    var Infer = (_.isUndefined(numberMHSamples) || numberMHSamples == 0) ? Enumerate :
-        function(f){return MH(f,numberMHSamples);};
+  var getPosterior = function(world, prior, observedStateAction, repeatObservations){
+    // var Infer = (_.isUndefined(numberMHSamples) || numberMHSamples == 0) ? Enumerate :
+    //     function(f){return MH(f,numberMHSamples);};
+    var Infer = Enumerate;
+
+    var priorUtilityTable = prior.utilityTable;
+    var priorDiscounting = prior.discounting;
+    var priorAlpha = prior.alpha;
     
     return Infer(function () {
       var utilityTable = priorUtilityTable();

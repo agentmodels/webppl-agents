@@ -224,16 +224,12 @@ var example3_biased = function(){
   
   
   ///fold:
-  var runInference = function(world, start, observationName, numberMHSamples, repeatObservations){
-    // library function for getting observations and computing posterior for Restaurant Choice MDP
+  var runInference = function(world, prior, observationName, repeatObservations){
     var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();
-    var getObservations = restaurantHyperbolicInfer.getObservations;
     var getPosterior = restaurantHyperbolicInfer.getPosterior;
-
-    // From world and start, get a sequence of observations (which we later condition on)
-    var observedStateActionSequence = getObservations(world, start, observationName);
-    return getPosterior(world, priorUtilityTable, priorDiscounting, priorAlpha, 
-                        observedStateActionSequence,numberMHSamples, repeatObservations);
+    var observedStateActionSequence = restaurantNameToObservationTime11[observationName];
+    
+    return getPosterior(world, prior, observedStateActionSequence, repeatObservations);
   };
 
   var displayResults = function(erp){
@@ -248,10 +244,7 @@ var example3_biased = function(){
   // Prior on agent's utility function
   var priorUtilityTable = function(){
     var utilityValues =  [-10,0,10,20,30];
-    var getUtilityPair = function(){return [uniformDraw(utilityValues), uniformDraw(utilityValues)];};
-    //var donut = [uniformDraw(utilityValues), uniformDraw(utilityValues)];
     var donut = [uniformDraw(utilityValues), -10];
-    
     var veg = [uniformDraw(utilityValues), 20];
     return {
       'Donut N' : donut,
@@ -262,24 +255,21 @@ var example3_biased = function(){
     };
   };
 
-  // Prior on discount constant is fixed on 1, but we do attempt to learn whether
-  // agent is Sophisticated or Naive. 
-  var priorDiscounting = function(){
+  var priorDiscounting = function(){ 
     return {
       discount: uniformDraw([0,1]),
       sophisticatedOrNaive: uniformDraw(['naive','sophisticated'])
     };
   };
-
+  
   var priorAlpha = function(){return uniformDraw([.1, 10, 1000]);};
+  var prior = {utilityTable:priorUtilityTable, discounting:priorDiscounting, alpha:priorAlpha};
 
-  var world = makeDonutWorld2({big:true, noReverse:true, maxTimeAtRestaurant:2});
-  var start = restaurantChoiceStart;
-
-  var numberMHSamples = undefined; //1000 //undefined;
+  var world = makeRestaurantChoiceMDP({noReverse:true});
+  var posterior = runInference(world, prior, 'naive', 2);
   var repeatObservations = 2;
-  var posterior = runInference(world, start, 'naive', numberMHSamples, repeatObservations);
-  //var posterior = runInference(world, start, 'sophisticated', numberMHSamples, repeatObservations);
+  //var posterior = runInference(world, start, 'naive', repeatObservations);
+
   printTopK(posterior,8);
   displayMarginals(posterior, ['alpha', 'discount', 'sophisticatedOrNaive',
                                'vegMinusDonut', 'donutNWins']);
