@@ -34,11 +34,22 @@ var getRestaurantHyperbolicInfer = function(){
     }, observedStateAction);
   };
 
+  // Could split up like this
+  var hyperbolicFactor = function(agentParams, world, observedStateAction){
+    var agent = makeHyperbolicDiscounter(
+        { utility   : makeRestaurantUtilityMDP(world, utilityTable),
+          alpha     : alpha, 
+          discount  : discounting.discount, 
+          sophisticatedOrNaive : discounting.sophisticatedOrNaive
+        }, world);
+    var agentAction = agent.act;
+      
+    factorSequence(agentAction, observedStateAction);
+  };
+
  
   
   var getPosterior = function(world, prior, observedStateAction, repeatObservations){
-    // var Infer = (_.isUndefined(numberMHSamples) || numberMHSamples == 0) ? Enumerate :
-    //     function(f){return MH(f,numberMHSamples);};
     var Infer = Enumerate;
 
     var priorUtilityTable = prior.utilityTable;
@@ -75,7 +86,7 @@ var getRestaurantHyperbolicInfer = function(){
       var disUVeg = function(d){
         return dis(d)*utilityTable['Veg'][0] + dis(d+1)*utilityTable['Veg'][1];
       };
-      var hdCondition = (disUDonut(4) < disUVeg(6)) && (disUDonut(0) > disUVeg(2));
+      var donutTempting = (disUDonut(4) < disUVeg(6)) && (disUDonut(0) > disUVeg(2));
       
       return {utility: utilityTable, 
               discount: discounting.discount, 
@@ -84,7 +95,7 @@ var getRestaurantHyperbolicInfer = function(){
               vegMinusDonut: vegMinusDonut,
               donutNWins: donutNWins,
               timeCost: utilityTable.timeCost,
-              hdCondition: hdCondition
+              donutTempting: donutTempting
              };
     });
   };
