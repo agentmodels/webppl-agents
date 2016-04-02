@@ -67,7 +67,15 @@ var getRestaurantHyperbolicInfer = function(){
 
       var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
       var donutNWins = sum(utilityTable['Donut S']) < sum(utilityTable['Donut N']);
-      
+
+      var dis = function(d){return 1/(1+discounting.discount*d);}
+      var disUDonut = function(d){
+        return dis(d)*utilityTable['Donut N'][0] + dis(d+1)*utilityTable['Donut N'][1];
+      };
+      var disUVeg = function(d){
+        return dis(d)*utilityTable['Veg'][0] + dis(d+1)*utilityTable['Veg'][1];
+      };
+      var hdCondition = (disUDonut(4) < disUVeg(6)) && (disUDonut(0) > disUVeg(2));
       
       return {utility: utilityTable, 
               discount: discounting.discount, 
@@ -75,7 +83,8 @@ var getRestaurantHyperbolicInfer = function(){
               sophisticatedOrNaive: discounting.sophisticatedOrNaive,
               vegMinusDonut: vegMinusDonut,
               donutNWins: donutNWins,
-              timeCost: utilityTable.timeCost
+              timeCost: utilityTable.timeCost,
+              hdCondition: hdCondition
              };
     });
   };

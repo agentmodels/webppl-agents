@@ -355,7 +355,7 @@ var example42_timeCost = function(){
       'Donut S' : donut,
       'Veg'     : veg,
       'Noodle'  : [-10, -10],
-      'timeCost': uniformDraw([-.01, .1, 1])
+      'timeCost': uniformDraw([-.01])
     };
   };
 
@@ -371,11 +371,11 @@ var example42_timeCost = function(){
   // Get world and observations
   var world = makeRestaurantChoiceMDP();
   var observedStateAction = restaurantNameToObservationTime11['sophisticated'];
-  var posterior = getPosterior(world, prior, observedStateAction);
+  var posterior = getPosterior(world, prior, observedStateAction,2);
   printTopK(posterior,8);
   displayMarginals(posterior, ['alpha', 'discount', 'sophisticatedOrNaive',
                                'timeCost',
-                               'vegMinusDonut', 'donutNWins']);
+                               'vegMinusDonut', 'donutNWins', 'hdCondition']);
   //displayResults(posterior);
 };
 example42_timeCost();
