@@ -268,7 +268,7 @@ var example3_biased = function(){
   //                              'vegMinusDonut', 'donutNWins']);
 };
 
-var example4_timeCost = function(){ 
+var example4_donutNorth = function(){ 
   ///fold:
   var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();
   var getPosterior = restaurantHyperbolicInfer.getPosterior;
@@ -325,5 +325,58 @@ var example4_timeCost = function(){
   displayMarginals(posterior, ['alpha', 'discount', 'sophisticatedOrNaive',
                                'vegMinusDonut', 'donutNWins']);
 };
-example4_timeCost(); ash();
+
+var example42_timeCost = function(){
+  ///fold:
+  var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();
+  var getPosterior = restaurantHyperbolicInfer.getPosterior;
+
+  var displayResults = function(erp){
+    var utility = erp.MAP().val.utility;
+    print('MAP utility for Veg: ' + utility['Veg'] 
+          +'. Donut: ' + utility['Donut N']
+          +'. Timecost: ' + utility['timeCost']);
+    //viz.vegaPrint(getMarginalObject(erp,'timeCost'));
+    viz.vegaPrint(getMarginalObject(erp,'discount'));
+    var alphaPrint = Enumerate(function(){
+      return {alpha: JSON.stringify(sample(erp).alpha) };
+    });                          
+    viz.vegaPrint(alphaPrint);
+  };
+  ///
+
+  // Prior on agent's utility function
+  var priorUtilityTable = function(){
+    var utilityValues =  [-10, 0, 10, 20, 30];
+    var donut = [uniformDraw(utilityValues), -10]
+    var veg = [uniformDraw(utilityValues), 20];
+    return {
+      'Donut N' : donut,
+      'Donut S' : donut,
+      'Veg'     : veg,
+      'Noodle'  : [-10, -10],
+      'timeCost': uniformDraw([-.01, .1, 1])
+    };
+  };
+
+  var priorDiscounting = function(){ 
+    return {
+      discount: uniformDraw([0,1]),
+      sophisticatedOrNaive: 'sophisticated'
+    };
+  };
+  var priorAlpha = function(){return uniformDraw([.1, 100, 1000]);};
+  var prior = {utilityTable:priorUtilityTable, discounting:priorDiscounting, alpha:priorAlpha};
+
+  // Get world and observations
+  var world = makeRestaurantChoiceMDP();
+  var observedStateAction = restaurantNameToObservationTime11['sophisticated'];
+  var posterior = getPosterior(world, prior, observedStateAction);
+  printTopK(posterior,8);
+  displayMarginals(posterior, ['alpha', 'discount', 'sophisticatedOrNaive',
+                               'timeCost',
+                               'vegMinusDonut', 'donutNWins']);
+  //displayResults(posterior);
+};
+example42_timeCost();
 1;

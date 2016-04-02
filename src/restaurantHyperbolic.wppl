@@ -68,12 +68,14 @@ var getRestaurantHyperbolicInfer = function(){
       var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
       var donutNWins = sum(utilityTable['Donut S']) < sum(utilityTable['Donut N']);
       
+      
       return {utility: utilityTable, 
               discount: discounting.discount, 
               alpha: alpha,
               sophisticatedOrNaive: discounting.sophisticatedOrNaive,
               vegMinusDonut: vegMinusDonut,
-              donutNWins: donutNWins
+              donutNWins: donutNWins,
+              timeCost: utilityTable.timeCost
              };
     });
   };
