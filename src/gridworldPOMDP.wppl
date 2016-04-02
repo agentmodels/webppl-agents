@@ -2,7 +2,7 @@
 // note: isGridworld is different in this file than how it is in other files
 var isGridworld = function(world){return world
 				  && arraysEqual(world.actions,
-						     ['l', 'r', 'u', 'd'])
+						 ['l', 'r', 'u', 'd'])
 				  && world.hasOwnProperty('feature')
 				  && world.hasOwnProperty('xLim')
 				  && world.hasOwnProperty('yLim')
@@ -226,12 +226,12 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
         // Update agent's internal state and get action ERP
         var delay = 0;     
         var nextBelief = beliefOrBeliefDelay == 'belief' ?
-            agentUpdateBelief(currentBelief, observation, previousAction) :
-            agentUpdateBelief(currentBelief, observation, previousAction, delay);
+              agentUpdateBelief(currentBelief, observation, previousAction) :
+              agentUpdateBelief(currentBelief, observation, previousAction, delay);
 
 
         var nextActionERP = beliefOrBeliefDelay == 'belief' ? 
-            agentAct(nextBelief) : agentAct(nextBelief, delay); 
+              agentAct(nextBelief) : agentAct(nextBelief, delay); 
 
         var observedAction = observedStateAction[timeIndex][1];
 
@@ -243,7 +243,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
     };
 
     var doInfer = (trajectoryOrOffPolicy=='trajectory') ? factorOnTrajectory() : 
-        factorSequenceOffPolicy(priorBelief,'noAction', 0);
+          factorSequenceOffPolicy(priorBelief,'noAction', 0);
     
     
     return {utilityTable: utilityTable,
