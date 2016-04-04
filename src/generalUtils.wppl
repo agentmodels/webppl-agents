@@ -1,10 +1,10 @@
 var GridWorld = webpplGridworld; // reference to the exports of gridworld-viz.js
 
 // for non-browser use of viz functions
-// var viz = webpplGridworld;
-// var print = function(x){
-//   return console.log(JSON.stringify(x));
-// };
+var viz = webpplGridworld;
+var print = function(x){
+  return console.log(JSON.stringify(x));
+};
 
 
 
