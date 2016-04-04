@@ -2,7 +2,7 @@
 
 TEST_LOCATION=${1-tests}
 CURRENT_PATH=$(pwd)
-REQUIRES="--require webppl-timeit --require webppl-dp --require $CURRENT_PATH"
+REQUIRES="--require webppl-timeit --require webppl-viz --require webppl-dp --require $CURRENT_PATH"
 
 TEST_FILES=$(find $TEST_LOCATION -type f )
 

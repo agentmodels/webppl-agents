@@ -53,7 +53,7 @@ function draw(world, additional) {
   }
 
   if (typeof(wpEditor) === 'undefined') { 
-    console.log("no wpEditor, not drawing");
+    console.log("GridWorld.draw: no wpEditor, not drawing");
     return;
   }
 
