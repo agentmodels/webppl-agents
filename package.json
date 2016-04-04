@@ -18,7 +18,6 @@
       "src/hyperbolic.wppl",
       "src/gridworld.wppl",
       "src/restaurantHyperbolic.wppl",
-      "src/procrastinationMDP.wppl",
       "src/POMDPUtils.wppl",
       "src/gridworldPOMDP.wppl",
       "src/beliefAgent.wppl",
