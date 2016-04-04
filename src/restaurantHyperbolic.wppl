@@ -77,7 +77,7 @@ var getRestaurantHyperbolicInfer = function(){
       
 
       var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
-      var donutNWins = sum(utilityTable['Donut S']) < sum(utilityTable['Donut N']);
+      var donutNWins = sum(utilityTable['Donut S']) <= sum(utilityTable['Donut N']);
 
       var dis = function(d){return 1/(1+discounting.discount*d);}
       var disUDonut = function(d){
