@@ -266,6 +266,8 @@ var restaurantChoiceStart = {
   timeLeft : 11
 };
 
+var restaurantChoiceMDPWithReverse = makeDonutWorld2({ big : true, noReverse : false, maxTimeAtRestaurant : 2});
+
 
 
 
