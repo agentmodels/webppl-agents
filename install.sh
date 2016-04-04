@@ -13,4 +13,5 @@ npm link ../webppl-viz
 npm link ../webppl 
 npm install grunt uglify browserify
 npm install -g grunt-cli 
+npm install -g paper
 npm install
