@@ -322,6 +322,29 @@ function draw(world, additional) {
 
 }
 
+// Allows printing of ERP when webppl-viz is not available
+var printERP = function(x,k) {
+  var erpValues = _.sortBy(x.support(), function(v){return -x.score([], v);});
+  var erpValues = typeof(k)=='undefined' ? erpValues : erpValues.slice(0,k);
+
+  console.log('vegaPrint ERP:');          
+  erpValues.map(
+    function(v){
+      var prob = Math.exp(x.score([], v));
+      if (prob > 0.0){
+        console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
+      }
+    });
+  console.log(' \n');
+};
+
+
+
+
 module.exports = {
-  draw: draw
+  draw: draw,
+  vegaPrint: printERP,
+  print: printERP,
+  bar: printERP,
+  line: printERP
 }
