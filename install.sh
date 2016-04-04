@@ -1,3 +1,8 @@
+npm install -g webppl
+npm install --prefix ~/.webppl git+https://github.com/stuhlmueller/webppl-timeit.git
+npm install --prefix ~/.webppl git+https://github.com/stuhlmueller/webppl-dp.git
+npm install --prefix ~/.webppl git+https://github.com/probmods/webppl-viz
+
 git clone https://github.com/probmods/webppl.git ../webppl
 git clone https://github.com/stuhlmueller/webppl-timeit.git ../webppl-timeit
 git clone https://github.com/stuhlmueller/webppl-dp.git ../webppl-dp
