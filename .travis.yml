@@ -1,0 +1,7 @@
+language: node_js
+node_js:
+  - "4.2"
+
+before_script: sh install.sh
+script: sh test.sh
+
