@@ -52,7 +52,7 @@ var getRestaurantHyperbolicInfer = function(){
   var getPosterior = function(world, prior, observedStateAction, repeatObservations){
     var Infer = Enumerate;
 
-    var priorUtilityTable = prior.utilityTable;
+    var priorUtilityTable = prior.utility;
     var priorDiscounting = prior.discounting;
     var priorAlpha = prior.alpha;
     

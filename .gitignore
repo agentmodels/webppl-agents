@@ -6,5 +6,5 @@ src/oldBeliefDelayAgent.wppl
 runHtml
 scratch/agentmodelsCodeBox.wppl
 runHtml/assets/js/webppl.js
-
+codeboxes
 npm-debug.log
