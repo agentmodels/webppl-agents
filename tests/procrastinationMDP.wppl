@@ -1,0 +1,137 @@
+
+// if the reward is bigger than the workCost, the non-discounting agent should
+// never procrastinate
+
+var test1 = function() {
+  var world = makeProcrastinationMDP();
+
+  var utilityTable = {reward: 10,
+		      procrastinationCost: -0.1,
+		      workCost: -1
+		     };
+  var utility = makeProcrastinationUtility(utilityTable);
+
+  var startState = {loc: "procrastinating",
+		    // loc can also be "done"
+		    procrastinationSteps: 0,
+		    timeLeft: 10,
+		    terminateAfterAction: false
+		   };
+
+  var agent = makeMDPAgent({utility: utility, alpha: 100}, world);
+  var trajectory = simulateMDP(startState, world, agent, 'stateAction');
+  assert.ok(trajectory.length === 2, 'non-discounting agent is wrongly procrastinating, test 1 fails');
+};
+
+// if the reward is smaller than the workCost, the non-discounting agent should
+// never complete the task
+
+var test2 = function() {
+  var world = makeProcrastinationMDP();
+
+  var utilityTable = {reward: 0.8,
+		      procrastinationCost: -0.1,
+		      workCost: -1
+		     };
+  var utility = makeProcrastinationUtility(utilityTable);
+
+  var startState = {loc: "procrastinating",
+		    // loc can also be "done"
+		    procrastinationSteps: 0,
+		    timeLeft: 10,
+		    terminateAfterAction: false
+		   };
+
+  var agent = makeMDPAgent({utility: utility, alpha: 100}, world);
+  var trajectory = simulateMDP(startState, world, agent, 'stateAction');
+  assert.ok(trajectory.length === 10, 'non-discounting agent should procrastinate, test 2 fails');
+};
+
+// the non-discounting agent should always either start work immediately or
+// never complete it if the timeCost is negative
+var test3 = function() {
+  var world = makeProcrastinationMDP();
+
+  var utilityTable = {reward: uniformDraw([0.1, 1, 5, 10]),
+		      procrastinationCost: uniformDraw([-0.2, -3]),
+		      workCost: uniformDraw([-1, 4])
+		     };
+  var utility = makeProcrastinationUtility(utilityTable);
+
+  var startState = {loc: "procrastinating",
+		    // loc can also be "done"
+		    procrastinationSteps: 0,
+		    timeLeft: 10,
+		    terminateAfterAction: false
+		   };
+
+  var agent = makeMDPAgent({utility: utility, alpha: 100}, world);
+  var trajectory = simulateMDP(startState, world, agent, 'stateAction');
+  assert.ok(trajectory.length === 10 || trajectory.length === 2, 'non-discounting agent procrastinates. Test 3 fails. Utilities that lead to failure: \n'
+	    + JSON.stringify(utilityTable) );
+};
+
+// a naive hyperbolic discounter with k = 5, timeCost = -0.1, and timeLeft = 10
+// should do it immediately
+var test4 = function() {
+  var world = makeProcrastinationMDP();
+
+  var utilityTable = {reward: 10,
+		      procrastinationCost: -0.1,
+		      workCost: -1
+		     };
+  var utility = makeProcrastinationUtility(utilityTable);
+
+  var startState = {loc: "procrastinating",
+		    // loc can also be "done"
+		    procrastinationSteps: 0,
+		    timeLeft: 10,
+		    terminateAfterAction: false
+		   };
+
+  var params = {utility: utility,
+		alpha: 100,
+		discount: 5,
+		sophisticatedOrNaive: 'naive'};
+  
+  var agent = makeMDPAgent(params, world);
+  var trajectory = simulateMDP(startState, world, agent, 'stateAction');
+  assert.ok(trajectory.length === 2, 'discounting agent with k=5, timecost = -0.1, timeLeft = 10 should not procrastinate. test 4 fails');
+};
+
+// a naive hyperbolic discounter with k = 5, timeCost = -0.1, and timeLeft = 3
+// should procrastinate once
+var test5 = function() {
+  var world = makeProcrastinationMDP();
+
+  var utilityTable = {reward: 10,
+		      procrastinationCost: -0.1,
+		      workCost: -1
+		     };
+  var utility = makeProcrastinationUtility(utilityTable);
+
+  var startState = {loc: "procrastinating",
+		    // loc can also be "done"
+		    procrastinationSteps: 0,
+		    timeLeft: 3,
+		    terminateAfterAction: false
+		   };
+
+  var params = {utility: utility,
+		alpha: 100,
+		discount: 5,
+		sophisticatedOrNaive: 'naive'};
+  
+  var agent = makeHyperbolicDiscounter(params, world);
+  var trajectory = simulateHyperbolic(startState, world, agent, 'stateAction');
+
+  assert.ok(trajectory.length === 3, 'discounting agent with k=5, timecost = -0.1, timeLeft = 3 should procrastinate. test 5 fails');
+};
+
+test1();
+test2();
+test3();
+test4();
+test5();
+
+console.log('all tests of procrastinationMDP pass');

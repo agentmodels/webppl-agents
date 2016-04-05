@@ -1,0 +1,64 @@
+// an mdp to illustrate procrastinating behaviour exhibited by hyperbolic
+// discounters
+
+var exampleProcrastinationState = {loc: "procrastinating",
+				   // loc can also be "done"
+				   procrastinationSteps: 3,
+				   timeLeft: 10,
+				   terminateAfterAction: false
+				  };
+
+var makeProcrastinationMDP = function() {
+  var actions = ["procrastinate", "start work", "relax"];
+
+  var stateToActions = function(state) {
+    return state.loc === "procrastinating" ? ["procrastinate", "start work"]
+      : ["relax"];
+  };
+
+  var advanceTime = function (state) {
+    var newTimeLeft = state.timeLeft - 1;
+    var terminateAfterAction = (newTimeLeft === 1 || state.loc === "done");
+    return update(state, {timeLeft: newTimeLeft,
+  			  terminateAfterAction: terminateAfterAction});
+  };
+
+  var transition = function(state, action) {
+    if (state.loc === "done") {
+      return advanceTime(state);
+    } else if (action === "procrastinate") {
+      var procrastinationSteps = state.procrastinationSteps + 1;
+      return update(advanceTime(state), {procrastinationSteps:
+					 procrastinationSteps});
+    } else {
+      var newState = update(state, {loc: "done"});
+      return advanceTime(newState);
+    }
+  };
+
+  var feature = function(state) {
+    return state.loc;
+  };
+
+  return {actions: actions,
+	  stateToActions: stateToActions,
+	  transition: transition,
+	  feature: feature};
+};
+
+var makeProcrastinationUtility = function(utilityTable) {
+  assert.ok(hasProperties(utilityTable, ['procrastinationCost', 'workCost',
+					 'reward']));
+  var procrastinationCost = utilityTable.procrastinationCost;
+  var workCost = utilityTable.workCost;
+  var reward = utilityTable.reward;
+  return function(state, action) {
+    if (state.loc === "done") {
+      return reward + state.procrastinationSteps * procrastinationCost;
+    } else if (action === "start work") {
+      return workCost;
+    } else {
+      return 0;
+    }
+  };
+};
