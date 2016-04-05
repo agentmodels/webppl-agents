@@ -12,7 +12,6 @@ var test1 = function() {
   var utility = makeProcrastinationUtility(utilityTable);
 
   var startState = {loc: "procrastinating",
-		    // loc can also be "done"
 		    procrastinationSteps: 0,
 		    timeLeft: 10,
 		    terminateAfterAction: false
@@ -36,7 +35,6 @@ var test2 = function() {
   var utility = makeProcrastinationUtility(utilityTable);
 
   var startState = {loc: "procrastinating",
-		    // loc can also be "done"
 		    procrastinationSteps: 0,
 		    timeLeft: 10,
 		    terminateAfterAction: false
@@ -59,7 +57,6 @@ var test3 = function() {
   var utility = makeProcrastinationUtility(utilityTable);
 
   var startState = {loc: "procrastinating",
-		    // loc can also be "done"
 		    procrastinationSteps: 0,
 		    timeLeft: 10,
 		    terminateAfterAction: false
@@ -83,7 +80,6 @@ var test4 = function() {
   var utility = makeProcrastinationUtility(utilityTable);
 
   var startState = {loc: "procrastinating",
-		    // loc can also be "done"
 		    procrastinationSteps: 0,
 		    timeLeft: 10,
 		    terminateAfterAction: false
@@ -111,7 +107,6 @@ var test5 = function() {
   var utility = makeProcrastinationUtility(utilityTable);
 
   var startState = {loc: "procrastinating",
-		    // loc can also be "done"
 		    procrastinationSteps: 0,
 		    timeLeft: 3,
 		    terminateAfterAction: false
