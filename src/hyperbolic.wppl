@@ -27,7 +27,7 @@ var makeHyperbolicDiscounter = function (params, world) {
     function(state, delay){
       return Enumerate(function(){
         var action = uniformDraw(stateToActions(state));
-        var eu = expectedUtility(state, action, delay);    
+        var eu = expectedUtility(state, action, delay);
         factor(params.alpha * eu);
         return action;
       });      
