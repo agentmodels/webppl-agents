@@ -63,10 +63,8 @@ var lastChanceState = secondLast(observedStateAction)[0];
 
 
 var posterior = function(observedStateAction, optimalModel) {
-
   var world = makeProcrastinationMDP2();
-
-  
+ 
   return Enumerate(function(){
    
     var utilityTable = {reward: uniformDraw([0.5, 2, 3, 4, 5, 6, 7, 8]),
@@ -76,7 +74,7 @@ var posterior = function(observedStateAction, optimalModel) {
     var params = {
       utility: makeProcrastinationUtility2(utilityTable),
       alpha: categorical([0.1, 0.2, 0.2, 0.2, 0.3], [0.1, 1, 10, 100, 1000]),
-      discount: optimalModel ? uniformDraw([0, .5, .1, 2, 4]) : 0,
+      discount: optimalModel ? 0 :  uniformDraw([0, .5, .1, 2, 4]),
       sophisticatedOrNaive: 'naive'
     };
     
@@ -93,52 +91,45 @@ var posterior = function(observedStateAction, optimalModel) {
     return {reward: utilityTable.reward, 
             alpha: params.alpha, 
             discount: params.discount, 
-            lastAction: sample( act(lastChanceState, 0) )};
+            predictWorkLastMinute: sample( act(lastChanceState, 0) ) == 'work'};
   });
 };
 
-var feature = ['reward', 'lastAction', 'alpha', 'discount'];
+var features = ['reward', 'predictWorkLastMinute', 'alpha', 'discount'];
 
-var inferToTimeIndex = function(timeIndex){
-  var optimalPosterior = posterior(observedStateAction.slice(0,timeIndex), false);
-  var hyperbolicPosterior = posterior(observedStateAction.slice(0,timeIndex), true);
-
+// inference up to the t-th observation
+var inferUpToTimeIndex = function(timeIndex){
+  
   var expectations = function(erp){
-    return map(function(feature){
-      return expectation(getMarginal(erp,feature));
+    return map(function(feature){return expectation(getMarginal(erp,feature));
     }, features)
   };
-  
-  return [expectations(optimalPosterior), expectations(hyperbolicPosterior)];
+
+  return map( function(optimal_or_hyperbolic){
+    var observations = observedStateAction.slice(0,timeIndex);
+    return expectations( posterior(observations, optimal_or_hyperbolic));
+  }, [1,0]);
 };
 
-var observedTimeIndexes = range(observedStateAction.length);
 
-var indexToExpectations = map(inferToTimeIndex, observedTimeIndexes);
+var indexToExpectations = map(inferUpToTimeIndex, range(observedStateAction.length));
 
 
-var expectedRewardsOptimal = map(function(object){return object.optimalReward;},
-				 expectations);
-var expectedAlphasOptimal = map(function(object){return object.optimalAlpha;},
-				expectations);
-var expectedRewardsHyperbolic = map(function(object){return object.hyperbolicReward;},
-				    expectations);
-var expectedAlphasHyperbolic = map(function(object){return object.hyperbolicAlpha;},
-				   expectations);
-var expectedDiscountsHyperbolic = map(function(object){return object.hyperbolicDiscount;},
-                                      expectations);
+// build full time series for each feature
+var getTimeSeries = function(optimal_or_hyper){
+  optimal_or_hyper == 0 ? print('Optimal Model:') : print('Possibly Discounting Model:');
+  return map( function(i){
+    var featureOut = map(function(optimal_hyper){return optimal_hyper[optimal_or_hyper][i];}, 
+                         indexToExpectations);
+    print('\n\n feature:' + features[i]); //, ' \n', featureOut);
+    viz.line( range(observedStateAction.length), features[i] );
+    return featureOut;
+  }, range(features.length) );
+};
 
-console.log('Expected reward vs state action pairs observed, optimal');
-console.log(observedTimesteps, expectedRewardsOptimal);
+print('Posterior expectation on feature after observing agent "wait" for t timesteps');
+var optimalSeries = getTimeSeries(0);
+var hyperbolicSeries = getTimeSeries(1);
 
-console.log('Expected alpha vs state action pairs observed, optimal');
-console.log(observedTimesteps, expectedAlphasOptimal);
 
-console.log('Expected reward vs state action pairs observed, hyperbolic');
-console.log(observedTimesteps, expectedRewardsHyperbolic);
-
-console.log('Expected alpha vs state action pairs observed, hyperbolic');
-console.log(observedTimesteps, expectedAlphasHyperbolic);
-
-console.log('Expected discount vs state action pairs observed, hyperbolic');
-console.log(observedTimesteps, expectedDiscountsHyperbolic);
+null
