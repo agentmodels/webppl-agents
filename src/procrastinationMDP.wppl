@@ -67,7 +67,7 @@ var procrastinateUntilEnd10 = [[{"loc":"procrastinating","procrastinationSteps":
 
 
 
-var makeProcrastinationMDP2 = function() {
+var makeProcrastinationMDP2 = function(deadlineTime) {
   var stateLocs = ["wait_state", "reward_state"];
   var actions = ["wait", "work", "relax"];
 
@@ -102,10 +102,16 @@ var makeProcrastinationMDP2 = function() {
     return state.loc;
   };
 
+  var startState = {loc: "wait_state",
+		    waitSteps: 0,
+		    timeLeft: deadlineTime,
+		    terminateAfterAction: false}
+
   return {actions: actions,
 	  stateToActions: stateToActions,
 	  transition: transition,
-	  feature: feature};
+	  feature: feature,
+          startState: startState};
 };
 
 var makeProcrastinationUtility2 = function(utilityTable) {

@@ -26,31 +26,29 @@ map(function(stateAction){return [stateAction[0].loc, stateAction[1]];},
     trajectory);
 
 
-var procrastinationWithDiscount2 = function(discount){
-  var world = makeProcrastinationMDP2();
+// Construct Procrastinate Problem world 
+var deadline = 10;
+var world = makeProcrastinationMDP2(deadline);
 
-  var utilityTable = {reward: 10,
-		      waitCost: -0.1,
-		      workCost: -1};
-  var utility = makeProcrastinationUtility2(utilityTable);
+// Agent's params
+var utilityTable = {reward: 10,
+		    waitCost: -0.1,
+		    workCost: -1};
 
-  var startState = {loc: "wait_state",
-		    waitSteps: 0,
-		    timeLeft: 10,
-		    terminateAfterAction: false};
-  
-  var params = {utility: utility,
-		alpha: 100,
-		discount: discount,
-		sophisticatedOrNaive: 'naive'};
-  
-  var agent = makeHyperbolicDiscounter(params, world);
-  var trajectory = simulateHyperbolic(startState, world, agent, 'stateAction');
-  return [last(trajectory)[1], trajectory.length];
+var params = {utility: makeProcrastinationUtility2(utilityTable),
+	      alpha: 1000,
+	      discount: null,
+	      sophisticatedOrNaive: 'naive'};
+
+var simulatePro = function(discount){
+  var agent = makeHyperbolicDiscounter(update(params, {discount: discount}), world);
+  var stateActions = simulateHyperbolic(world.startState, world, agent);
+  var states = map(first,stateActions);
+  return [last(states).loc, stateActions.length];
 };
 
 var discounts = range(11);
-var lastActionsAndTimes = map(procrastinationWithDiscount2, discounts);
+var lastActionsAndTimes = map(simulatePro, discounts);
 
 console.log('\n\n Discounts: ' + discounts + '\nLast actions and lengths of trajectories:'
       + JSON.stringify(lastActionsAndTimes));
