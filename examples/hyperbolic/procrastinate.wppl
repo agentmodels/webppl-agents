@@ -1,0 +1,56 @@
+
+// discounter_procrastinates
+
+// procrastinates, because it thinks that it will do it later
+
+var world = makeProcrastinationMDP2();
+
+var utilityTable = {reward: 10,
+		    waitCost: -0.1,
+		    workCost: -1};
+var utility = makeProcrastinationUtility2(utilityTable);
+
+var startState = {loc: "wait_state",
+		  waitSteps: 0,
+		  timeLeft: 10,
+		  terminateAfterAction: false};
+
+var params = {utility: utility,
+	      alpha: 100,
+	      discount: 5,
+	      sophisticatedOrNaive: 'naive'};
+  
+var agent = makeHyperbolicDiscounter(params, world);
+var trajectory = simulateHyperbolic(startState, world, agent, 'stateAction');
+map(function(stateAction){return [stateAction[0].loc, stateAction[1]];},
+    trajectory);
+
+
+var procrastinationWithDiscount2 = function(discount){
+  var world = makeProcrastinationMDP2();
+
+  var utilityTable = {reward: 10,
+		      waitCost: -0.1,
+		      workCost: -1};
+  var utility = makeProcrastinationUtility2(utilityTable);
+
+  var startState = {loc: "wait_state",
+		    waitSteps: 0,
+		    timeLeft: 10,
+		    terminateAfterAction: false};
+  
+  var params = {utility: utility,
+		alpha: 100,
+		discount: discount,
+		sophisticatedOrNaive: 'naive'};
+  
+  var agent = makeHyperbolicDiscounter(params, world);
+  var trajectory = simulateHyperbolic(startState, world, agent, 'stateAction');
+  return [last(trajectory)[1], trajectory.length];
+};
+
+var discounts = range(11);
+var lastActionsAndTimes = map(procrastinationWithDiscount2, discounts);
+
+console.log('\n\n Discounts: ' + discounts + '\nLast actions and lengths of trajectories:'
+      + JSON.stringify(lastActionsAndTimes));
