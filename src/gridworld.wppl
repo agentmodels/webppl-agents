@@ -337,3 +337,34 @@ var makeRestaurantUtilityMDP = function (world, utilityTable) {
     return utilityTable.timeCost || -.01;
   };
 };
+
+// constructor for restaurant search bandit gridworld example
+
+var makeRestaurantSearchMDP = function(options_) { 
+  var A = {name: 'A'};
+  var B = {name: 'B'};
+  var C = {name: 'C'};
+  var D = {name: 'D'};
+  var E = {name: 'E'};
+
+  var options = options_ || {};
+
+  var features =
+	[['#', ' ', ' ', '#', '#', '#'],
+	 [ C , ' ', ' ', '#', '#', '#'],
+	 ['#', ' ', '#', '#', '#', '#'],
+	 ['#', ' ',  B , '#', '#', '#'],
+	 [ A , ' ', '#', '#',  D , '#'],
+	 ['#', ' ', ' ', ' ', ' ',  E ],
+	 ['#', '#', '#', ' ', ' ', '#']];
+  
+  return makeGridWorld(features, options);
+};
+
+// start state for restaurant search pomdp
+var restaurantSearchStartState =
+      {manifestState: {loc: [1, 1],
+		       timeLeft: 17,
+		       terminateAfterAction: false,
+		       timeAtRestaurant: 1},
+       latentState: {A: 3, B: 2, C: 3, D: 5, E: 0}};
