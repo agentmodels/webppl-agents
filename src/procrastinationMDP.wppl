@@ -1,73 +1,6 @@
-// an mdp to illustrate procrastinating behaviour exhibited by hyperbolic
-// discounters
-
-var exampleProcrastinationState = {loc: "procrastinating",
-				   // loc can also be "done"
-				   procrastinationSteps: 3,
-				   timeLeft: 10,
-				   terminateAfterAction: false
-				  };
-
-var makeProcrastinationMDP = function() {
-  var actions = ["procrastinate", "start work", "relax"];
-
-  var stateToActions = function(state) {
-    return state.loc === "procrastinating" ? ["procrastinate", "start work"]
-      : ["relax"];
-  };
-
-  var advanceTime = function (state) {
-    var newTimeLeft = state.timeLeft - 1;
-    var terminateAfterAction = (newTimeLeft === 1 || state.loc === "done");
-    return update(state, {timeLeft: newTimeLeft,
-  			  terminateAfterAction: terminateAfterAction});
-  };
-
-  var transition = function(state, action) {
-    if (state.loc === "done") {
-      return advanceTime(state);
-    } else if (action === "procrastinate") {
-      var procrastinationSteps = state.procrastinationSteps + 1;
-      return update(advanceTime(state), {procrastinationSteps:
-					 procrastinationSteps});
-    } else {
-      var newState = update(state, {loc: "done"});
-      return advanceTime(newState);
-    }
-  };
-
-  var feature = function(state) {
-    return state.loc;
-  };
-
-  return {actions: actions,
-	  stateToActions: stateToActions,
-	  transition: transition,
-	  feature: feature};
-};
-
-var makeProcrastinationUtility = function(utilityTable) {
-  assert.ok(hasProperties(utilityTable, ['procrastinationCost', 'workCost',
-					 'reward']));
-  var procrastinationCost = utilityTable.procrastinationCost;
-  var workCost = utilityTable.workCost;
-  var reward = utilityTable.reward;
-  return function(state, action) {
-    if (state.loc === "done") {
-      return reward + state.procrastinationSteps * procrastinationCost;
-    } else if (action === "start work") {
-      return workCost;
-    } else {
-      return 0;
-    }
-  };
-};
-
-var procrastinateUntilEnd10 = [[{"loc":"procrastinating","procrastinationSteps":0,"timeLeft":10,"terminateAfterAction":false},"procrastinate"],[{"loc":"procrastinating","procrastinationSteps":1,"timeLeft":9,"terminateAfterAction":false},"procrastinate"],[{"loc":"procrastinating","procrastinationSteps":2,"timeLeft":8,"terminateAfterAction":false},"procrastinate"],[{"loc":"procrastinating","procrastinationSteps":3,"timeLeft":7,"terminateAfterAction":false},"procrastinate"],[{"loc":"procrastinating","procrastinationSteps":4,"timeLeft":6,"terminateAfterAction":false},"procrastinate"],[{"loc":"procrastinating","procrastinationSteps":5,"timeLeft":5,"terminateAfterAction":false},"procrastinate"],[{"loc":"procrastinating","procrastinationSteps":6,"timeLeft":4,"terminateAfterAction":false},"procrastinate"],[{"loc":"procrastinating","procrastinationSteps":7,"timeLeft":3,"terminateAfterAction":false},"procrastinate"],[{"loc":"procrastinating","procrastinationSteps":8,"timeLeft":2,"terminateAfterAction":false},"start work"],[{"loc":"done","procrastinationSteps":8,"timeLeft":1,"terminateAfterAction":true},"relax"]];
 
 
-
-var makeProcrastinationMDP2 = function(deadlineTime) {
+var makeProcrastinationMDP = function(deadlineTime) {
   var stateLocs = ["wait_state", "reward_state"];
   var actions = ["wait", "work", "relax"];
 
@@ -114,7 +47,8 @@ var makeProcrastinationMDP2 = function(deadlineTime) {
           startState: startState};
 };
 
-var makeProcrastinationUtility2 = function(utilityTable) {
+
+var makeProcrastinationUtility = function(utilityTable) {
   assert.ok(hasProperties(utilityTable, ['waitCost', 'workCost',
 					 'reward']));
   var waitCost = utilityTable.waitCost;
@@ -134,6 +68,8 @@ var makeProcrastinationUtility2 = function(utilityTable) {
   };
 };
 
-var procrastinateUntilEnd102 = [[{"loc":"wait_state","waitSteps":0,"timeLeft":10,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":1,"timeLeft":9,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":2,"timeLeft":8,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":3,"timeLeft":7,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":4,"timeLeft":6,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":5,"timeLeft":5,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":6,"timeLeft":4,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":7,"timeLeft":3,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":8,"timeLeft":2,"terminateAfterAction":false},"work"],[{"loc":"reward_state","waitSteps":8,"timeLeft":1,"terminateAfterAction":true},"relax"]];
+var procrastinateUntilEnd10 = [[{"loc":"wait_state","waitSteps":0,"timeLeft":10,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":1,"timeLeft":9,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":2,"timeLeft":8,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":3,"timeLeft":7,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":4,"timeLeft":6,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":5,"timeLeft":5,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":6,"timeLeft":4,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":7,"timeLeft":3,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":8,"timeLeft":2,"terminateAfterAction":false},"work"],[{"loc":"reward_state","waitSteps":8,"timeLeft":1,"terminateAfterAction":true},"relax"]];
 
 var workInMiddle10 = [[{"loc":"wait_state","waitSteps":0,"timeLeft":10,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":1,"timeLeft":9,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":2,"timeLeft":8,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":3,"timeLeft":7,"terminateAfterAction":false},"work"],[{"loc":"reward_state","waitSteps":3,"timeLeft":6,"terminateAfterAction":true},"relax"]];
+
+
