@@ -1,0 +1,70 @@
+// infer_utility_from_no_exploration
+
+var getPosterior = function(timeLeft, useOptimalModel) {
+  var numArms = 2;
+  var armToPrize = {0: 'chocolate',
+		    1: 'nothing'};
+  var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, timeLeft);
+  var startState = worldAndStart.startState;
+  var alternativeLatent = update(armToPrize, {1: 'champagne'});
+  var alternativeStartState = update(startState, {latentState:
+						  alternativeLatent});
+
+  var priorAgentPrior = deltaERP(categoricalERP([0.7, 0.3],
+						[startState,
+						 alternativeStartState]));
+  
+  var priorPrizeToUtility = Enumerate(function(){
+    return {chocolate: uniformDraw(range(20).concat(25)),
+	    nothing: 0,
+	    champagne: 20};
+  });
+  
+  var priorMyopia =  useOptimalModel ? deltaERP({on:false, bound:0}) :
+      Enumerate(function(){
+        return {on: true, 
+                bound: categorical([.4, .2, .1, .1, .1, .1], 
+                                   [1, 2, 3, 4, 6, 10])};
+      });
+  
+  var prior = {priorAgentPrior: priorAgentPrior,
+	       priorPrizeToUtility: priorPrizeToUtility,
+               priorMyopia: priorMyopia};
+
+  var baseAgentParams = {alpha: 1000,
+			 myopia: {on: false, bound:0},
+			 boundVOI: {on: false, bound: 0},
+			 sophisticatedOrNaive: 'naive',
+			 discount: 0, //agentType === 'hyperbolic' ? 1 : 0,
+			 noDelays: useOptimalModel};                      
+
+  var observations = [[startState, 0]];
+  
+  var outputERP = inferIRLBandit(worldAndStart, baseAgentParams, prior,
+				 observations, 'offPolicy', 0, 'beliefDelay');
+  
+  var marginalChocolate = Enumerate(function(){
+    return sample(outputERP).prizeToUtility.chocolate;
+  });
+  
+  return [expectation(marginalChocolate), 
+          expectation(getMarginal(outputERP,'myopiaBound'))]
+};
+
+var timeHorizonValues = range(10).slice(2);
+
+var optimalExpectations = map(function(t){return getPosterior(t, true);},
+			      timeHorizonValues);
+var possiblyMyopicExpectations = map(function(t){return getPosterior(t, false);},
+			             timeHorizonValues);
+
+print('Prior expected utility for arm0 (chocolate): ' + listMean(range(20).concat(25)) );
+
+print('Inferred Utility for arm0 (chocolate) for Optimal Model as timeHorizon increases');
+viz.line(timeHorizonValues, map(first, optimalExpectations));
+
+print('Inferred Utility for arm0 (chocolate) for Possibly Greedy Model as timeHorizon increases');
+viz.line(timeHorizonValues, map(first, possiblyMyopicExpectations));
+
+print('Inferred Myopic Bound for Possibly Greedy Model as timeHorizon increases');
+viz.line(timeHorizonValues, map(second, possiblyMyopicExpectations));

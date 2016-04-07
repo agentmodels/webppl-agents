@@ -97,6 +97,7 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
 
   var priorPrizeToUtility = prior.priorPrizeToUtility;
   var priorAgentPrior = prior.priorAgentPrior;
+  var priorMyopia = prior.priorMyopia || false
 
 
   assert.ok(isPOMDPWorld(world) && isPOMDPState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args ' + priorPrizeToUtility + ' \n\n priorAgentPrior' + priorAgentPrior );
@@ -108,8 +109,10 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
     // priors and makeAgent are specific to IRL Bandits
     var prizeToUtility = sample(priorPrizeToUtility);
     var priorBelief = sample(priorAgentPrior);
+    var myopiaUpdate = priorMyopia? {myopia: sample(priorMyopia) } : {};
+    var newAgentParams = update(baseAgentParams, update({priorBelief:priorBelief}, myopiaUpdate) );
     
-    var agent = makeIRLBanditAgent(prizeToUtility, update(baseAgentParams, {priorBelief:priorBelief}), worldAndStart, beliefOrBeliefDelay);
+    var agent = makeIRLBanditAgent(prizeToUtility, newAgentParams, worldAndStart, beliefOrBeliefDelay);
     var agentAct = agent.act;
     var agentUpdateBelief = agent.updateBelief;
 
@@ -134,7 +137,7 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
             agentUpdateBelief(currentBelief, observation, previousAction) :
             agentUpdateBelief(currentBelief, observation, previousAction, delay);
 
-
+        
         var nextActionERP = beliefOrBeliefDelay == 'belief' ? 
             agentAct(nextBelief) : agentAct(nextBelief, delay); 
 
@@ -149,7 +152,7 @@ var inferIRLBandit = function(worldAndStart, baseAgentParams, prior, observedSta
     var doInfer = (trajectoryOrOffPolicy=='trajectory') ? factorOnTrajectory() : 
         factorSequenceOffPolicy(priorBelief,'noAction', 0);
     
-    return {prizeToUtility: prizeToUtility, priorBelief:priorBelief};
+    return {prizeToUtility: prizeToUtility, priorBelief:priorBelief, myopiaBound: newAgentParams.myopia.bound};
   });
 };
 
