@@ -38,10 +38,10 @@ var getPosterior = function(timeLeft, useOptimalModel) {
 			 discount: 0, //agentType === 'hyperbolic' ? 1 : 0,
 			 noDelays: useOptimalModel};                      
 
-  var observations = [[startState, 0]];
-  
+  var observedStateAction = [[startState, 0]];
+
   var outputERP = inferIRLBandit(worldAndStart, baseAgentParams, prior,
-				 observations, 'offPolicy', 0, 'beliefDelay');
+				 observedStateAction, 'offPolicy', 0, 'beliefDelay');
   
   var marginalChocolate = Enumerate(function(){
     return sample(outputERP).prizeToUtility.chocolate;
@@ -58,13 +58,15 @@ var optimalExpectations = map(function(t){return getPosterior(t, true);},
 var possiblyMyopicExpectations = map(function(t){return getPosterior(t, false);},
 			             timeHorizonValues);
 
+var print = function(x){return console.log(x);};
+
 print('Prior expected utility for arm0 (chocolate): ' + listMean(range(20).concat(25)) );
 
 print('Inferred Utility for arm0 (chocolate) for Optimal Model as timeHorizon increases');
-viz.line(timeHorizonValues, map(first, optimalExpectations));
+console.log(timeHorizonValues, map(first, optimalExpectations));
 
 print('Inferred Utility for arm0 (chocolate) for Possibly Greedy Model as timeHorizon increases');
-viz.line(timeHorizonValues, map(first, possiblyMyopicExpectations));
+console.log(timeHorizonValues, map(first, possiblyMyopicExpectations));
 
 print('Inferred Myopic Bound for Possibly Greedy Model as timeHorizon increases');
-viz.line(timeHorizonValues, map(second, possiblyMyopicExpectations));
+console.log(timeHorizonValues, map(second, possiblyMyopicExpectations));
