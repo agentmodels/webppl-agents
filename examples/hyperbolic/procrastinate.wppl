@@ -57,36 +57,76 @@ var lastActionsAndTimes = map(simulatePro, discounts);
 
 // infer_procrastination
 
-// give it prefixes of the actual sequence, see how expected reward and logAlpha varies
-var observedStateAction = procrastinateUntilEnd102;
-var lastChanceState = secondLast(observedStateAction)[0];
+//for non-browser use of viz functions
+var viz = webpplGridworld;
+var viz = update(viz, {line: function(x){return console.log(x);}});
+var print = function(x){
+  return console.log(JSON.stringify(x));
+};
 
 
-var posterior = function(observedStateAction, optimalModel) {
+///fold
+var displayTimeSeries = function(observedStateAction, getPosterior){
+  var features = ['reward', 'predictWorkLastMinute', 'alpha', 'discount'];
+  
+  // erp on {a:1, b:3, ...} -> [E('a'), E('b') ... ]
+  var erpToMarginalExpectations = function(erp, keys){
+    return map(function(key){
+      return expectation(getMarginal(erp,key));
+    }, keys);
+  };
+  // condition observations up to *timeIndex* and take expectations
+  var inferUpToTimeIndex = function(timeIndex, useOptimalModel){
+    var observations = observedStateAction.slice(0,timeIndex);
+    return erpToMarginalExpectations( getPosterior(observations, useOptimalModel), features);
+  };
+
+  var getTimeSeries = function(useOptimalModel){
+    var dummy = useOptimalModel ? print('Optimal Model:') : print('Possibly Discounting Model:');
+
+    var inferAllTimeIndexes = map( function(index){
+      return inferUpToTimeIndex(index, useOptimalModel);
+    }, range(observedStateAction.length));
+
+    return map( function(i){
+      // get full time series of online inferences for each feature
+      var series = map(function(infer){return infer[i];}, inferAllTimeIndexes);
+      
+      print('\n\n feature:' + features[i]); //, ' \n', featureOut);
+      viz.line( range(observedStateAction.length), series );
+    }, range(features.length) );
+  };
+
+  print('Posterior expectation on feature after observing agent "wait" for t timesteps (and "work" when t=9)');
+  map(getTimeSeries,[true, false]);  
+};
+///
+
+
+var getPosterior = function(observedStateAction, useOptimalModel) {
   var world = makeProcrastinationMDP2();
- 
+  var lastChanceState = secondLast(procrastinateUntilEnd102)[0];
+  
   return Enumerate(function(){
    
     var utilityTable = {reward: uniformDraw([0.5, 2, 3, 4, 5, 6, 7, 8]),
 			waitCost: -0.1,
 			workCost: -1};
-    
     var params = {
       utility: makeProcrastinationUtility2(utilityTable),
       alpha: categorical([0.1, 0.2, 0.2, 0.2, 0.3], [0.1, 1, 10, 100, 1000]),
-      discount: optimalModel ? 0 :  uniformDraw([0, .5, .1, 2, 4]),
+      discount: useOptimalModel ? 0 : uniformDraw([0, .5, 1, 2, 4]),
       sophisticatedOrNaive: 'naive'
     };
     
     var agent = makeHyperbolicDiscounter(params, world);
     var act = agent.act;
-    
+
     map(function(stateAction){
       var state = stateAction[0];
       var action = stateAction[1];
       factor( act(state, 0).score([], action) )
     }, observedStateAction);
-
 
     return {reward: utilityTable.reward, 
             alpha: params.alpha, 
@@ -95,41 +135,5 @@ var posterior = function(observedStateAction, optimalModel) {
   });
 };
 
-var features = ['reward', 'predictWorkLastMinute', 'alpha', 'discount'];
-
-// inference up to the t-th observation
-var inferUpToTimeIndex = function(timeIndex){
-  
-  var expectations = function(erp){
-    return map(function(feature){return expectation(getMarginal(erp,feature));
-    }, features)
-  };
-
-  return map( function(optimal_or_hyperbolic){
-    var observations = observedStateAction.slice(0,timeIndex);
-    return expectations( posterior(observations, optimal_or_hyperbolic));
-  }, [1,0]);
-};
-
-
-var indexToExpectations = map(inferUpToTimeIndex, range(observedStateAction.length));
-
-
-// build full time series for each feature
-var getTimeSeries = function(optimal_or_hyper){
-  optimal_or_hyper == 0 ? print('Optimal Model:') : print('Possibly Discounting Model:');
-  return map( function(i){
-    var featureOut = map(function(optimal_hyper){return optimal_hyper[optimal_or_hyper][i];}, 
-                         indexToExpectations);
-    print('\n\n feature:' + features[i]); //, ' \n', featureOut);
-    viz.line( range(observedStateAction.length), features[i] );
-    return featureOut;
-  }, range(features.length) );
-};
-
-print('Posterior expectation on feature after observing agent "wait" for t timesteps');
-var optimalSeries = getTimeSeries(0);
-var hyperbolicSeries = getTimeSeries(1);
-
-
-null
+var observedStateAction = procrastinateUntilEnd102;
+displayTimeSeries(observedStateAction, getPosterior)
