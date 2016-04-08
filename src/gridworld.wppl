@@ -215,7 +215,7 @@ var makeHikeUtilityFunction = function(world, utilityTable){
  
   return function(state, action) {
     var stateFeatureName = feature(state).name;
-    return stateFeatureName ? table[stateFeatureName] : table.timeCost;
+    return stateFeatureName ? utilityTable[stateFeatureName] : utilityTable.timeCost;
   };
 };
 
