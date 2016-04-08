@@ -1,0 +1,36 @@
+var gridworld = makeRestaurantSearchMDP({noReverse: true});
+var world = makeBanditGridworld(gridworld);
+var feature = world.feature;
+var startState = restaurantSearchStartState;
+
+var agentPrior = Enumerate(function(){
+  var rewardE = flip() ? 5 : 0;
+  var latentState = {A: 3,
+		     B: uniformDraw(range(6)),
+		     C: uniformDraw(range(6)),
+		     D: 5 - rewardE,
+		     E: rewardE};
+  return buildState(startState.manifestState, latentState);
+});
+
+var params = {
+  utility: makeBanditGridworldUtility(feature, -0.01),
+  alpha: 1000,
+  priorBelief: agentPrior,
+  noDelays: false,
+  discount: 0,
+  sophisticatedOrNaive: 'naive',
+  myopia: {on: false, bound: 0},
+  boundVOI: {on: true, bound: 1},
+  recurseOnStateOrBelief: 'belief',
+  fastUpdateBelief: true
+};
+
+var agent = makeBeliefDelayAgent(params, world);
+
+var f = function(){
+  var trajectory = simulateBeliefDelayAgent(startState, world, agent, 'stateAction');
+  return JSON.stringify(trajectory);
+};
+
+timeit(f);
