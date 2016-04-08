@@ -97,37 +97,7 @@ var makeGridMap = function(rfeatures)  {
 
 
 
-var makeHike = function(transitionNoiseProb, options) {
-  assert.ok( _.isFinite(transitionNoiseProb) && 0 <= transitionNoiseProb
-	    && transitionNoiseProb <= 1,
-	    'something wrong with transitionNoiseProb argument to makeHike');
 
-  var H = {name: 'Hill'};
-  var W = {name: 'West'};
-  var E = {name: 'East'};
-  var __ = ' ';
-  
-  var smallFeatures =
-	[[ __ ,  __ ,  __ ,  __ ,  __ ],
-	 [ __ , '#',  __ ,  __ ,  __ ],
-	 [ __ , '#',  W , '#',  E ],
-	 [ __ ,  __ ,  __ ,  __ ,  __ ],
-	 [ H ,  H ,  H ,  H ,  H ]];
-
-  var bigFeatures =
-	[[ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
-	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
-	 [ __ ,  __ , '#',  __ ,  __ ,  __ ],
-	 [ __ ,  __ , '#',  W , '#',  E ],
-	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
-	 [ H ,  H ,  H ,  H ,  H ,  H ]];
-
-  var options_ = options ? options : {big: false};
-  
-  var features = options_.big ? bigFeatures : smallFeatures;
-  
-  return makeNoisyGridworld(features, options_, transitionNoiseProb);
-};
 
 
 var makeGridWorld = function(features, options) {
@@ -206,6 +176,48 @@ var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
 };
 
 
+
+// Hike constructor
+var makeHike = function(transitionNoiseProb, options) {
+  assert.ok( _.isFinite(transitionNoiseProb) && 0 <= transitionNoiseProb
+	    && transitionNoiseProb <= 1,
+	    'something wrong with transitionNoiseProb argument to makeHike');
+
+  var H = {name: 'Hill'};
+  var W = {name: 'West'};
+  var E = {name: 'East'};
+  var __ = ' ';
+  
+  var smallFeatures =
+	[[ __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ , '#',  __ ,  __ ,  __ ],
+	 [ __ , '#',  W , '#',  E ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ H ,  H ,  H ,  H ,  H ]];
+
+  var bigFeatures =
+	[[ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ ,  __ , '#',  __ ,  __ ,  __ ],
+	 [ __ ,  __ , '#',  W , '#',  E ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ H ,  H ,  H ,  H ,  H ,  H ]];
+
+  var options_ = options ? options : {big: false};
+  
+  var features = options_.big ? bigFeatures : smallFeatures;
+  
+  return makeNoisyGridworld(features, options_, transitionNoiseProb);
+};
+
+var makeHikeUtilityFunction = function(world, utilityTable){
+  var feature = world.feature;
+ 
+  return function(state, action) {
+    var stateFeatureName = feature(state).name;
+    return stateFeatureName ? table[stateFeatureName] : table.timeCost;
+  };
+};
 
 
 
@@ -320,6 +332,7 @@ var restaurantNameToObservationTime11Reverse = function(name){
 };
 
 var allButLast = function(ar){return ar.slice(0,ar.length-1);};
+
 
 var restaurantPathToName = function(path){
   var table = _.invert(restaurantNameToPath);
