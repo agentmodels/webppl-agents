@@ -26,10 +26,10 @@ var params = {
   fastUpdateBelief: true
 };
 
-var agent = makeBeliefDelayAgent(params, world);
+var agent = makeBeliefAgent(params, world);
 
 var f = function(){
-  var trajectory = simulateBeliefDelayAgent(startState, world, agent, 'stateAction');
+  var trajectory = simulateBeliefAgent(startState, world, agent, 'stateAction');
   return JSON.stringify(trajectory);
 };
 

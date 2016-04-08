@@ -355,15 +355,14 @@ var makeRestaurantSearchMDP = function(options_) {
 	 ['#', ' ', '#', '#', '#', '#'],
 	 ['#', ' ',  B , '#', '#', '#'],
 	 [ A , ' ', '#', '#',  D , '#'],
-	 ['#', ' ', ' ', ' ', ' ',  E ],
-	 ['#', '#', '#', ' ', ' ', '#']];
+	 ['#', ' ', ' ', ' ', ' ',  E ]];
   
   return makeGridWorld(features, options);
 };
 
 // start state for restaurant search pomdp
 var restaurantSearchStartState =
-      {manifestState: {loc: [1, 1],
+      {manifestState: {loc: [1, 0],
 		       timeLeft: 17,
 		       terminateAfterAction: false,
 		       timeAtRestaurant: 1},
