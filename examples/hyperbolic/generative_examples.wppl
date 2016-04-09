@@ -1,31 +1,33 @@
-var start = { 
-  loc : [3,0],
-  terminateAfterAction : false,
-  timeLeft : 14
-};
+var world = restaurantChoiceMDP; 
+var start = restaurantChoiceStart;
 
-
-var world = makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2});
-
-var donutUtility = makeDonutUtility(world, {
-    'Donut N' : [10, -10],
+var restaurantUtility = makeRestaurantUtilityFunction(world, {
+    'Donut N' : [10, -10],  //[immediate reward, delayed reward]
     'Donut S' : [10, -10],
     'Veg'   : [-10, 20],
-    'Noodle': [0, 0]
+    'Noodle': [0, 0],
+    'timeCost': -.01  // cost of taking a single action 
 });
 
-var agent = makeHyperbolicDiscounter(
-    { utility : donutUtility,
+// Construct Sophisticated and Naive agents
+var sophisticatedAgent = makeAgent(
+    { utility : restaurantUtility,
       alpha : 500, 
       discount : 1, 
       sophisticatedOrNaive  : 'sophisticated' 
     }, world);
-mdpSim(start, world, agent);
 
-var agent2 = makeHyperbolicDiscounter(
-    { utility : donutUtility,
+var trajectory = simulateMDP(start, world, sophisticatedAgent); 
+var plans = plannedTrajectories(trajectory, world, sophisticatedAgent);
+GridWorld.draw(world, { trajectory : trajectory, paths : plans });
+
+var naiveAgent = makeAgent(
+    { utility : restaurantUtility,
       alpha : 500, 
       discount : 1, 
       sophisticatedOrNaive  : 'naive' 
     }, world);
-mdpSim(start, world, agent2);
+var trajectory = simulateMDP(start, world, naiveAgent); 
+var plans = plannedTrajectories(trajectory, world, naiveAgent);
+GridWorld.draw(world, { trajectory : trajectory, paths : plans });
+
