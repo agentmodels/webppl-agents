@@ -46,12 +46,13 @@ var simulateMDP = function(startState, world, agent, outputType) {
   // if outputType is undefined, default to stateAction
   var act = agent.act;
   var transition = world.transition;
+  var outputType = outputType ? outputType : 'states';
 
   var selectOutput = function(state, action) {
     var table = {states: state,
 		 actions: action,
 		 stateAction: [state, action]};
-    return outputType ? table[outputType] : table.stateAction;
+    return table[outputType];
   };
 
   var sampleSequence = function(state) {
