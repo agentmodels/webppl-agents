@@ -10,7 +10,7 @@ var restaurantUtility = makeRestaurantUtilityFunction(world, {
 });
 
 // Construct Sophisticated and Naive agents
-var sophisticatedAgent = makeAgent(
+var sophisticatedAgent = makeHyperbolicDiscounter(
     { utility : restaurantUtility,
       alpha : 500, 
       discount : 1, 
@@ -21,7 +21,7 @@ var trajectory = simulateMDP(start, world, sophisticatedAgent);
 var plans = plannedTrajectories(trajectory, world, sophisticatedAgent);
 GridWorld.draw(world, { trajectory : trajectory, paths : plans });
 
-var naiveAgent = makeAgent(
+var naiveAgent = makeHyperbolicDiscounter(
     { utility : restaurantUtility,
       alpha : 500, 
       discount : 1, 
