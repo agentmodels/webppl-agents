@@ -107,7 +107,7 @@ var getExpectedUtilities = function(trajectory, agent, actions) {
   var expectedUtility = agent.expectedUtility;
 
   var v = mapIndexed(function(i, state) {
-    return [state.loc, map(function (a) { return  expectedUtility(state, a, i); }, actions)];
+    return [state, map(function (a) { return  expectedUtility(state, a, i); }, actions)];
   }, trajectory );
 
   return v;
