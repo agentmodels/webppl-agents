@@ -306,11 +306,11 @@ function draw(world, additional) {
     group.addChildren(_.map(world.labels, makeLabel));
   }
   if (additional) { //additional items to be drawn
-    if (additional.expUtilities) {
-      group.addChild(addUtilities(additional.expUtilities));
+    if (additional.actionExpUtilities) {
+      group.addChild(addUtilities(additional.actionExpUtilities));
     }
     if (additional.trajectory) { 
-      addAgentPath(additional.trajectory, additional.paths, group);
+      addAgentPath(additional.trajectory, additional.dynamicActionExpUtilities, group);
     }
     if (additional.labels) { 
       group.addChildren(_.map(additional.labels, makeLabel));
