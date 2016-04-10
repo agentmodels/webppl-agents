@@ -96,8 +96,6 @@ var stateActionPairsToFullStates = function(locAction, latentState){
 };
 
 
-
-
 var _getPriorBelief = function(perceivedTotalTime, startingLocation, latentStateSampler){
   var startManifestState = {timeLeft: perceivedTotalTime, loc: startingLocation, terminateAfterAction: false};
   
