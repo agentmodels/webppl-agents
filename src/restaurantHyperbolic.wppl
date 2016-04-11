@@ -25,6 +25,8 @@ var getRestaurantHyperbolicInfer = function(){
 // ' + restaurantNameToPath[pathName]);
     return observedStateAction;
   };
+
+
   
   var factorSequence = function(agentAction, observedStateAction){
     map(function (stateAction) {
@@ -34,18 +36,19 @@ var getRestaurantHyperbolicInfer = function(){
     }, observedStateAction);
   };
 
+  
   // Could split up like this
-  var hyperbolicFactor = function(agentParams, world, observedStateAction){
-    var agent = makeHyperbolicDiscounter(
-        { utility   : makeRestaurantUtilityMDP(world, utilityTable),
-          alpha     : alpha, 
-          discount  : discounting.discount, 
-          sophisticatedOrNaive : discounting.sophisticatedOrNaive
-        }, world);
-    var agentAction = agent.act;
+  // var hyperbolicFactor = function(agentParams, world, observedStateAction){
+  //   var agent = makeHyperbolicDiscounter(
+  //       { utility   : makeRestaurantUtilityMDP(world, utilityTable),
+  //         alpha     : alpha, 
+  //         discount  : discounting.discount, 
+  //         sophisticatedOrNaive : discounting.sophisticatedOrNaive
+  //       }, world);
+  //   var agentAction = agent.act;
       
-    factorSequence(agentAction, observedStateAction);
-  };
+  //   factorSequence(agentAction, observedStateAction);
+  // };
 
  
   
