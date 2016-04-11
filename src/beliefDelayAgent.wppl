@@ -63,7 +63,7 @@ var makeBeliefDelayAgent = function (params, world){
       return true;
     }
     if (params.myopia.on) {
-      return delay > params.myopia.bound;
+      return delay >= params.myopia.bound;
     }
     return false;
   };
