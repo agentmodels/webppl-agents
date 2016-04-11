@@ -166,6 +166,7 @@ var makeBeliefAgent = function(params, world) {
 	Enumerate(function(){
 	  var state = sampleBelief(belief);
 	  var u = utility(state, action);
+	  assert.ok(_.isFinite(u), 'utility is not finite');
 	  if (state.manifestState.terminateAfterAction) {
 	    return u;
 	  } else {
@@ -207,6 +208,7 @@ var makeBeliefAgent = function(params, world) {
       return expectation(  // need this for caching
         Enumerate( function(){
           var u = utility(state, action);
+	  assert.ok(_.isFinite(u), 'utility is not finite');
           if (state.manifestState.terminateAfterAction) {
 	    return u;
           } else {
