@@ -106,7 +106,8 @@ var makeBeliefDelayAgent = function (params, world){
       return expectation(
         Enumerate(function () {
           var state = sampleBelief(belief);
-	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite');
+	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
+		    + JSON.stringify(state));
           var u = 1.0 / (1 + params.discount * delay) * utility(state, action);
 
           if (shouldTerminate(state, delay)){
@@ -151,7 +152,8 @@ var makeBeliefDelayAgent = function (params, world){
     function(belief, state, action, delay){
       return expectation(  // need this for caching
         Enumerate( function(){
-	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite');
+	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
+		    + JSON.stringify(state));
           var u = 1.0 / (1 + params.discount * delay) * utility(state, action);
           if (shouldTerminate(state, delay)) {
 	    return u;
