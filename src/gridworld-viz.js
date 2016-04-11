@@ -104,7 +104,7 @@ function draw(world, additional) {
     group.addChild(new paper.Path.Rectangle(([-.5, +.5]), ([world.xLim, world.yLim])));
     var lastCoord; 
     for (var i = 0; i < v.length; i++) { 
-      var coord = v[i][0];
+      var coord = v[i][0].loc;
       var LRUD = v[i][1];
       var LURD = [LRUD[0], LRUD[2], LRUD[1], LRUD[3]];
       if (!_.isEqual(lastCoord, coord)) { 
@@ -306,11 +306,11 @@ function draw(world, additional) {
     group.addChildren(_.map(world.labels, makeLabel));
   }
   if (additional) { //additional items to be drawn
-    if (additional.expUtilities) {
-      group.addChild(addUtilities(additional.expUtilities));
+    if (additional.actionExpectedUtilities) {
+      group.addChild(addUtilities(additional.actionExpectedUtilities));
     }
     if (additional.trajectory) { 
-      addAgentPath(additional.trajectory, additional.paths, group);
+      addAgentPath(additional.trajectory, additional.dynamicActionExpectedUtilities, group);
     }
     if (additional.labels) { 
       group.addChildren(_.map(additional.labels, makeLabel));

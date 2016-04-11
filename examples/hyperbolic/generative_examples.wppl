@@ -18,8 +18,8 @@ var sophisticatedAgent = makeHyperbolicDiscounter(
     }, world);
 
 var trajectory = simulateMDP(start, world, sophisticatedAgent); 
-var plans = plannedTrajectories(trajectory, world, sophisticatedAgent);
-GridWorld.draw(world, { trajectory : trajectory, paths : plans });
+var eus = plannedTrajectories(trajectory, world, sophisticatedAgent);
+GridWorld.draw(world, { trajectory : trajectory, dynamicActionExpectedUtilities : eus });
 
 var naiveAgent = makeHyperbolicDiscounter(
     { utility : restaurantUtility,
@@ -28,6 +28,6 @@ var naiveAgent = makeHyperbolicDiscounter(
       sophisticatedOrNaive  : 'naive' 
     }, world);
 var trajectory = simulateMDP(start, world, naiveAgent); 
-var plans = plannedTrajectories(trajectory, world, naiveAgent);
-GridWorld.draw(world, { trajectory : trajectory, paths : plans });
+var eus = plannedTrajectories(trajectory, world, naiveAgent);
+GridWorld.draw(world, { trajectory : trajectory, dynamicActionExpectedUtilities : eus });
 
