@@ -56,7 +56,7 @@ var makeProcrastinationUtility = function(utilityTable) {
   var reward = utilityTable.reward;
 
   // NB: you receive the *workCost* when you leave the *wait_state*
-  // You then receiv the reward when leaving the *reward_state* state
+  // You then receive the reward when leaving the *reward_state* state
   return function(state, action) {
     if (state.loc === "reward_state") {
       return reward + state.waitSteps * waitCost;
