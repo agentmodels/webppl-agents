@@ -159,13 +159,80 @@ var test2 = function() {
 	    'trajectories of naive and sophisticated agents should be equal, test 2 fails');
 };
 
-// exponential discounter should not explore much in bandits
+// exponential discounter should not explore in bandits, unless discount factor
+// is small
 var test3 = function(){
-  return 0;
+  var world = makeDeterministicBandit(2);
+  var latentState = {start: 0, rewards: [0.5, 1]};
+  var startState = buildDeterministicBanditStartState(3, latentState);
+  var priorBelief = Enumerate(function(){
+    var reward1 = categorical([0.6, 0.4], [0,1]);
+    var latent =  {start: 0,
+		   rewards: [0.5, reward1]};
+    return buildDeterministicBanditStartState(3, latent);
+  });
+
+  var lightDiscount = function(delay) {
+    return Math.pow(0.8, delay);
+  };
+  
+  var lightDiscounterParams = { 
+    utility: function (state,action) {
+      return state.manifestState.loc === 'start' ? state.latentState.start
+	: state.latentState.rewards[state.manifestState.loc];
+    },
+    alpha: 100000,
+    priorBelief: priorBelief,
+    discount: 0,
+    discountFunction: lightDiscount,
+    sophisticatedOrNaive: 'naive',
+    noDelays: false,
+    myopia: {on: false, bound: 0},
+    boundVOI: {on: false, bound: 0}
+  };
+
+  var lightDiscounter = makeBeliefDelayAgent(lightDiscounterParams, world);
+  
+  var lightDiscounterTrajectory = simulateBeliefDelayAgent(startState, world,
+							   lightDiscounter,
+							   'actions');
+
+  assert.ok(lightDiscounterTrajectory[0] === 1, 'discounting agent with large discount factor should explore but does not, test 3 fails');
+
+
+  var heavyDiscount = function(delay) {
+    return Math.pow(0.4, delay);
+  };
+  
+  var heavyDiscounterParams = { 
+    utility: function (state,action) {
+      return state.manifestState.loc === 'start' ? state.latentState.start
+	: state.latentState.rewards[state.manifestState.loc];
+    },
+    alpha: 100000,
+    priorBelief: priorBelief,
+    discount: 0,
+    discountFunction: heavyDiscount,
+    sophisticatedOrNaive: 'naive',
+    noDelays: false,
+    myopia: {on: false, bound: 0},
+    boundVOI: {on: false, bound: 0}
+  };
+
+  var heavyDiscounter = makeBeliefDelayAgent(heavyDiscounterParams, world);
+  
+  var heavyDiscounterTrajectory = simulateBeliefDelayAgent(startState, world,
+							   heavyDiscounter,
+							   'actions');
+
+  assert.ok(heavyDiscounterTrajectory[0] === 0, 'discounting agent with small discount factor should not explore but does, test 3 fails');
+  
+  console.log('test 3 passes');
 };
 
 repeat(10, test1);
 console.log('test 1 passes');
 repeat(10, test2);
 console.log('test 2 passes');
+test3();
 console.log('all tests of exponential discounting agents pass');
