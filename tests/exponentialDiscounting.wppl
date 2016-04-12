@@ -1,0 +1,73 @@
+// test exponential discounting for hyperbolic and beliefDelay agent
+
+// in gridworld, exponential discounter should never go to donut north
+// this test is probabilistic in the discount: it always passes when exponential
+// discounting is correctly implemented, but will sometimes pass when it is not.
+var test1 = function() {
+  var startState = { 
+    loc : [3,0],
+    terminateAfterAction : false,
+    timeLeft : 13
+  };
+
+  var world = makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2});
+
+  var makeRestaurantUtilityFunction = function (world, rewards) { 
+    return function(state, action) {
+      var getFeature = world.feature;
+      var feature = getFeature(state);
+      if (feature.name) { return rewards[feature.name][state.timeAtRestaurant]; }
+      return rewards.timeCost;
+    };
+  };
+
+  var restaurantUtility = makeRestaurantUtilityFunction(world, {
+    'Donut N' : [10, -10],
+    'Donut S' : [10, -10],
+    'Veg'   : [-10, 20],
+    'Noodle': [0, 0],
+    'timeCost': -.01
+  });
+
+  var gamma = uniform(0,1);
+  
+  var exponentialDiscount = function(delay) {
+    return Math.pow(gamma, delay);
+  };
+  
+  var baseAgentParams = {
+    utility : restaurantUtility,
+    alpha : 500, 
+    discount : 0,
+    discountFunction: exponentialDiscount
+  };
+
+  var naiveAgent = makeHyperbolicDiscounter( 
+    update(baseAgentParams, {sophisticatedOrNaive: 'naive'}), 
+    world
+  );
+
+  var sophisticatedAgent = makeHyperbolicDiscounter( 
+    update(baseAgentParams, {sophisticatedOrNaive: 'sophisticated'}), 
+    world
+  );
+
+  var naiveTrajectory = simulateHyperbolic(startState, world, naiveAgent,
+					   'states');
+  
+  var sophisticatedTrajectory = simulateHyperbolic(startState, world,
+						   sophisticatedAgent,
+						   'states');
+
+  var goesToDonutN = function(trajectory){
+    return any(function(state){return _.isEqual(state.loc, [2,5]);},
+	       trajectory);
+  };
+
+  assert.ok(!goesToDonutN(naiveTrajectory) && !goesToDonutN(sophisticatedTrajectory),
+	    'exponential discounter should never go to donut north, test 1 fails');
+};
+
+repeat(10, test1);
+console.log('test 1 passes');
+console.log('all tests of exponential discounting agents pass');
