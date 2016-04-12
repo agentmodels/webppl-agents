@@ -65,16 +65,22 @@ var makeHyperbolicDiscounter = function (params, world) {
   };
 };
 
-var simulateHyperbolic = function(startState, world, agent) {
+var simulateHyperbolic = function(startState, world, agent, outputType) {
   var act = agent.act;
   var expectedUtility = agent.expectedUtility;
   var transition = world.transition;
 
+  var selectOutput = function(state, action){
+    var table =  {states:state, actions:action, stateAction:[state, action]};
+    return outputType ? table[outputType] : [state, action];
+  };
+
+  
   var sampleSequence = function (state) {
     var delay = 0;
     var action = sample(act(state, delay));
     var nextState = transition(state, action); 
-    var out = [state,action];
+    var out = selectOutput(state, action);
     return state.terminateAfterAction ?
       [out] : [out].concat(sampleSequence(nextState));
   };
