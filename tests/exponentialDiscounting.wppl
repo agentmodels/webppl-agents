@@ -1,6 +1,6 @@
 // test exponential discounting for hyperbolic and beliefDelay agent
 
-// in gridworld, exponential discounter should never go to donut north
+// in gridworld, exponential discounter should never go to donut north.
 // this test is probabilistic in the discount: it always passes when exponential
 // discounting is correctly implemented, but will sometimes pass when it is not.
 var test1 = function() {
@@ -37,7 +37,7 @@ var test1 = function() {
   
   var baseAgentParams = {
     utility : restaurantUtility,
-    alpha : 500, 
+    alpha : 500000, 
     discount : 0,
     discountFunction: exponentialDiscount
   };
@@ -68,6 +68,104 @@ var test1 = function() {
 	    'exponential discounter should never go to donut north, test 1 fails');
 };
 
+// trajectories of naive and sophisticated agent should be identical. this test
+// is also probabilistic in the same sense as the previous test.
+
+var simulateHyperbolicUntilManyLikelyActions = function(startState, world, agent) {
+  var act = agent.act;
+  var expectedUtility = agent.expectedUtility;
+  var transition = world.transition;
+  var stateToActions = world.stateToActions;
+
+  var manyLikelyActions = function(state) {
+    var availableActions = stateToActions(state);
+    var actProbs = map(function(action){return act(state).score([], action);},
+		       availableActions);
+    var positiveActProbs = filter(function(prob){return prob > 0.01;},
+				  actProbs);
+    return positiveActProbs.length > 1;
+  };
+
+  
+  var sampleSequence = function (state) {
+    var delay = 0;
+    var action = sample(act(state, delay));
+    var nextState = transition(state, action); 
+    var out = action;
+    return state.terminateAfterAction || manyLikelyActions(state) ?
+      [out] : [out].concat(sampleSequence(nextState));
+  };
+  return sampleSequence(startState);
+};
+
+
+var test2 = function() {
+  var startState = { 
+    loc : [3,0],
+    terminateAfterAction : false,
+    timeLeft : 13
+  };
+
+  var world = makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2});
+
+  var makeRestaurantUtilityFunction = function (world, rewards) { 
+    return function(state, action) {
+      var getFeature = world.feature;
+      var feature = getFeature(state);
+      if (feature.name) { return rewards[feature.name][state.timeAtRestaurant]; }
+      return rewards.timeCost;
+    };
+  };
+
+  var restaurantUtility = makeRestaurantUtilityFunction(world, {
+    'Donut N' : [10, -10],
+    'Donut S' : [10, -10],
+    'Veg'   : [-10, 20],
+    'Noodle': [0, 0],
+    'timeCost': -.01
+  });
+
+  var gamma = uniform(0.05,1);
+  
+  var exponentialDiscount = function(delay) {
+    return Math.pow(gamma, delay);
+  };
+  
+  var baseAgentParams = {
+    utility : restaurantUtility,
+    alpha : 500000, 
+    discount : 0,
+    discountFunction: exponentialDiscount
+  };
+
+  var naiveAgent = makeHyperbolicDiscounter( 
+    update(baseAgentParams, {sophisticatedOrNaive: 'naive'}), 
+    world
+  );
+
+  var sophisticatedAgent = makeHyperbolicDiscounter( 
+    update(baseAgentParams, {sophisticatedOrNaive: 'sophisticated'}), 
+    world
+  );
+
+  var naiveTrajectory = simulateHyperbolicUntilManyLikelyActions(startState, world, naiveAgent,
+					   'states');
+  
+  var sophisticatedTrajectory = simulateHyperbolicUntilManyLikelyActions(startState, world,
+						   sophisticatedAgent,
+						   'states');
+
+  assert.ok(_.isEqual(naiveTrajectory, sophisticatedTrajectory),
+	    'trajectories of naive and sophisticated agents should be equal, test 2 fails');
+};
+
+// exponential discounter should not explore much in bandits
+var test3 = function(){
+  return 0;
+};
+
 repeat(10, test1);
 console.log('test 1 passes');
+repeat(10, test2);
+console.log('test 2 passes');
 console.log('all tests of exponential discounting agents pass');
