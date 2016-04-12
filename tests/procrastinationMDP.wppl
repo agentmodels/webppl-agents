@@ -6,13 +6,13 @@ var test1 = function() {
   var world = makeProcrastinationMDP();
 
   var utilityTable = {reward: 10,
-		      procrastinationCost: -0.1,
+		      waitCost: -0.1,
 		      workCost: -1
 		     };
   var utility = makeProcrastinationUtility(utilityTable);
 
-  var startState = {loc: "procrastinating",
-		    procrastinationSteps: 0,
+  var startState = {loc: "wait_state",
+		    waitSteps: 0,
 		    timeLeft: 10,
 		    terminateAfterAction: false
 		   };
@@ -29,13 +29,13 @@ var test2 = function() {
   var world = makeProcrastinationMDP();
 
   var utilityTable = {reward: 0.8,
-		      procrastinationCost: -0.1,
+		      waitCost: -0.1,
 		      workCost: -1
 		     };
   var utility = makeProcrastinationUtility(utilityTable);
 
-  var startState = {loc: "procrastinating",
-		    procrastinationSteps: 0,
+  var startState = {loc: "wait_state",
+		    waitSteps: 0,
 		    timeLeft: 10,
 		    terminateAfterAction: false
 		   };
@@ -51,13 +51,13 @@ var test3 = function() {
   var world = makeProcrastinationMDP();
 
   var utilityTable = {reward: uniformDraw([0.1, 1, 5, 10]),
-		      procrastinationCost: uniformDraw([-0.2, -3]),
+		      waitCost: uniformDraw([-0.2, -3]),
 		      workCost: uniformDraw([-1, 4])
 		     };
   var utility = makeProcrastinationUtility(utilityTable);
 
-  var startState = {loc: "procrastinating",
-		    procrastinationSteps: 0,
+  var startState = {loc: "wait_state",
+		    waitSteps: 0,
 		    timeLeft: 10,
 		    terminateAfterAction: false
 		   };
@@ -74,13 +74,13 @@ var test4 = function() {
   var world = makeProcrastinationMDP();
 
   var utilityTable = {reward: 10,
-		      procrastinationCost: -0.1,
+		      waitCost: -0.1,
 		      workCost: -1
 		     };
   var utility = makeProcrastinationUtility(utilityTable);
 
-  var startState = {loc: "procrastinating",
-		    procrastinationSteps: 0,
+  var startState = {loc: "wait_state",
+		    waitSteps: 0,
 		    timeLeft: 10,
 		    terminateAfterAction: false
 		   };
@@ -101,13 +101,13 @@ var test5 = function() {
   var world = makeProcrastinationMDP();
 
   var utilityTable = {reward: 10,
-		      procrastinationCost: -0.1,
+		      waitCost: -0.1,
 		      workCost: -1
 		     };
   var utility = makeProcrastinationUtility(utilityTable);
 
-  var startState = {loc: "procrastinating",
-		    procrastinationSteps: 0,
+  var startState = {loc: "wait_state",
+		    waitSteps: 0,
 		    timeLeft: 3,
 		    terminateAfterAction: false
 		   };
