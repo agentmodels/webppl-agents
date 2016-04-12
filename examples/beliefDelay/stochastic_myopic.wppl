@@ -1,49 +1,80 @@
-var world = makeStochasticBanditWorld(2);
-var worldObserve = world.observe;
-var observe = getFullObserve(worldObserve);
-var transition = world.transition;
 
-var probablyChampagneERP = categoricalERP([0.4, 0.6], ['nothing', 'champagne']);
-var probablyNothingERP = categoricalERP([0.6, 0.4], ['nothing', 'champagne']);
+///fold:
+var baseParams = {
+  alpha: 1000,
+  fastUpdateBelief: false,
+  noDelays: false,
+  sophisticatedOrNaive: 'naive',
+  myopia: {on: false, bound: 0}
+};
 
-// which true latent?
-var trueLatent = {0: probablyNothingERP,
-		  1: probablyChampagneERP};
+var getParams = function(updateParams){
+  return update(baseParams, updateParams);
+};
 
-var trueLatent = {0: probablyChampagneERP,
-		  1: probablyNothingERP}
+// Possible distributions for arms
+var probably1ERP = categoricalERP([0.4, 0.6], ['0', '1']);
+var probably0ERP = categoricalERP([0.6, 0.4], ['0', '1']);
 
-var timeLeft = 7;
 
-var startState = buildStochasticBanditStartState(timeLeft, trueLatent);
+// Construct Bandit POMDP
+var getBanditWorld = function(totalTime){
+  var numberArms = 2;
+  var world = makeStochasticBanditWorld(numberArms);
+  
+  // Arm to distribution
+  var trueLatent = {0: probably0ERP,
+		    1: probably1ERP};
+  
+  var startState = buildStochasticBanditStartState(timeLeft, trueLatent);
 
-// why not same prior over each arm? symmetry breaker
-var prior = Enumerate(function(){
-  var latentState = {0: categorical([.5, .5], [probablyChampagneERP, probablyNothingERP]),
-		     1: categorical([0.6, 0.4], [probablyChampagneERP,
-					         probablyNothingERP])};
-  return buildStochasticBanditStartState(timeLeft, latentState);
-});
+  return {world:world, startState:startState};
+};
 
-var prizeToUtility = {start: 0, nothing: 0, champagne: 2};
+var getAgentPrior = function(totalTime, priorArm0, priorArm1){
+  return Enumerate(function(){
+    var latentState = {0: priorArm0(), 1: priorArm1()};
+    return buildStochasticBanditStartState(totalTime, latentState);
+  });
+};
+
+// Utility function is linear in the reward
+var prizeToUtility = {start: 0, 0: 0, 1: 1};
 var utility = makeStochasticBanditUtility(prizeToUtility);
 
-var optimalAgentParams = {utility: utility,
-			  alpha: 100,
-			  priorBelief: prior,
-			  fastUpdateBelief: false};
-var optimalAgent = makeBeliefAgent(optimalAgentParams, world);
+///
 
-var myopicAgentParams = {utility: utility,
-			 alpha: 100,
-			 priorBelief: prior,
-			 sophisticatedOrNaive: 'naive',
-			 boundVOI: {on: true, bound: 1},
-			 noDelays: false,
-			 discount: 0,
-			 myopia: {on: false, bound: 0},
-			 fastUpdateBelief: false};
-var myopicAgent = makeBeliefDelayAgent(myopicAgentParams, world);
+
+// Construct agents
+
+
+
+// Possible distributions for arms
+var probably1ERP = categoricalERP([0.4, 0.6], ['0', '1']);
+var probably0ERP = categoricalERP([0.6, 0.4], ['0', '1']);
+
+// Agent prior on arms: arm1 has higher EV
+var priorArm0 = categorical([0.5, 0.5], [probably1ERP, probably0ERP]);
+var priorArm1 = categorical([0.6, 0.4], [probably1ERP, probably0ERP]);
+
+var runAgents = function(totalTime){
+  var agentPrior = getAgentPrior(priorArm0, priorArm1, totalTime);
+
+  var optimalParams = getParams({utility:utility, priorBelief:priorBelief});
+  var optimalAgent = makeBeliefAgent( optimalParams, world);
+
+  var myopicParams = getParams( {utility:utility, 
+                                 priorBelief:priorBelief, 
+                                 boundVOI:{on:true, bound:1}});
+
+  var myopicAgent = makeBeliefDelayAgent(myopicParams, world);
+
+
+}  
+var world = getBanditWorld(totalTime).world;
+var start = getBanditWorld(totalTime).start;
+
+
 
 
 var get = function(out){
@@ -71,6 +102,12 @@ ash();
 console.log(map(score, [out1,out2]), ' \n', get(out1), ' \n\n', get(out2));
 
 ash();
+
+
+var worldObserve = world.observe;
+var observe = getFullObserve(worldObserve);
+var transition = world.transition;
+
 
 var nearlyEqualActionERPs = function(erp1, erp2) {
   var nearlyEqual = function(float1, float2) {
