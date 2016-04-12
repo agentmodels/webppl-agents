@@ -17,9 +17,14 @@ var makeHyperbolicDiscounter = function (params, world) {
   var transition = world.transition;
   var utility = params.utility;
 
-  var discountFunction = function(delay){
-    return 1/(1 + params.discount*delay);
-  };
+  // we can specify a discount function so that our 'hyperbolic' agent can
+  // actually be an exponential discounter (or some other kind of discounter)
+  var paramsDiscountFunction = params.discountFunction;
+
+  var discountFunction = paramsDiscountFunction ? paramsDiscountFunction
+	: function(delay){
+	  return 1/(1 + params.discount*delay);
+	};
 
   var isNaive = params.sophisticatedOrNaive=='naive';
     
