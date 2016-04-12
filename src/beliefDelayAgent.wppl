@@ -16,7 +16,8 @@ var exampleMakeAgentParams = {
   boundVOI: {on:false, bound:0}
 };
 
-// optional arguments are recurseOnStateOrBelief and fastUpdateBelief
+// optional arguments are recurseOnStateOrBelief, fastUpdateBelief, and
+// discountFunction.
 
 
 var makeBeliefDelayAgent = function (params, world){
@@ -45,6 +46,7 @@ var makeBeliefDelayAgent = function (params, world){
   var observe = getFullObserve(worldObserve);
   var beliefToActions = getBeliefToActions( manifestStateToActions );
   var recurseOnStateOrBelief = params.recurseOnStateOrBelief;
+  var paramsDiscountFunction = params.discountFunction;
   
 
   // Update the *delay* parameter in *expectedUtility* for sampling actions and future utilities
@@ -56,6 +58,10 @@ var makeBeliefDelayAgent = function (params, world){
   var incrementDelay = function(delay){
     return params.noDelays ? 0 : delay + 1;
   };
+
+  // Define the discount function to be used
+  var discountFunction = paramsDiscountFunction ? paramsDiscountFunction
+	: function(delay){return 1.0/(1 + params.discount * delay);};
 
   // Termination condition for *expectedUtility*
   var shouldTerminate = function(state, delay) {
@@ -95,7 +101,6 @@ var makeBeliefDelayAgent = function (params, world){
       return Enumerate(function () {
         var action = uniformDraw(beliefToActions(belief));
         var eu = expectedUtilityBelief(belief, action, delay);
-
         factor(params.alpha * eu);
         return action;
       });
@@ -108,7 +113,7 @@ var makeBeliefDelayAgent = function (params, world){
           var state = sampleBelief(belief);
 	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
 		    + JSON.stringify(state));
-          var u = 1.0 / (1 + params.discount * delay) * utility(state, action);
+          var u = discountFunction(delay) * utility(state, action);
 
           if (shouldTerminate(state, delay)){
             return u;
@@ -154,7 +159,7 @@ var makeBeliefDelayAgent = function (params, world){
         Enumerate( function(){
 	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
 		    + JSON.stringify(state));
-          var u = 1.0 / (1 + params.discount * delay) * utility(state, action);
+          var u = discountFunction(delay) * utility(state, action);
           if (shouldTerminate(state, delay)) {
 	    return u;
           } else {
