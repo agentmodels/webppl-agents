@@ -50,7 +50,7 @@ var makeProcrastinationMDP = function(deadlineTime) {
 
 var makeProcrastinationUtility = function(utilityTable) {
   assert.ok(hasProperties(utilityTable, ['waitCost', 'workCost',
-					 'reward']));
+					 'reward']), 'makeProcrastinationUtility args');
   var waitCost = utilityTable.waitCost;
   var workCost = utilityTable.workCost;
   var reward = utilityTable.reward;
