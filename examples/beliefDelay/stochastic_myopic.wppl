@@ -1,16 +1,35 @@
 
+// Helper functions for Bandits:
 ///fold:
+
+// HELPERS FOR CONSTRUCTING AGENT
+
+var prizeToUtility = {start: 0, 0: 0, 1: 1}; // Utility linear in the reward
+var utility = makeStochasticBanditUtility(prizeToUtility);
+
 var baseParams = {
+  utility: utility,
   alpha: 1000,
   fastUpdateBelief: false,
   noDelays: false,
   sophisticatedOrNaive: 'naive',
-  myopia: {on: false, bound: 0}
+  myopia: {on: false, bound: 0},
+  discount: 0
 };
 
-var getParams = function(updateParams){
-  return update(baseParams, updateParams);
+var getParams = function(agentPrior, options){
+  var params = update(baseParams, {priorBelief: agentPrior});
+  return update(params, options);
 };
+
+var getAgentPrior = function(totalTime, priorArm0, priorArm1){
+  return Enumerate(function(){
+    var latentState = {0: priorArm0(), 1: priorArm1()};
+    return buildStochasticBanditStartState(totalTime, latentState);
+  });
+};
+
+// HELPERS FOR CONSTRUCTING WORLD
 
 // Possible distributions for arms
 var probably1ERP = categoricalERP([0.4, 0.6], ['0', '1']);
@@ -26,174 +45,203 @@ var getBanditWorld = function(totalTime){
   var trueLatent = {0: probably0ERP,
 		    1: probably1ERP};
   
-  var startState = buildStochasticBanditStartState(timeLeft, trueLatent);
+  var start = buildStochasticBanditStartState(totalTime, trueLatent);
 
-  return {world:world, startState:startState};
+  return {world:world, start:start};
 };
 
-var getAgentPrior = function(totalTime, priorArm0, priorArm1){
-  return Enumerate(function(){
-    var latentState = {0: priorArm0(), 1: priorArm1()};
-    return buildStochasticBanditStartState(totalTime, latentState);
-  });
+// Get score for a single episode of bandits
+var score = function(out){
+  var total =  sum( map(function(x){return prizeToUtility[x.observation.manifestState.loc];}, out) );
+  return total / out.length;
 };
-
-// Utility function is linear in the reward
-var prizeToUtility = {start: 0, 0: 0, 1: 1};
-var utility = makeStochasticBanditUtility(prizeToUtility);
-
 ///
 
 
-// Construct agents
-
-
+// Agent prior on arm rewards
 
 // Possible distributions for arms
-var probably1ERP = categoricalERP([0.4, 0.6], ['0', '1']);
 var probably0ERP = categoricalERP([0.6, 0.4], ['0', '1']);
+var probably1ERP = categoricalERP([0.4, 0.6], ['0', '1']);
 
-// Agent prior on arms: arm1 has higher EV
-var priorArm0 = categorical([0.5, 0.5], [probably1ERP, probably0ERP]);
-var priorArm1 = categorical([0.6, 0.4], [probably1ERP, probably0ERP]);
+// True latentState:
+// arm0 is probably0ERP, arm1 is probably1ERP (and so is better)
+
+// Agent prior on arms: arm1 (better arm) has higher EV
+var priorArm0 = function(){
+  return categorical([0.5, 0.5], [probably1ERP, probably0ERP])
+};
+var priorArm1 = function(){
+  return categorical([0.6, 0.4], [probably1ERP, probably0ERP])
+};
+
 
 var runAgents = function(totalTime){
-  var agentPrior = getAgentPrior(priorArm0, priorArm1, totalTime);
+  
+  // Construct world and agents
+  var banditWorld = getBanditWorld(totalTime);
+  var world = banditWorld.world;
+  var start = banditWorld.start;
+  
+  var agentPrior = getAgentPrior(totalTime, priorArm0, priorArm1);
+  var optimalAgent = makeBeliefAgent(getParams(agentPrior), world);
 
-  var optimalParams = getParams({utility:utility, priorBelief:priorBelief});
-  var optimalAgent = makeBeliefAgent( optimalParams, world);
-
-  var myopicParams = getParams( {utility:utility, 
-                                 priorBelief:priorBelief, 
-                                 boundVOI:{on:true, bound:1}});
-
+  var myopicParams = getParams(agentPrior, {boundVOI: {on:true, bound:1}});
   var myopicAgent = makeBeliefDelayAgent(myopicParams, world);
 
-
-}  
-var world = getBanditWorld(totalTime).world;
-var start = getBanditWorld(totalTime).start;
-
-
-
-
-var get = function(out){
-  return map( function(x){return {obs: x.observation.manifestState.loc, a: x.action};}, out)
-};
-
-var score = function(out){
-  return sum( map(function(x){return .5*prizeToUtility[x.observation.manifestState.loc];}, out) );
-};
-
-var getScores = function(){
-  var out1 = simulateBeliefAgent(startState, world, optimalAgent, 'stateObservationAction');
-  var out2 = simulateBeliefDelayAgent(startState, world, myopicAgent, 'stateObservationAction');
-  return map(score, [out1,out2]);
-};
-
-var combine = function(n){
-  var out = repeat(n, getScores);
-  return {optimal: sum(_.map(out,0))/n, myopic: sum(_.map(out,1))/n};
-};
-
-  
-console.log( combine(10) );
-ash();
-console.log(map(score, [out1,out2]), ' \n', get(out1), ' \n\n', get(out2));
-
-ash();
-
-
-var worldObserve = world.observe;
-var observe = getFullObserve(worldObserve);
-var transition = world.transition;
-
-
-var nearlyEqualActionERPs = function(erp1, erp2) {
-  var nearlyEqual = function(float1, float2) {
-    return Math.abs(float1 - float2) < 0.05;
+  // Get average score across totalTime for both agents
+  var runOptimal = function(){
+    return score(simulateBeliefAgent(start, world, optimalAgent, 
+                                     'stateObservationAction'));
   };
-  return nearlyEqual(erp1.score([], 0), erp2.score([], 0))
-    && nearlyEqual(erp1.score([], 1), erp2.score([], 1));
+  
+  var runMyopic = function(){
+    return score(simulateBeliefDelayAgent(start, world, myopicAgent, 
+                                          'stateObservationAction'));
+  };
+
+  return [ timeit(runOptimal), timeit(runMyopic) ];
 };
 
-// it's important that we simulate the two agents such that they get the same
-// prizes when pulling the same arms, so that we can check if their
-// actions are the same. We could not ensure this by simply simulating one agent
-// and then the other.
-var sampleTwoSequences = function(states, priorBeliefs, actions) {
-///fold:
-  var optimalState = states[0];
-  var optimalPriorBelief = priorBeliefs[0];
-  var optimalAction = actions[0];
 
-  var optimalAct = optimalAgent.act;
-  var optimalUpdateBelief = optimalAgent.updateBelief;
-  
-  var myopicState = states[1];
-  var myopicPriorBelief = priorBeliefs[1];
-  var myopicAction = actions[1];
-  
-  var myopicAct = myopicAgent.act;
-  var myopicUpdateBelief = myopicAgent.updateBelief;
+// Show performance is similar for Optimal and Myopic
+var runAgents5 = function(){
+  var out = runAgents(5);
+  return [out[0].value, out[1].value];
+};
 
-  var optimalObservation = observe(optimalState);
-  var myopicObservation = observe(myopicState);
-  
-  var delay = 0;
-  var newMyopicBelief = myopicUpdateBelief(myopicPriorBelief, myopicObservation,
-					                       myopicAction, delay);
-  var newOptimalBelief = optimalUpdateBelief(optimalPriorBelief,
-					                         optimalObservation, optimalAction);
+var repeat10 = repeat(10, runAgents5);
+var optimalScore = map(first, repeat10);
+var myopicScore = map(second, repeat10);
 
-  var newMyopicActionERP = myopicAct(newMyopicBelief, delay);
-  var newOptimalActionERP = optimalAct(newOptimalBelief);
+map( function(name){
+  var score = name=='Optimal' ? optimalScore : myopicScore;
+  console.log( name + ' Agent mean score for each of 10 episodes of Bandits: \n' + 
+               JSON.stringify(score) + '\n Overall Mean: ' + listMean(score) );
+}, ['Optimal', 'Myopic'] );
 
-  var newMyopicAction = sample(newMyopicActionERP);
-  // if ERPs over actions are almost the same, have the agents pick the same
-  // action
-  var newOptimalAction = nearlyEqualActionERPs(newMyopicActionERP,
-					       newOptimalActionERP)
+
+
+// Show scaling in number of trials is better for Myopic
+
+var totalTimeValues = range(9).slice(2);
+var allTimes = map( runAgents, totalTimeValues )
+var optimalTimes = map( function(time){
+  return (1/1000)*time[0].runtimeInMilliseconds;
+}, allTimes );
+var myopicTimes = map( function(time){
+  return (1/1000)*time[1].runtimeInMilliseconds;
+}, allTimes );
+
+console.log('\n Optimal Agent runtime in sec:  ' + totalTimeValues + '\n' + optimalTimes);
+//viz.line(totalTimeValues, optimalTimes);
+
+console.log('Myopic Agent runtime in sec:  ' + totalTimeValues + '\n' + myopicTimes);
+//viz.line(totalTimeValues, myopicTimes);
+
+ash();
+
+
+
+
+// more rigorous test that optimal and myopic agent are equivalent for 2-arm
+
+var testEquivalence = function(){
+
+  var worldObserve = world.observe;
+  var observe = getFullObserve(worldObserve);
+  var transition = world.transition;
+
+
+  var nearlyEqualActionERPs = function(erp1, erp2) {
+    var nearlyEqual = function(float1, float2) {
+      return Math.abs(float1 - float2) < 0.05;
+    };
+    return nearlyEqual(erp1.score([], 0), erp2.score([], 0))
+      && nearlyEqual(erp1.score([], 1), erp2.score([], 1));
+  };
+
+  // it's important that we simulate the two agents such that they get the same
+  // prizes when pulling the same arms, so that we can check if their
+  // actions are the same. We could not ensure this by simply simulating one agent
+  // and then the other.
+  var sampleTwoSequences = function(states, priorBeliefs, actions) {
+    ///fold:
+    var optimalState = states[0];
+    var optimalPriorBelief = priorBeliefs[0];
+    var optimalAction = actions[0];
+
+    var optimalAct = optimalAgent.act;
+    var optimalUpdateBelief = optimalAgent.updateBelief;
+    
+    var myopicState = states[1];
+    var myopicPriorBelief = priorBeliefs[1];
+    var myopicAction = actions[1];
+    
+    var myopicAct = myopicAgent.act;
+    var myopicUpdateBelief = myopicAgent.updateBelief;
+
+    var optimalObservation = observe(optimalState);
+    var myopicObservation = observe(myopicState);
+    
+    var delay = 0;
+    var newMyopicBelief = myopicUpdateBelief(myopicPriorBelief, myopicObservation,
+					     myopicAction, delay);
+    var newOptimalBelief = optimalUpdateBelief(optimalPriorBelief,
+					       optimalObservation, optimalAction);
+
+    var newMyopicActionERP = myopicAct(newMyopicBelief, delay);
+    var newOptimalActionERP = optimalAct(newOptimalBelief);
+
+    var newMyopicAction = sample(newMyopicActionERP);
+    // if ERPs over actions are almost the same, have the agents pick the same
+    // action
+    var newOptimalAction = nearlyEqualActionERPs(newMyopicActionERP,
+					         newOptimalActionERP)
 	? newMyopicAction : sample(newOptimalActionERP);
 
-  var optimalLocAction = [optimalState.manifestState.loc, newOptimalAction];
-  var myopicLocAction = [myopicState.manifestState.loc, newMyopicAction];
+    var optimalLocAction = [optimalState.manifestState.loc, newOptimalAction];
+    var myopicLocAction = [myopicState.manifestState.loc, newMyopicAction];
 
-  var output = [optimalLocAction, myopicLocAction];
+    var output = [optimalLocAction, myopicLocAction];
 
-  if (optimalState.manifestState.terminateAfterAction) {
-    return output;
-  } else {
-    var nextPriorBeliefs = [newOptimalBelief, newMyopicBelief];
-    var nextActions = [newOptimalAction, newMyopicAction];
-    if (_.isEqual(optimalState, myopicState) && _.isEqual(newOptimalAction,
-							  newMyopicAction)) {
-      // if actions are the same, transition to the same state
-      var nextState = transition(optimalState, newOptimalAction);
-      var nextStates = [nextState, nextState];
-      var recurse = sampleTwoSequences(nextStates, nextPriorBeliefs,
-			                	       nextActions);
-      return [optimalLocAction.concat(recurse[0]),
-	          myopicLocAction.concat(recurse[1])];
+    if (optimalState.manifestState.terminateAfterAction) {
+      return output;
     } else {
-      var nextOptimalState = transition(optimalState, newOptimalAction);
-      var nextMyopicState = transition(myopicState, newMyopicAction);
-      var nextStates = [nextOptimalState, nextMyopicState];
-      var recurse = sampleTwoSequences(nextStates, nextPriorBeliefs,
-			                	       nextActions);
-      return [optimalLocAction.concat(recurse[0]),
-	          myopicLocAction.concat(recurse[1])];
+      var nextPriorBeliefs = [newOptimalBelief, newMyopicBelief];
+      var nextActions = [newOptimalAction, newMyopicAction];
+      if (_.isEqual(optimalState, myopicState) && _.isEqual(newOptimalAction,
+							    newMyopicAction)) {
+        // if actions are the same, transition to the same state
+        var nextState = transition(optimalState, newOptimalAction);
+        var nextStates = [nextState, nextState];
+        var recurse = sampleTwoSequences(nextStates, nextPriorBeliefs,
+			                 nextActions);
+        return [optimalLocAction.concat(recurse[0]),
+	        myopicLocAction.concat(recurse[1])];
+      } else {
+        var nextOptimalState = transition(optimalState, newOptimalAction);
+        var nextMyopicState = transition(myopicState, newMyopicAction);
+        var nextStates = [nextOptimalState, nextMyopicState];
+        var recurse = sampleTwoSequences(nextStates, nextPriorBeliefs,
+			                 nextActions);
+        return [optimalLocAction.concat(recurse[0]),
+	        myopicLocAction.concat(recurse[1])];
+      }
     }
-  }
-///	
+    ///	
+  };
+
+  var startAction = 'noAction';
+
+  var trajectories = sampleTwoSequences([startState, startState], [prior, prior],
+                                        [startAction, startAction]);
+  var length = trajectories[0].length;
+
+
+  console.log('Trajectory of optimal agent: ' + trajectories[0].slice(1, length - 1));
+  console.log('Trajectory of myopic agent: ' + trajectories[1].slice(1, length - 1));
 };
 
-var startAction = 'noAction';
 
-var trajectories = sampleTwoSequences([startState, startState], [prior, prior],
-                                      [startAction, startAction]);
-var length = trajectories[0].length;
-
-
-console.log('Trajectory of optimal agent: ' + trajectories[0].slice(1, length - 1));
-console.log('Trajectory of myopic agent: ' + trajectories[1].slice(1, length - 1));
+null;
