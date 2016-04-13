@@ -337,7 +337,7 @@ var restaurantPathToName = function(path){
 };
 
 
-var makeRestaurantUtilityMDP = function (world, utilityTable) { 
+var makeRestaurantUtilityFunction = function (world, utilityTable) { 
   return function(state, action) {
     var getFeature = world.feature;
     var feature = getFeature(state);
