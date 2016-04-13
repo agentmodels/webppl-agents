@@ -10,6 +10,7 @@ function createCanvas(element, options) {
   return canvas;
 }
 
+
 function convertDraw(world, additional) {
   var additional = additional || {}; 
 
@@ -40,6 +41,7 @@ function convertDraw(world, additional) {
   var additionalLabels = additional.labels || [];
   var labels = additionalLabels.concat(featureLabels);
 
+  
   var trajectory = _.map(additional.trajectory, function(state) { 
     return [state.loc, ''];
   });

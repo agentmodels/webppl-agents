@@ -41,3 +41,17 @@ var makeBanditGridworldUtility = function(feature, timeCost) {
     }
   };
 };
+
+var makeRestaurantSearchPOMDP = function(){
+  var gridworld = makeRestaurantSearchMDP({noReverse: true});
+  var world = makeBanditGridworld(gridworld);
+  var startState = restaurantSearchStartState;
+
+  var feature = world.feature;
+  var makeUtility = function(timeCost){
+    return makeBanditGridworldUtility(feature, timeCost);
+  };
+                                       
+  return {world:world, startState:startState, makeUtility: makeUtility};
+};
+
