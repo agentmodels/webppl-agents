@@ -52,6 +52,6 @@ var makeRestaurantSearchPOMDP = function(){
     return makeBanditGridworldUtility(feature, timeCost);
   };
                                        
-  return {world:world, startState:startState, makeUtility: makeUtility};
+  return {mdp:gridworld, world:world, startState:startState, makeUtility: makeUtility};
 };
 
