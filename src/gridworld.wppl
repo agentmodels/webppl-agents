@@ -376,4 +376,4 @@ var restaurantSearchStartState =
       {manifestState: {loc: [1, 2],
 		       timeLeft: 17,
 		       terminateAfterAction: false},
-       latentState: {A: 3, B: 2, C: 3, D: 5, E: 0}};
+       latentState: {A: 3, B: 3, C: 4, D: 5, E: 0}};
