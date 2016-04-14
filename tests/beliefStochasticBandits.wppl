@@ -11,24 +11,14 @@ var test1 = function() {
   var startState = {manifestState: {loc: 'start',
 				    timeLeft: 3,
 				    terminateAfterAction: false},
-		    latentState: {0: deltaERP('a'),
-				  1: deltaERP('b')}};
+		    latentState: {0: deltaERP(0),
+				  1: deltaERP(1)}};
 
   // agent parameters
 
   var prior = deltaERP(startState);
 
-  var prizeToUtility = {a: 0, b: 1};
-  var utility = function(state,action){
-    var loc = state.manifestState.loc;
-    if (loc=='start'){
-      return 0;
-    } else {
-      return prizeToUtility[loc];
-    }
-  };
-
-  var agentParams = {utility: utility,
+  var agentParams = {utility: stochasticBanditUtility,
 		     alpha: 100,
 		     priorBelief: prior};
 
@@ -55,96 +45,94 @@ var test2 = function() {
 
   var world = makeStochasticBanditWorld(2);
 
-  var uncertainArmERP = Enumerate(function() {
-    return uniformDraw(['b', 'c']);
+  var uncertainArmRiskERP = Enumerate(function() {
+    return uniformDraw([0, 10]);
   });
 
-  var startStateShort = {manifestState: {loc: 'start',
-					 timeLeft: 3,
-					 terminateAfterAction: false},
-			 latentState: {0: deltaERP('a'),
-				       1: uncertainArmERP}};
+  var uncertainArmSafeERP = Enumerate(function() {
+    return uniformDraw([0, 1.2]);
+  });
 
+  var startStateShortRisk = {manifestState: {loc: 'start',
+					     timeLeft: 3,
+					     terminateAfterAction: false},
+			     latentState: {0: deltaERP(1),
+					   1: uncertainArmRiskERP}};
+
+  var startStateShortSafe = {manifestState: {loc: 'start',
+					     timeLeft: 3,
+					     terminateAfterAction: false},
+			     latentState: {0: deltaERP(1),
+					   1: uncertainArmSafeERP}};
   
-  var startStateLong = {manifestState: {loc: 'start',
-					timeLeft: 20,
-					terminateAfterAction: false},
-			latentState: {0: deltaERP('a'),
-				      1: uncertainArmERP}};
+  var startStateLongRisk = {manifestState: {loc: 'start',
+					    timeLeft: 20,
+					    terminateAfterAction: false},
+			    latentState: {0: deltaERP(1),
+					  1: uncertainArmRiskERP}};
+
+  var startStateLongSafe = {manifestState: {loc: 'start',
+					    timeLeft: 20,
+					    terminateAfterAction: false},
+			    latentState: {0: deltaERP(1),
+					  1: uncertainArmSafeERP}};
 
   // agent parameters
 
-  var priorShort = deltaERP(startStateShort);
+  var priorShortRisk = deltaERP(startStateShortRisk);
 
-  var priorLong = deltaERP(startStateLong);
+  var priorShortSafe = deltaERP(startStateShortSafe);
+  
+  var priorLongRisk = deltaERP(startStateLongRisk);
 
-  var prizeToUtilityRisk = {a: 1, b: 0, c: 10};
-  var utilityRisk = function(state,action){
-    var loc = state.manifestState.loc;
-    if (loc=='start'){
-      return 0;
-    } else {
-      return prizeToUtilityRisk[loc];
-    }
-  };
-
-  var prizeToUtilitySafe = {a: 1, b: 0, c: 1.2};
-  var utilitySafe = function(state,action){
-    var loc = state.manifestState.loc;
-    if (loc=='start'){
-      return 0;
-    } else {
-      return prizeToUtilitySafe[loc];
-    }
-  };
-
+  var priorLongSafe = deltaERP(startStateLongSafe);
 
   // simulating agents
-  var riskyShortAgentParams = {utility: utilityRisk,
+  var riskyShortAgentParams = {utility: stochasticBanditUtility,
 			       alpha: 100,
-			       priorBelief: priorShort,
+			       priorBelief: priorShortRisk,
 			       fastUpdateBelief: false};
 
   var riskyShortAgent = makeBeliefAgent(riskyShortAgentParams, world);
-  var riskyShortTrajectory = simulateBeliefAgent(startStateShort, world,
+  var riskyShortTrajectory = simulateBeliefAgent(startStateShortRisk, world,
 						 riskyShortAgent, 'actions');
 
   assert.ok(_.isEqual(riskyShortTrajectory[0], 1),
 	    'agent not risky enough with short lifespan');
 
-  var riskyLongAgentParams = {utility: utilityRisk,
+  var riskyLongAgentParams = {utility: stochasticBanditUtility,
   			      alpha: 100,
-  			      priorBelief: priorLong,
+  			      priorBelief: priorLongRisk,
 			      fastUpdateBelief: false};
 
   var riskyLongAgent = makeBeliefAgent(riskyLongAgentParams, world);
-  var riskyLongTrajectory = simulateBeliefAgent(startStateLong, world,
+  var riskyLongTrajectory = simulateBeliefAgent(startStateLongRisk, world,
   						 riskyLongAgent, 'actions');
 
   assert.ok(_.isEqual(riskyLongTrajectory[0], 1),
   	    'agent not risky enough with long lifespan');
 
 
-  var safeShortAgentParams = {utility: utilitySafe,
+  var safeShortAgentParams = {utility: stochasticBanditUtility,
   			      alpha: 100,
-  			      priorBelief: priorShort,
+  			      priorBelief: priorShortSafe,
 			      fastUpdateBelief: false};
 
   var safeShortAgent = makeBeliefAgent(safeShortAgentParams, world);
-  var safeShortTrajectory = simulateBeliefAgent(startStateShort, world,
+  var safeShortTrajectory = simulateBeliefAgent(startStateShortSafe, world,
   						safeShortAgent, 'actions');
 
   assert.ok(_.isEqual(safeShortTrajectory[0], 0),
   	    'agent not safe enough with short lifespan');
 
 
-  var safeLongAgentParams = {utility: utilitySafe,
+  var safeLongAgentParams = {utility: stochasticBanditUtility,
   			     alpha: 100,
-  			     priorBelief: priorLong,
+  			     priorBelief: priorLongSafe,
 			     fastUpdateBelief: false};
 
   var safeLongAgent = makeBeliefAgent(safeLongAgentParams, world);
-  var safeLongTrajectory = simulateBeliefAgent(startStateLong, world,
+  var safeLongTrajectory = simulateBeliefAgent(startStateLongSafe, world,
   						safeLongAgent, 'actions');
 
   assert.ok(_.isEqual(safeLongTrajectory[0], 0),
@@ -167,11 +155,11 @@ var test3 = function(){
   
   var world = makeStochasticBanditWorld(2);
 
-  var luckyLatent = {0: deltaERP('a'),
-		     1: categoricalERP([0.2, 0.8], ['b', 'c'])};
+  var luckyLatent = {0: deltaERP(1),
+		     1: categoricalERP([0.2, 0.8], [0, 1.5])};
 
-  var unluckyLatent = {0: deltaERP('a'),
-		       1: categoricalERP([0.8, 0.2], ['b', 'c'])};
+  var unluckyLatent = {0: deltaERP(1),
+		       1: categoricalERP([0.8, 0.2], [0, 1.5])};
   
   var startStateShort = {manifestState: {loc: 'start',
 					 timeLeft: 2,
@@ -201,19 +189,9 @@ var test3 = function(){
   var longPrior = getPriorBeliefGridworld(startStateLongLucky.manifestState,
 					  agentLatentPrior);
 
-  var prizeToUtility = {a: 1, b: 0, c: 1.5};
-  var utility = function(state,action){
-    var loc = state.manifestState.loc;
-    if (loc=='start'){
-      return 0;
-    } else {
-      return prizeToUtility[loc];
-    }
-  };
-
   // simulating agent in short environment
   
-  var agentParamsShort = {utility: utility,
+  var agentParamsShort = {utility: stochasticBanditUtility,
 			  alpha: 100,
 			  priorBelief: shortPrior,
 			  fastUpdateBelief: false};
@@ -227,7 +205,7 @@ var test3 = function(){
 
   // simulating agent in long environments
 
-  var agentParamsLong = {utility: utility,
+  var agentParamsLong = {utility: stochasticBanditUtility,
 			 alpha: 100,
 			 priorBelief: longPrior,
 			 fastUpdateBelief: false};
@@ -239,14 +217,14 @@ var test3 = function(){
 
   assert.ok(trajectoryLongLucky[0][1] === 1, 'agent doesnt explore enough');
 
-  if (trajectoryLongLucky[1][0] === 'c') {
+  if (trajectoryLongLucky[1][0] === 1.5) {
     assert.ok(trajectoryLongLucky[1][1] === 1, 'agent should follow up luck');
   }
 
   var trajectoryLongUnlucky = simulateBeliefAgent(startStateLongUnlucky, world,
 						  agentLong, 'stateAction');
   
-  if (trajectoryLongUnlucky[1][0] === 'b') {
+  if (trajectoryLongUnlucky[1][0] === 0) {
     assert.ok(trajectoryLongUnlucky[1][1] === 0,
 	      'agent should learn from bad luck');
   }

@@ -1,14 +1,14 @@
-// Stochastic Bandits in the style of IRL bandits
+// Stochastic Bandits in the style of Deterministic bandits
 
 
 // Multi-arm stochastic bandit POMDP.
-// Each arm has one or two prizes it could dispense, each with some probability.
+// Each arm has one or two rewards it could dispense, each with some probability.
 // The latent state stores each arm's ERP over prizes.
 
-// the manifest state location contains the prize gained after the
+// the manifest state location contains the reward gained after the
 // previous arm pull
 
-// the agent will observe its prize when it sees the manifest state, so there is
+// the agent will observe its reward when it sees the manifest state, so there is
 // no need for any observation of the latent state.
 var makeStochasticBanditWorld = function(numArms) {
   var actions = _.range(numArms);
@@ -23,12 +23,12 @@ var makeStochasticBanditWorld = function(numArms) {
   var manifestStateToActions = function (manifestState) {return actions;};
 
   var transition = function(state, action){
-    // figure out what the prize is
-    var prize = sample(state.latentState[action]);
+    // figure out what the reward is
+    var reward = sample(state.latentState[action]);
 
-    // make the new location the prize, advance the time
-    var manifestStateWithPrize = update(state.manifestState, {loc: prize});
-    var newManifestState = advanceTime(manifestStateWithPrize);
+    // make the new location the reward, advance the time
+    var manifestStateWithReward = update(state.manifestState, {loc: reward});
+    var newManifestState = advanceTime(manifestStateWithReward);
     
     return buildState( newManifestState, state.latentState);
   };
@@ -57,11 +57,7 @@ var buildStochasticBanditStartState = function(timeLeft, latent) {
 	  latentState: latent};
 };
 
-// take a table of the form {start: 0, chocolate: 10, wine: -20} and return a
-// utility function
-var makeStochasticBanditUtility = function(table) {
-  return function(state, action) {
-    var prize = state.manifestState.loc;
-    return table[prize];
-  };
+var stochasticBanditUtility = function(state, action) {
+  var reward = state.manifestState.loc;
+  return reward === 'start' ? 0 : reward;
 };
