@@ -6,7 +6,7 @@ var test1 = function() {
   // utility prize.
   
   // params for world
-  var world = makeStochasticBanditWorld(2);
+  var world = makeBanditWorld(2);
 
   var startState = {manifestState: {loc: 'start',
 				    timeLeft: 3,
@@ -18,7 +18,7 @@ var test1 = function() {
 
   var prior = deltaERP(startState);
 
-  var agentParams = {utility: stochasticBanditUtility,
+  var agentParams = {utility: banditUtility,
 		     alpha: 100,
 		     priorBelief: prior};
 
@@ -43,7 +43,7 @@ var test2 = function() {
   // the agent should choose the highest utility arm, whether it be the sure
   // or the unsure arm.
 
-  var world = makeStochasticBanditWorld(2);
+  var world = makeBanditWorld(2);
 
   var uncertainArmRiskERP = Enumerate(function() {
     return uniformDraw([0, 10]);
@@ -88,7 +88,7 @@ var test2 = function() {
   var priorLongSafe = deltaERP(startStateLongSafe);
 
   // simulating agents
-  var riskyShortAgentParams = {utility: stochasticBanditUtility,
+  var riskyShortAgentParams = {utility: banditUtility,
 			       alpha: 100,
 			       priorBelief: priorShortRisk,
 			       fastUpdateBelief: false};
@@ -100,7 +100,7 @@ var test2 = function() {
   assert.ok(_.isEqual(riskyShortTrajectory[0], 1),
 	    'agent not risky enough with short lifespan');
 
-  var riskyLongAgentParams = {utility: stochasticBanditUtility,
+  var riskyLongAgentParams = {utility: banditUtility,
   			      alpha: 100,
   			      priorBelief: priorLongRisk,
 			      fastUpdateBelief: false};
@@ -113,7 +113,7 @@ var test2 = function() {
   	    'agent not risky enough with long lifespan');
 
 
-  var safeShortAgentParams = {utility: stochasticBanditUtility,
+  var safeShortAgentParams = {utility: banditUtility,
   			      alpha: 100,
   			      priorBelief: priorShortSafe,
 			      fastUpdateBelief: false};
@@ -126,7 +126,7 @@ var test2 = function() {
   	    'agent not safe enough with short lifespan');
 
 
-  var safeLongAgentParams = {utility: stochasticBanditUtility,
+  var safeLongAgentParams = {utility: banditUtility,
   			     alpha: 100,
   			     priorBelief: priorLongSafe,
 			     fastUpdateBelief: false};
@@ -153,7 +153,7 @@ var test3 = function(){
 
   // parameters for world
   
-  var world = makeStochasticBanditWorld(2);
+  var world = makeBanditWorld(2);
 
   var luckyLatent = {0: deltaERP(1),
 		     1: categoricalERP([0.2, 0.8], [0, 1.5])};
@@ -191,7 +191,7 @@ var test3 = function(){
 
   // simulating agent in short environment
   
-  var agentParamsShort = {utility: stochasticBanditUtility,
+  var agentParamsShort = {utility: banditUtility,
 			  alpha: 100,
 			  priorBelief: shortPrior,
 			  fastUpdateBelief: false};
@@ -205,7 +205,7 @@ var test3 = function(){
 
   // simulating agent in long environments
 
-  var agentParamsLong = {utility: stochasticBanditUtility,
+  var agentParamsLong = {utility: banditUtility,
 			 alpha: 100,
 			 priorBelief: longPrior,
 			 fastUpdateBelief: false};

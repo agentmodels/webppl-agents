@@ -1,4 +1,5 @@
 // Stochastic Bandits in the style of Deterministic bandits
+// This will be the default type of bandit.
 
 
 // Multi-arm stochastic bandit POMDP.
@@ -10,7 +11,7 @@
 
 // the agent will observe its reward when it sees the manifest state, so there is
 // no need for any observation of the latent state.
-var makeStochasticBanditWorld = function(numArms) {
+var makeBanditWorld = function(numArms) {
   var actions = _.range(numArms);
   
   var advanceTime = function (manifestState) {
@@ -50,14 +51,14 @@ var makeStochasticBanditWorld = function(numArms) {
 	  observe: observe};
 };
 
-var buildStochasticBanditStartState = function(timeLeft, latent) {
+var buildBanditStartState = function(timeLeft, latent) {
   return {manifestState: {loc: 'start',
 			  timeLeft: timeLeft,
 			  terminateAfterAction: false},
 	  latentState: latent};
 };
 
-var stochasticBanditUtility = function(state, action) {
+var banditUtility = function(state, action) {
   var reward = state.manifestState.loc;
   return reward === 'start' ? 0 : reward;
 };
