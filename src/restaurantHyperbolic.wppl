@@ -2,12 +2,12 @@ var getRestaurantHyperbolicInfer = function(){
 
   var getObservations = function(world, start, pathName){
     
-    var temptationUtility = makeRestaurantUtilityMDP(world, {
+    var temptationUtility = makeRestaurantUtilityFunction(world, {
       'Donut N' : [10, -10],
       'Donut S' : [10, -10],
       'Veg'   : [-10, 20], // [-10,25] makes soph work on where reverse allowed
       'Noodle': [-5, -5],
-      'timeCost': -.01,
+      'timeCost': -.01
     });
     
     var discount = pathName=='vegDirect' ? 0 : 1;
@@ -40,7 +40,7 @@ var getRestaurantHyperbolicInfer = function(){
   // Could split up like this
   // var hyperbolicFactor = function(agentParams, world, observedStateAction){
   //   var agent = makeHyperbolicDiscounter(
-  //       { utility   : makeRestaurantUtilityMDP(world, utilityTable),
+  //       { utility   : makeRestaurantUtilityFunction(world, utilityTable),
   //         alpha     : alpha, 
   //         discount  : discounting.discount, 
   //         sophisticatedOrNaive : discounting.sophisticatedOrNaive
@@ -65,7 +65,7 @@ var getRestaurantHyperbolicInfer = function(){
       var alpha = priorAlpha();
       
       var agent = makeHyperbolicDiscounter(
-        { utility   : makeRestaurantUtilityMDP(world, utilityTable),
+        { utility   : makeRestaurantUtilityFunction(world, utilityTable),
           alpha     : alpha, 
           discount  : discounting.discount, 
           sophisticatedOrNaive : discounting.sophisticatedOrNaive
@@ -82,7 +82,7 @@ var getRestaurantHyperbolicInfer = function(){
       var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
       var donutNGreaterDonutS = sum(utilityTable['Donut S']) < sum(utilityTable['Donut N']);
 
-      var dis = function(d){return 1/(1+discounting.discount*d);}
+      var dis = function(d){return 1/(1+discounting.discount*d);};
       var disUDonut = function(d){
         return dis(d)*utilityTable['Donut N'][0] + dis(d+1)*utilityTable['Donut N'][1];
       };

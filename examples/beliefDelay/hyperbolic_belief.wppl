@@ -8,7 +8,7 @@ var utilityToPOMDP = function(utility) {
 
 var utilityTableToFunction = function(utilityTable,world){
   assert.ok(isPOMDPWorld(world), 'utilityTableToFunction');
-  return utilityToPOMDP(makeRestaurantUtilityMDP(world,utilityTable));
+  return utilityToPOMDP(makeRestaurantUtilityFunction(world,utilityTable));
 };
 
 
@@ -51,7 +51,7 @@ var temptationUtility = {
   'Donut S' : [10, -10],
   'Veg'   : [-10, 20],
   'Noodle': [-5, -5],
-  'timeCost': -.01,
+  'timeCost': -.01
 };
 
 
