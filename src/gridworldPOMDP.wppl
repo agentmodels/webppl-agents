@@ -143,8 +143,10 @@ var allOpenRestaurantChoiceStart = {
 };
 
 
-var tableToUtilityFunction = function(table, feature) {  
+var tableToUtilityFunction = function(table, world) {
+  assert.ok(isPOMDPWorld(world), 'second arg of tableToUtilityFunction should be world, not feature');
   return function(state, action) {
+    var feature = world.feature;
     var stateFeatureName = feature(state.manifestState).name;
     if (stateFeatureName) {
       return table[stateFeatureName];
@@ -159,7 +161,6 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
                                    trajectoryOrOffPolicy, numRejectionSamples){
   var worldObserve = world.observe;
   var observe = getFullObserve(worldObserve);
-  var feature = world.feature;
   
   var makeAgent = agentTypeAndFunctions.makeAgent;
   var simulate = agentTypeAndFunctions.simulate;
@@ -196,7 +197,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
 
     var utilityTable = isJointPrior ? utilityAndPrior.utilityTable
 	  : sample(priorUtilityTable);
-    var utility = tableToUtilityFunction(utilityTable, feature);
+    var utility = tableToUtilityFunction(utilityTable, world);
 
     var  priorBelief = isJointPrior ? utilityAndPrior.priorBelief
 	  : sample(priorAgentPrior);
