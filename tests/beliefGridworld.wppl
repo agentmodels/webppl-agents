@@ -28,7 +28,6 @@ var test1 = function() {
 
   // WORLD PARAMS
   var world = getBigDonutWorld();
-  var feature = world.feature;
   var perceivedTotalTime = 10;
   var startingLocation = [2,1];
 
@@ -74,7 +73,7 @@ var test1 = function() {
 
   var trueAgentParams = update(baseParamsNoDiscount, 
                                {priorBelief: truePriorBelief,
-				utility: tableToUtilityFunction(donutUtilityTable, feature)});
+				utility: tableToUtilityFunction(donutUtilityTable, world)});
 
 
 
@@ -147,7 +146,6 @@ var test2 = function() {
 
   // WORLD PARAMS
   var world = getBigDonutWorld();
-  var feature = world.feature;
   var perceivedTotalTime = 10;
 
   // possible latent states
@@ -202,7 +200,7 @@ var test2 = function() {
   var trueAgentParams1 = update(baseParamsNoDiscount, 
 				{priorBelief: truePriorBelief1,
 				 utility: tableToUtilityFunction(noodleUtilityTable,
-								 feature)});
+								 world)});
   // PRIOR FOR INFERENCE PARAMS
 
   var beliefOrBeliefDelay = 'belief';
@@ -315,7 +313,7 @@ var test2 = function() {
   var trueAgentParams2 = update(baseParamsNoDiscount, 
 				{priorBelief: truePriorBelief2,
 				 utility: tableToUtilityFunction(noodleUtilityTable,
-								 feature)});
+								 world)});
 
 
   var erps2 = map( function(trajectoryOrOffPolicy){
@@ -373,7 +371,6 @@ var test3 = function() {
 
   // WORLD PARAMS
   var world = getBigDonutWorld();
-  var feature = world.feature;
 
   // possible latent states
   var noodleClosedLatent = {'Donut N': true,
@@ -421,7 +418,7 @@ var test3 = function() {
   var trueAgentParams = update(baseParamsNoDiscount, 
 			       {priorBelief: truePriorBelief,
 				utility: tableToUtilityFunction(noodleUtilityTable,
-								feature)});
+								world)});
   // PRIOR FOR INFERENCE PARAMS
 
   var beliefOrBeliefDelay = 'belief';
@@ -504,7 +501,6 @@ var test4 = function() {
   // noReverse is an optimisation for gridworldMDP that makes inference run faster
   var gridworldMDP = makeDonutWorld2({big: true, noReverse: false});
   var world = makeGridworldPOMDP(gridworldMDP);
-  var feature = gridworldMDP.feature;
 
   // possible latent states
   var dsClosedLatent = {'Donut N': true,
@@ -552,7 +548,7 @@ var test4 = function() {
   var trueAgentParams = update(baseParamsNoDiscount, 
                                {priorBelief: truePriorBelief,
 				utility: tableToUtilityFunction(donutUtilityTable,
-								feature)});
+								world)});
 
 
 
