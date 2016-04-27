@@ -14,8 +14,9 @@ Finally, there is an optinal boolean argument for whether rewards are numerical 
 
 The current Bandit constructors (`stochasticBandits` and `irlBandits`) assume stochastic or deterministic mappings from arms to rewards respectively. But ideally the `armToRewards` arguments is always a mapping from arms to ERPs. In the deterministic case they are deltaERPs. (We could have another optional argument to check that all ERPs are deltas). This means we can have ERPs over prizes as well as numerical rewards.
 
-One question is how to implement the transition function. Ideally, we would have a transition function that allowed us to do the 'fastUpdate'. Currently, stochastic bandits doesn't make this possible.  stochastic bandits is that given a state-action pair, you sample a reward and then transition to a state with the reward as the location. The `observe` function does not actually play any role.
+One question is how to implement the transition function. Ideally, we would have a transition function that allowed us to do the 'fastUpdate'. We also need to be able to compute the actual utility of a particular run of Bandits by taking sum(map(utility,trajectory)), where *trajectory* could contain just the states or states-actions-observations and so on.  
 
+Currently, stochastic bandits doesn't work with fastUpdate. To transition, you take a state-action pair, sample a reward and then transition to a state with the reward as the location. The `observe` function does not actually play any role.
 
 
 ```javascript
@@ -29,13 +30,13 @@ var makeBanditWorld = function( numberArms, armToRewards, numberTrials, numerica
 var world = _makeBanditWorld(numberArms);
           // = {transition: ..., observe:, manifestStateToActions: }
 
-var start = buildState({loc:'start', timeLeft:numberTrials,terminateAfterAction:false}, armToReards)
+var start = buildState({loc:'start', timeLeft:numberTrials,terminateAfterAction:false}, armToRewards)
 
 var utility = numericalRewards ?
-function(state,action){
-  var reward = state.manifestState.loc;
-  return reward === 'start' ? 0 : reward;
-} : undefined;
+  function(state,action){
+    var reward = state.manifestState.loc;
+    return reward === 'start' ? 0 : reward;
+   } : undefined;
   
 return {world: world, start: start, utility: utility}
 ```
