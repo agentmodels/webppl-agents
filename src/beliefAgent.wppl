@@ -80,27 +80,18 @@ var getUpdateBeliefSimple = function(transition, observe){
 
 var getUpdateBeliefLatent = function(transition, observe){
   return dp.cache(
-    function(belief, observation, action){
+    function(belief_, observation, action){
 
       // If belief has form of "ERP over {manifest:, latent:}" then we convert
       // to form of "{manifest:, ERP over latent}". 
-      var belief = ERPOverLatent(belief) ? belief : toERPOverLatent(belief);
+      var belief = ERPOverLatent(belief_) ? belief_ : toERPOverLatent(belief_);
 
-      // To get the manifestState transition, we need a latent state and would
-      // like to choose the latent state in a determinstic way
-      
-      // NB: Assumes that if the transition of manifestStates depends on
-      // the latentState, then we always know the relevant equivalence class of
-      // latent states. 
-      var firstLatentState = belief.latentStateERP.support()[0];
-      var state = buildState(belief.manifestState, firstLatentState);
-
-      // For the initial 'noAction' action, don't update manifest, otherwise update it. 
-      var newManifestState = isNullAction(action) ? belief.manifestState :
-          transition(state,action).manifestState;
+      // we set the manifest state to the observed manifest state
+      var newManifestState = observation.manifestState;
       
       // Don't update latent when you don't need to
-      if (observation=='noObservation' || isDeltaERP(belief.latentStateERP) ){
+      if (observation.observation === 'noObservation'
+	  || isDeltaERP(belief.latentStateERP) ) {
         return update(belief, {manifestState: newManifestState});
       } else {
 

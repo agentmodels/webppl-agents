@@ -90,8 +90,7 @@ var test2 = function() {
   // simulating agents
   var riskyShortAgentParams = {utility: banditUtility,
 			       alpha: 100,
-			       priorBelief: priorShortRisk,
-			       fastUpdateBelief: false};
+			       priorBelief: priorShortRisk};
 
   var riskyShortAgent = makeBeliefAgent(riskyShortAgentParams, world);
   var riskyShortTrajectory = simulateBeliefAgent(startStateShortRisk, world,
@@ -102,8 +101,7 @@ var test2 = function() {
 
   var riskyLongAgentParams = {utility: banditUtility,
   			      alpha: 100,
-  			      priorBelief: priorLongRisk,
-			      fastUpdateBelief: false};
+  			      priorBelief: priorLongRisk};
 
   var riskyLongAgent = makeBeliefAgent(riskyLongAgentParams, world);
   var riskyLongTrajectory = simulateBeliefAgent(startStateLongRisk, world,
@@ -115,8 +113,7 @@ var test2 = function() {
 
   var safeShortAgentParams = {utility: banditUtility,
   			      alpha: 100,
-  			      priorBelief: priorShortSafe,
-			      fastUpdateBelief: false};
+  			      priorBelief: priorShortSafe};
 
   var safeShortAgent = makeBeliefAgent(safeShortAgentParams, world);
   var safeShortTrajectory = simulateBeliefAgent(startStateShortSafe, world,
@@ -128,8 +125,7 @@ var test2 = function() {
 
   var safeLongAgentParams = {utility: banditUtility,
   			     alpha: 100,
-  			     priorBelief: priorLongSafe,
-			     fastUpdateBelief: false};
+  			     priorBelief: priorLongSafe};
 
   var safeLongAgent = makeBeliefAgent(safeLongAgentParams, world);
   var safeLongTrajectory = simulateBeliefAgent(startStateLongSafe, world,
@@ -193,8 +189,7 @@ var test3 = function(){
   
   var agentParamsShort = {utility: banditUtility,
 			  alpha: 100,
-			  priorBelief: shortPrior,
-			  fastUpdateBelief: false};
+			  priorBelief: shortPrior};
 
   var agentShort = makeBeliefAgent(agentParamsShort, world);
 
@@ -207,8 +202,7 @@ var test3 = function(){
 
   var agentParamsLong = {utility: banditUtility,
 			 alpha: 100,
-			 priorBelief: longPrior,
-			 fastUpdateBelief: false};
+			 priorBelief: longPrior};
 
   var agentLong = makeBeliefAgent(agentParamsLong, world);
 
