@@ -2,7 +2,7 @@
   "name": "webppl-gridworld",
   "version": "1.0.0",
   "description": "Webppl library for MDP and POMDP agent models and for generating Gridworld and Bandit problems. JS library for displaying Gridworld.",
-  "main": "src/gridworld-viz.js",
+  "main": "src/environments/gridworld-viz.js",
   "dependencies": {
     "underscore": "^1.8.3",
     "paper": "^0.9.25"
@@ -17,7 +17,7 @@
       "src/mdpAgent.wppl",
       "src/hyperbolic.wppl",
       "src/environments/gridworld.wppl",
-      "src/restaurantHyperbolic.wppl",
+      "src/environments/restaurantHyperbolic.wppl",
       "src/environments/procrastinationMDP.wppl",
       "src/POMDPUtils.wppl",
       "src/environments/gridworldPOMDP.wppl",
