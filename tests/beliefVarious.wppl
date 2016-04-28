@@ -8,7 +8,6 @@ var testAgent = function(){
   
   // bandit setting
 
-
   var priorFromLatentERPBandits = function(latentBelief, perceivedTotalTime) {
     return Enumerate(function(){
       return {manifestState: {loc: 'start',
