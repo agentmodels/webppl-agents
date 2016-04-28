@@ -1,6 +1,6 @@
 /* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
 
-console.log('--- String-related "IRL" bandit tests ---\n');
+console.log('--- Stringy "IRL" bandit tests ---\n');
 
 var getPriorBelief = function(numberOfTrials, armToPrizeERPThunk,
 			      beliefOrBeliefDelay){
@@ -89,19 +89,23 @@ var runSpeedTests = function(){
 };
 
 
-var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
-  console.log('\Run IRL Bandit Generative for agent: ', beliefOrBeliefDelay);
+var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
+  console.log('\Run stringy Bandit Generative for agent: ', beliefOrBeliefDelay);
   var simulate = getSimulateFunction(beliefOrBeliefDelay);
-  
+
   // Prizes are [a,b] and agent prefers c > a > b
-  
+
   // world params
-  var numberOfArms = 2;
-  var armToPrizeERP = {0:'a', 1:'b'};
-  var numberOfTrials = 3;
-  var worldAndStart = makeIRLBanditWorldAndStart(numberOfArms, armToPrizeERP, numberOfTrials);
-  var world = worldAndStart.world;
-  var startState = worldAndStart.startState;
+  var options = {
+    numberOfArms: 2,
+    armToPrizeERP: {0:deltaERP('a'), 1:deltaERP('b')},
+    numberOfTrials: 3
+  };
+  var numberOfTrials = options.numberOfTrials;
+  var armToPrizeERP = options.armToPrizeERP;
+  var bandit = makeBandit(options);
+  var world = bandit.world;
+  var startState = bandit.startState;
 
   // agent params
   var prizeToUtility = {a:10, b:5, c:100};
@@ -117,23 +121,27 @@ var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
 
   var getTrajectory = function(priorBelief){
     var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
-    var agent = makeIRLBanditAgent(prizeToUtility, agentParams, worldAndStart, beliefOrBeliefDelay);
-    return simulate(startState, world, agent, 'states');
+    var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
+				prizeToUtility);
+    return simulate(startState, world, agent, 'actions');
   };
 
   // Agent knows armToPrizeERP, picks arm with best prize
-  var priorBelief = getPriorBelief( numberOfTrials, function(){return armToPrizeERP;}, beliefOrBeliefDelay);
+  var priorBelief = getPriorBelief( numberOfTrials,
+				    function(){return armToPrizeERP;},
+				    beliefOrBeliefDelay);
 //  console.log('prior: ', sample(priorBelief), sample(priorBelief), sample(priorBelief)); ash();
   var trajectory = getTrajectory( priorBelief );
-  assert.ok( trajectory[1].manifestState.loc == 0, 'fail banditexample 1');
+  assert.ok( trajectory[0] === 0, 'fail banditexample 1');
 
   // Agent has .5 chance on arm 1 having best prize c, and so tries 1 before switching to 0. 
   var priorBelief = getPriorBelief( numberOfTrials, function(){
-    return categorical( [.5, .5], [armToPrizeERP, {0:'a', 1:'c'}]);
+    return categorical( [.5, .5], [ armToPrizeERP,
+				   {0:deltaERP('a'), 1:deltaERP('c')}]);
   }, beliefOrBeliefDelay);
   var trajectory = getTrajectory( priorBelief );
   
-  assert.ok( trajectory[1].manifestState.loc == 1 && trajectory[2].manifestState.loc == 0, 'fail banditexample 2');
+  assert.ok( trajectory[0] === 1 && trajectory[1] === 0, 'fail banditexample 2');
 
   
  
@@ -143,12 +151,18 @@ var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
   // to get it.
   
   // world params
-  var numberOfArms = 4;
-  var armToPrizeERP = {0:'a', 1:'a', 2:'a', 3:'a'};
-  var numberOfTrials = 6;
-  var worldAndStart = makeIRLBanditWorldAndStart(numberOfArms, armToPrizeERP, numberOfTrials);
-  var world = worldAndStart.world;
-  var startState = worldAndStart.startState;
+  var options = {numberOfArms: 4,
+		 armToPrizeERP: {
+		   0:deltaERP('a'),
+		   1:deltaERP('a'),
+		   2:deltaERP('a'),
+		   3:deltaERP('a')},
+		 numberOfTrials: 6};
+  var numberOfTrials = options.numberOfTrials;
+  var armToPrizeERP = options.armToPrizeERP;
+  var bandit = makeBandit(options);
+  var world = bandit.world;
+  var startState = bandit.startState;
 
   // agent params
   var prizeToUtility = {a:5, b:10, c:-8};
@@ -162,18 +176,24 @@ var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
     boundVOI: {on:false, bound:0}
   };
   
-  // Agent thinks each arm might offer c, and so tries them all (as c is so good -- and b is not that bad)  
+  // Agent thinks each arm might offer c, and so tries them all (as c is so good -- and b is not that bad)
+  // should the above comment be different?
   var priorBelief = getPriorBelief(numberOfTrials, function(){
-      var dist = function(){return categorical([0.5, 0.5], ['a','b']);};
-      return {0:dist(), 1:dist(), 2:dist(), 3:dist()};
-    }, beliefOrBeliefDelay);
+    var dist = function(){
+      return categorical([0.5, 0.5], [deltaERP('a'), deltaERP('b')]);
+    };
+    
+    return {0:dist(), 1:dist(), 2:dist(), 3:dist()};
+  }, beliefOrBeliefDelay);
   
   var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
-  var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart, beliefOrBeliefDelay);
-  var trajectory = simulate(startState, world, agent, 'states');
+  var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
+			      prizeToUtility);
+  var trajectory = simulate(startState, world, agent, 'actions');
   
-  var locs = trajectoryToLocations(trajectory).slice(1,5);
-  assert.ok( _.difference(_.range(4),locs).length == 0, 'fail bandit example 3');
+  var actions = trajectory.slice(0,4);
+  assert.ok( _.difference(_.range(4),actions).length === 0,
+	     'fail bandit example 3');
 
 
   // // Agent starts in state 0 and so gets an observation immediately. so it wont check 0 again
@@ -184,20 +204,28 @@ var IRLBanditGenerativeNoDelay = function(beliefOrBeliefDelay){
   
   // var locs = trajectoryToLocations(trajectory).slice(1,4);
   // assert.ok( _.difference([1,2,3],locs).length == 0, 'fail bandit example 3.5');
-  console.log('passed IRLBanditGenerativeNoDelay');
+  console.log('passed BanditGenerativeNoDelay');
 };
   
 
-var IRLBanditGenerativeDelay = function(){
+var banditGenerativeDelay = function(){
   var beliefOrBeliefDelay = 'beliefDelay';
 
   // world params
-  var numberOfArms = 4;
-  var armToPrizeERP = {0:'a', 1:'a', 2:'a', 3:'a'};
-  var numberOfTrials = 6;
-  var worldAndStart = makeIRLBanditWorldAndStart(numberOfArms, armToPrizeERP, numberOfTrials);
-  var world = worldAndStart.world;
-  var startState = worldAndStart.startState;
+  var options = {
+    numberOfArms: 4,
+    armToPrizeERP: {
+      0:deltaERP('a'),
+      1:deltaERP('a'),
+      2:deltaERP('a'),
+      3:deltaERP('a')},
+    numberOfTrials: 6
+  };
+  var numberOfTrials = options.numberOfTrials;
+  var armToPrizeERP = options.armToPrizeERP;
+  var bandit = makeBandit(options);
+  var world = bandit.world;
+  var startState = bandit.startState;
   
   // ----------
   // Discounting example: agent thinks arms other than 0 could have b, with u=10, or
@@ -206,8 +234,12 @@ var IRLBanditGenerativeDelay = function(){
 
   var priorBelief = getPriorBelief(numberOfTrials,
     function(){
-      var dist = function(){return categorical([.02, 0.49, 0.49], ['a', 'b','c']);};
-      return {0:'a', 1:dist(), 2:dist(), 3:dist()};
+      var dist = function(){
+	return categorical([.02, 0.49, 0.49],
+			   [deltaERP('a'), deltaERP('b'),deltaERP('c')]);
+      };
+
+      return {0:deltaERP('a'), 1:dist(), 2:dist(), 3:dist()};
     }, beliefOrBeliefDelay);
 
   var baseAgentParams = {
@@ -224,24 +256,31 @@ var IRLBanditGenerativeDelay = function(){
 
   // No discounting
   var agentParams = update(baseAgentParams, {priorBelief:priorBelief});
-  var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart, beliefOrBeliefDelay);
-  var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, 'states');};
+  var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
+			      prizeToUtility);;
+  var thunk = function(){
+    return simulateBeliefDelayAgent(startState, world, agent, 'actions');
+  };
   var out = timeit(thunk);
-  var locs = trajectoryToLocations(out.value).slice(1,4);
-  assert.ok(  _.difference([1,2,3],locs).length == 0, 'fail bandit example 4');
+  var actions = out.value.slice(0,3);
+  assert.ok(  _.difference([1,2,3], actions).length == 0, 'fail bandit example 4');
   
-  console.log('\n No discounting: (locs, timeit) ', trajectoryToLocations(out.value), out.runtimeInMilliseconds);
+  console.log('\n No discounting: (actions, timeit) ', out.value,
+	      out.runtimeInMilliseconds);
 
   // Discounting
   var replaceParams = {discount:4, noDelays:false, priorBelief:priorBelief};
   var agentParams = update(baseAgentParams, replaceParams);
-  var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart, beliefOrBeliefDelay);
-  var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, 'states');};
+  var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
+			      prizeToUtility);;
+  var thunk = function(){
+    return simulateBeliefDelayAgent(startState, world, agent, 'actions');
+  };
   var out = timeit(thunk);
-  var locs = trajectoryToLocations(out.value).slice(1,4);
-  assert.ok(  _.difference([0,0,0],locs).length == 0, 'fail bandit example 5');
+  var actions = out.value.slice(0,3);
+  assert.ok(  _.difference([0,0,0],actions).length == 0, 'fail bandit example 5');
   console.log( '\n Discounting: (locs, timeit) ', 
-               trajectoryToLocations(out.value), out.runtimeInMilliseconds+' ms');
+               out.value, out.runtimeInMilliseconds+' ms');
 
   // Myopia (faster than discounting)
   var testMyopia = function(myopiaBound,exploreOrNot){
@@ -253,16 +292,20 @@ var IRLBanditGenerativeDelay = function(){
       priorBelief:priorBelief
     };
     var agentParams = update(baseAgentParams, replaceParams);
-    var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart, beliefOrBeliefDelay);
-    var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, 'states');};
+    var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
+				prizeToUtility);
+    var thunk = function(){
+      return simulateBeliefDelayAgent(startState, world, agent, 'actions');
+    };
     var out = timeit(thunk);
-    var locs = trajectoryToLocations(out.value).slice(1,4);
+    var actions = out.value.slice(0,3);
     var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
     console.log( '\n Myopia bound ' + myopiaBound + ' (locs, timeit) ', 
-                 trajectoryToLocations(out.value), out.runtimeInMilliseconds + ' ms');
-    assert.ok(  _.difference(prediction,locs).length == 0, 'fail bandit example myopia');
+                 out.value, out.runtimeInMilliseconds + ' ms');
+    assert.ok(  _.difference(prediction,actions).length == 0,
+		'fail bandit example myopia');
   };
-  console.log( '\n MYOPIA \n Myopia should be faster than discount')
+  console.log( '\n MYOPIA \n Myopia should be faster than discount');
   
   testMyopia(1,'not');
   testMyopia(2,'not');
@@ -279,29 +322,31 @@ var IRLBanditGenerativeDelay = function(){
       priorBelief:priorBelief
     };
     var agentParams = update(baseAgentParams, replaceParams);
-    var agent = makeIRLBanditAgent(prizeToUtility, agentParams,  worldAndStart, beliefOrBeliefDelay);
-    var thunk = function(){return simulateBeliefDelayAgent(startState, world, agent, 'states');};
+    var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
+				prizeToUtility);
+    var thunk = function(){
+      return simulateBeliefDelayAgent(startState, world, agent, 'actions');
+    };
     var out = timeit(thunk);
-    var locs = trajectoryToLocations(out.value).slice(1,4);
+    var locs = out.value.slice(0,3);
     var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
     assert.ok(  _.difference(prediction,locs).length == 0, 'fail bandit example boundVOI');
     console.log( '\n BoundVOI bound: ' + boundVOIBound + ' (locs, timeit) ',
-                 trajectoryToLocations(out.value), out.runtimeInMilliseconds + ' ms');
+                 out.value, out.runtimeInMilliseconds + ' ms');
   };
   console.log('\n BOUND VOI \n BoundVOI should be similar in runtime to discount');
   testBoundVOI(0,'not');
   testBoundVOI(1,'explore');
   testBoundVOI(1,'explore');
 
-  console.log('\n Passed IRLBanditGenerativeDelay');
+  console.log('\n Passed banditGenerativeDelay');
 };
 
-var IRLBanditGenerativeAll = function(){
-  IRLBanditGenerativeNoDelay('belief');
-  IRLBanditGenerativeNoDelay('beliefDelay');
-  IRLBanditGenerativeDelay();
+var banditGenerativeAll = function(){
+  banditGenerativeNoDelay('belief');
+  banditGenerativeNoDelay('beliefDelay');
+  banditGenerativeDelay();
 };
-
 
 
 var testInferIRLBandit = function(beliefOrBeliefDelay){
@@ -313,7 +358,7 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   var numberOfArms = 2;
   var armToPrizeERP = {0:'a', 1:'b'};
   var numberOfTrials = 3;
-  var worldAndStart = makeIRLBanditWorldAndStart(numberOfArms, armToPrizeERP, numberOfTrials);
+  var bandit = makeBandit(numberOfArms, armToPrizeERP, numberOfTrials);
   
   // agent params
   var baseAgentParams = noDiscountBaseAgentParams;
@@ -334,8 +379,8 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
   
   // Test on two different inference functions
-  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay); 
-  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10, beliefOrBeliefDelay);
+  var erp1 = inferIRLBandit( bandit, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay); 
+  var erp2 = inferIRLBandit( bandit, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10, beliefOrBeliefDelay);
   assert.ok( sample(erp1).prizeToUtility.a == 0 && sample(erp2).prizeToUtility.a == 0, 'testbandit infer 1');
   
   
@@ -344,8 +389,8 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   var observedStates = map(first, observedStateAction);
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
-  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay); 
-  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10, beliefOrBeliefDelay);
+  var erp1 = inferIRLBandit( bandit, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay); 
+  var erp2 = inferIRLBandit( bandit, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10, beliefOrBeliefDelay);
   assert.ok( sample(erp1).prizeToUtility.a == 1 && sample(erp2).prizeToUtility.a == 1, 'testbandit infer 2');
 
   console.log('passed easy inferIRLBandit tests');
@@ -364,7 +409,7 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   var numberOfArms = 2;
   var armToPrizeERP = {0:'a', 1:'c'};
   var numberOfTrials = 5;
-  var worldAndStart = makeIRLBanditWorldAndStart(numberOfArms, armToPrizeERP, numberOfTrials);
+  var bandit = makeBandit(numberOfArms, armToPrizeERP, numberOfTrials);
   
   // agent params
   var baseAgentParams = noDiscountBaseAgentParams;
@@ -394,8 +439,8 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
 
-  var out1 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay)});
-  var out2 = timeit( function(){return inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'offPolicy', 10, beliefOrBeliefDelay)});
+  var out1 = timeit( function(){return inferIRLBandit( bandit, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay)});
+  var out2 = timeit( function(){return inferIRLBandit( bandit, baseAgentParams, prior, fullObservedStateAction, 'offPolicy', 10, beliefOrBeliefDelay)});
   console.log('\n Time for Example 3, 2 arms and time 5: [from states, offpolicy]', out1.runtimeInMilliseconds, out2.runtimeInMilliseconds);
   
   var testERP = function(erp){
@@ -409,8 +454,8 @@ var testInferIRLBandit = function(beliefOrBeliefDelay){
   var observedStateAction = [['start',1], [1,1], [1,1], [1,1], [1,1]]; 
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
-  var erp1 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay); 
-  var erp2 = inferIRLBandit( worldAndStart, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10, beliefOrBeliefDelay);
+  var erp1 = inferIRLBandit( bandit, baseAgentParams, prior, fullObservedStateAction, 'trajectory', 10, beliefOrBeliefDelay); 
+  var erp2 = inferIRLBandit( bandit, baseAgentParams, prior, fullObservedStateAction,'offPolicy', 10, beliefOrBeliefDelay);
 
   var testERP = function(erp){
     var out = sample(erp);
@@ -484,8 +529,8 @@ var testBoundVOI = function(){
   };
   
   
-  var makeThreePathsAgent = function(utilityTable, baseAgentParams, worldAndStart){
-    var transitionTable = worldAndStart.transitionTable;
+  var makeThreePathsAgent = function(utilityTable, baseAgentParams, bandit){
+    var transitionTable = bandit.transitionTable;
     
     var utility = function(state,action){
       var loc = state.manifestState.loc;
@@ -502,17 +547,17 @@ var testBoundVOI = function(){
       assert.ok( _.isFinite(utility(state,'blah')), 'bad utility');
     }, _.keys(transitionTable) );
     
-    return makeBeliefDelayAgent(update(baseAgentParams,{utility:utility}), worldAndStart.world);
+    return makeBeliefDelayAgent(update(baseAgentParams,{utility:utility}), bandit.world);
   };
 
                              
   var runThreePaths = function( totalTime, utilityTable, paramsUpdate ){
 
-    var worldAndStart = makeThreePathsWorldAndStart(totalTime);
+    var bandit = makeThreePathsWorldAndStart(totalTime);
 
     var priorBelief = Enumerate( function(){
       var latentState = flip() ? 'gotoA' : 'gotoB';
-      return buildState( worldAndStart.startState.manifestState, latentState);
+      return buildState( bandit.startState.manifestState, latentState);
     });
       
     var baseAgentParams = {
@@ -526,8 +571,8 @@ var testBoundVOI = function(){
     };
     
     var params = update(baseAgentParams, paramsUpdate);
-    var agent = makeThreePathsAgent(utilityTable, params, worldAndStart);
-    return simulateBeliefDelayAgent(worldAndStart.startState, worldAndStart.world, agent, 'states');
+    var agent = makeThreePathsAgent(utilityTable, params, bandit);
+    return simulateBeliefDelayAgent(bandit.startState, bandit.world, agent, 'states');
   };
 
   // TESTS
@@ -581,16 +626,16 @@ var speedTestOnly = function(){
 };
 
 var beliefAgentTests = function(){
-  IRLBanditGenerativeNoDelay('belief');
-  testInferIRLBandit('belief')
+  banditGenerativeNoDelay('belief');
+  testInferIRLBandit('belief');
   speedTestBandits('belief');
 };
 
 
 var beliefDelayAgentTests = function(){
   testBoundVOI(); 
-  IRLBanditGenerativeNoDelay('beliefDelay');
-  IRLBanditGenerativeDelay();
+  banditGenerativeNoDelay('beliefDelay');
+  banditGenerativeDelay();
   testInferIRLBandit('beliefDelay');   
   speedTestBandits('beliefDelay');
 };
@@ -599,7 +644,9 @@ var beliefDelayAgentTests = function(){
 // beliefDelayAgentTests();
 // console.log('\n\n------\n  BELIEF \n');
 // beliefAgentTests();
-speedTestOnly();
+banditGenerativeNoDelay('belief');
+banditGenerativeNoDelay('beliefDelay');
+banditGenerativeDelay();
 console.log('\n\n-----------\n ALL IRL BANDIT TESTS PASSED');
 null;
 
