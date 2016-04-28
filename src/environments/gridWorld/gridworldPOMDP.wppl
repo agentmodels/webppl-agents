@@ -229,7 +229,6 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
 
 
 
-
 var baseParamsNoDiscount = {
   priorBelief: null,
   utility: null,
