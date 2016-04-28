@@ -41,7 +41,8 @@ var isDeltaERP = function(erp){return erp.support().length===1;};
 // Test whether belief has right form for fastUpdateBelief, i.e. it's not
 // an ERP but an object with 'manifestState' and 'latentStateERP' properties
 var ERPOverLatent = function(belief){
-  return _.has(belief,'manifestState') && !_.has(belief,'support');
+  return _.has(belief, ['manifestState', 'latentStateERP'])
+    && !_.has(belief,'support') && _.has(belief.latentStateERP, 'support');
 };
 
 // Convert to form for fastUpdateBelief

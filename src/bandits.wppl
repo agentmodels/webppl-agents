@@ -1,0 +1,95 @@
+// Stochastic bandit pomdp constructor. Can output bandits whose prizes are
+// strings or numbers.
+
+// The latent state stores each arm's ERP over prizes, and the manifest state
+// location contains the reward gained after the previous arm pull.
+
+var makeBanditWorld = function(numArms) {
+  var actions = range(numArms);
+
+  var advanceTime = function(manifestState) {
+    var newTimeLeft = manifestState.timeLeft - 1;
+    var terminateAfterAction = (newTimeLeft === 1);
+    return update(manifestState, {timeLeft: newTimeLeft,
+  				  terminateAfterAction: terminateAfterAction});
+  };
+  
+  var manifestStateToActions = function(manifestState) {return actions;};
+
+  var transition = function(state, action){
+    // figure out what the prize is
+    var prize = sample(state.latentState[action]);
+
+    // make the new location the prize, advance the time
+    var manifestStateWithReward = update(state.manifestState, {loc: prize});
+    var newManifestState = advanceTime(manifestStateWithReward);
+    
+    return buildState( newManifestState, state.latentState);
+  };
+
+  var observe = function(state){
+    // in beliefAgent, the observation here will be augmented with an 
+    // observation of the manifest state, and belief updating will depend on
+    // both that full observation and the action the agent took. This is all the
+    // agent needs to update, so there is no need to have an observation here.
+    // However, if we make the observation 'noObservation', the agent will not
+    // update its beliefs, which is bad, so we arbitrarily set the observation
+    // to always be 0.
+
+    return 0;
+
+  };
+
+  return {manifestStateToActions: manifestStateToActions,
+	  transition: transition,
+	  observe: observe};
+};
+
+var makeBanditStartState = function(timeLeft, latent) {
+  return {manifestState: {loc: 'start',
+			  timeLeft: timeLeft,
+			  terminateAfterAction: false},
+	  latentState: latent};
+};
+
+var makeBanditWorldAndStart = function(numArms, timeLeft, latent) {
+  var world = makeBanditWorld(numArms);
+  var startState = makeBanditStartState(timeLeft, latent);
+  return {world: world, startState: startState};
+};
+
+var numericBanditUtility = function(state, action) {
+  var prize = state.manifestState.loc;
+  return prize === 'start' ? 0 : prize;
+};
+
+var makeStringBanditUtility = function(prizeToUtility) {
+  return function(state, action) {
+    var prize = state.manifestState.loc;
+    return prize === 'start' ? 0 : prizeToUtility[prize];
+  };
+};
+
+// agentParams does not require utility argument
+var makeBanditAgent = function(agentParams, worldAndStart, beliefOrBeliefDelay,
+			       banditType, prizeToUtility) {
+  var priorBelief = agentParams.priorBelief;
+
+  if (ERPOverLatent(priorBelief)) {
+    assert.ok(_.isEqual(priorBelief.manifestState,
+			worldAndStart.startState.manifestState),
+	      'makeBanditAgent: priorBelief has wrong start manifestState');
+  } else {
+    assert.ok(_.isEqual(sample(priorBelief).manifestState,
+			worldAndStart.startState.manifestState),
+	      'makeBanditAgent: priorBelief has wrong start manifestState');
+  }
+
+  var utility = banditType === 'numeric' ? numericBanditUtility :
+	makeStringBanditUtility(prizeToUtility);
+
+  var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
+
+  return makeAgent(update(agentParams, {utility:utility}), worldAndStart.world);
+};
+
