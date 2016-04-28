@@ -1,0 +1,43 @@
+// Hike constructor
+var makeHike = function(transitionNoiseProb, options) {
+  assert.ok( _.isFinite(transitionNoiseProb) && 0 <= transitionNoiseProb
+	    && transitionNoiseProb <= 1,
+	    'something wrong with transitionNoiseProb argument to makeHike');
+
+  var H = {name: 'Hill'};
+  var W = {name: 'West'};
+  var E = {name: 'East'};
+  var __ = ' ';
+  
+  var smallFeatures =
+	[[ __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ , '#',  __ ,  __ ,  __ ],
+	 [ __ , '#',  W , '#',  E ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ H ,  H ,  H ,  H ,  H ]];
+
+  var bigFeatures =
+	[[ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ __ ,  __ , '#',  __ ,  __ ,  __ ],
+	 [ __ ,  __ , '#',  W , '#',  E ],
+	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
+	 [ H ,  H ,  H ,  H ,  H ,  H ]];
+
+  var options_ = options ? options : {big: false};
+  
+  var features = options_.big ? bigFeatures : smallFeatures;
+  
+  return makeNoisyGridworld(features, options_, transitionNoiseProb);
+};
+
+var makeHikeUtilityFunction = function(world, utilityTable){
+  var feature = world.feature;
+ 
+  return function(state, action) {
+    var stateFeatureName = feature(state).name;
+    return stateFeatureName ? utilityTable[stateFeatureName] : utilityTable.timeCost;
+  };
+};
+
+

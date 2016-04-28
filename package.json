@@ -26,7 +26,8 @@
       "src/deterministicBandits.wppl",
       "src/irlBandits.wppl",
       "src/stochasticBandits.wppl",
-      "src/banditGridworld.wppl"	
+      "src/banditGridworld.wppl",
+      "src/environments/gridWorld/hikingExample.wppl"
     ]
   },
   "repository": {
