@@ -171,11 +171,7 @@ var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
 		   bandit.world);
 };
 
-// work in progress
-
 // Inference by sampling full trajectories or by doing 'off policy' inference
-
-// need to know if bandit is numeric - save this in bandit?
 
 var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
 			   trajectoryOrOffPolicy, numRejectionSamples,
@@ -185,33 +181,51 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
   var worldObserve = world.observe;
   var observe = getFullObserve(worldObserve);
 
+  var numericPrizes = bandit.numericPrizes;
+
   var simulate = getSimulateFunction(beliefOrBeliefDelay);
 
-  var priorPrizeToUtility = prior.priorPrizeToUtility;
+  var priorPrizeToUtility = prior.priorPrizeToUtility || false;
   var priorAgentPrior = prior.priorAgentPrior;
   var priorMyopia = prior.priorMyopia || false;
 
 
-  assert.ok(isPOMDPWorld(world) && isPOMDPState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args ' + priorPrizeToUtility + ' \n\n priorAgentPrior' + priorAgentPrior );
-  assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 'trajectoryOrOffPolicy bad');
-  assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferirlbandit');
+  assert.ok(isPOMDPWorld(world) && isPOMDPState(startState)
+	    && isERP(priorAgentPrior),
+	    'inferBandit args: \n\n startState ' + startState
+	    + ' \n\n priorAgentPrior' + priorAgentPrior );
+  assert.ok(trajectoryOrOffPolicy === 'trajectory'
+	    || trajectoryOrOffPolicy === 'offPolicy',
+	    'inferBandit args: trajectoryOrOffPolicy bad');
+  assert.ok( isPOMDPState(observedStateAction[0][0]),
+	     'inferBandit args: observedStateAction first entry of first entry not a POMDP state');
+
+  if (priorPrizeToUtility) {
+    assert.ok(isERP(priorPrizeToUtility), 'inferBandit args: priorPrizeToUtility defined but not an ERP');
+  }
+
+  if (priorMyopia) {
+    assert.ok(isERP(priorMyopia), 'inferBandit args: priorMyopia defined but not an ERP');
+  }
 
   
   return Enumerate(function(){
     // priors and makeAgent are specific to bandits
-    var prizeToUtility = sample(priorPrizeToUtility);
+    var prizeToUtility = priorPrizeToUtility ? sample(priorPrizeToUtility)
+	  : undefined;
     var priorBelief = sample(priorAgentPrior);
     var myopiaUpdate = priorMyopia? {myopia: sample(priorMyopia) } : {};
     var newAgentParams = update(baseAgentParams, update({priorBelief:priorBelief}, myopiaUpdate) );
     
-    var agent = _makeBanditAgent(newAgentParams, bandit, beliefOrBeliefDelay);
+    var agent = makeBanditAgent(newAgentParams, bandit, beliefOrBeliefDelay,
+				prizeToUtility);
     var agentAct = agent.act;
     var agentUpdateBelief = agent.updateBelief;
 
     // Factor on whole sampled trajectory (SLOW IF NOT DETERMINISTIC AND NUM SAMPLES HIGH)
     var factorOnTrajectory = function(){
       var trajectoryERP = Rejection( function(){
-        return simulate(startState, world, agent, 'states')}, numRejectionSamples);
+        return simulate(startState, world, agent, 'states');}, numRejectionSamples);
       factor(trajectoryERP.score([], map(first, observedStateAction)));
     };
 
@@ -244,6 +258,41 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
     var doInfer = (trajectoryOrOffPolicy=='trajectory') ? factorOnTrajectory() : 
         factorSequenceOffPolicy(priorBelief,'noAction', 0);
     
-    return {prizeToUtility: prizeToUtility, priorBelief:priorBelief, myopiaBound: newAgentParams.myopia.bound};
+    return {prizeToUtility: prizeToUtility, priorBelief: priorBelief, myopiaBound: newAgentParams.myopia.bound};
+  });
+};
+
+var agentModelsBanditInfer = function(baseAgentParams, priorPrizeToUtility,
+				      priorInitialBelief, bandit,
+				      observedSequence) {
+
+  return Enumerate(function(){
+    var prizeToUtility = priorPrizeToUtility ? sample(priorPrizeToUtility)
+	  : undefined;
+    var initialBelief = sample(priorInitialBelief);
+
+    var newAgentParams = update(baseAgentParams, {priorBelief:initialBelief});
+    
+    var agent = makeBanditAgent(newAgentParams, bandit, 'belief',
+				prizeToUtility);
+    var agentAct = agent.act;
+    var agentUpdateBelief = agent.updateBelief;
+    
+    var factorSequence = function(currentBelief, previousAction, timeIndex){
+      if (timeIndex < observedSequence.length) { 
+        var state = observedSequence[timeIndex].state;
+        var observation = observedSequence[timeIndex].observation;
+        var nextBelief = agentUpdateBelief(currentBelief, observation, previousAction);
+        var nextActionERP = agentAct(nextBelief);
+        var observedAction = observedSequence[timeIndex].action;
+        
+        factor(nextActionERP.score([], observedAction));
+        
+        factorSequence(nextBelief, observedAction, timeIndex + 1);
+      }
+    };
+    factorSequence(initialBelief,'noAction', 0);
+    
+    return {prizeToUtility: prizeToUtility, priorBelief:initialBelief};
   });
 };
