@@ -114,35 +114,9 @@ var makeGridworldPOMDP = function(gridworld) {
 
 
 
-// Make big gridworld
-var getBigDonutWorld = function(){
-  var gridworldMDP = makeDonutWorld2({big: true});
-  var feature = gridworldMDP.feature;
-  return update(makeGridworldPOMDP(gridworldMDP), {feature:feature, gridworldMDP:gridworldMDP});
-};
-
-// make restaurant choice POMDP with variable maxTimeAtRestaurant
-var getRestaurantChoicePOMDP = function(maxTimeAtRestaurant_){
-  var maxTimeAtRestaurant = _.isUndefined(maxTimeAtRestaurant_) ? 1
-	: maxTimeAtRestaurant_;
-  var gridworldMDP = makeDonutWorld2({big: true, noReverse: true,
-				      maxTimeAtRestaurant: maxTimeAtRestaurant});
-  var feature = gridworldMDP.feature;
-  return update(makeGridworldPOMDP(gridworldMDP), {feature: feature,
-						   restaurantChoiceMDP: gridworldMDP});
-};
-
-var allOpenRestaurantChoiceStart = {
-  manifestState: { loc: [3,1],
-		   terminateAfterAction: false,
-		   timeLeft: 11},
-  latentState: {'Donut N': true,
-		'Donut S': true,
-		Veg: true,
-		Noodle: true}
-};
 
 
+// TODO should rename this
 var tableToUtilityFunction = function(table, world) {
   assert.ok(isPOMDPWorld(world), 'second arg of tableToUtilityFunction should be world, not feature');
   return function(state, action) {
@@ -267,7 +241,4 @@ var baseParamsNoDiscount = {
   boundVOI: {on: false, bound: 0},
 };
 
-// exludes last state
-var naiveDonutNorthStates = [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]];
-//var sophisticatedVegStates = 
-var straightToVegStates = [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]];
+
