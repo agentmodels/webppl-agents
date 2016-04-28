@@ -33,7 +33,6 @@ var testNamed = function(){
 
   var utility = function(state,action){
     var feature = world.feature;
-
     var table = {cafe:1};
     var featureStateName = feature(state).name
     return featureStateName ? table[featureStateName] : 0;
@@ -46,7 +45,32 @@ var testNamed = function(){
 };
 
 
-testNamed();
+var testStochastic = function(){
+  var __ = '  ';
+  var line = [__, __, __, __];
+  var features = [ line, line];
+  
+  var options = {noReverse: false};
+  var world = makeNoisyGridworld(features, options, .1);
+
+  // utility:
+  // [0, 0, -1000, -1000],
+  // [0, 0, 0, 10] 
+  
+  var utility = function(state,action){
+    if (state.loc[0]>=2 && state.loc[1]==1){return -1000;};
+    if (state.loc[0]==3 && state.loc[1]==0){return 10;};
+    return 0;
+  };
+
+  var startState = {loc:[0,0], terminateAfterAction: false, timeLeft: 15};
+  var agent = makeMDPAgent({alpha:100, utility:utility}, world);
+  var actions = simulateMDP(startState, world, agent, 'actions');
+  console.log('actions', actions);
+  assert.ok( !( actions[0]==='r' && actions[1]==='r' && actions[2]==='r' ) );
+};
+  
+testStochastic();
 
 
 
