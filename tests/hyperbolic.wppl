@@ -51,4 +51,4 @@ assert.ok(
     naive22utilities[2] != soph22utilities[2] &&
     naive22utilities[3] != soph22utilities[3] 
     , "some utilities match!");
-console.log("done with tests");
+console.log("done with hyperbolic gridworld tests");
