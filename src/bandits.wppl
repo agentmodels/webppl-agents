@@ -105,19 +105,6 @@ var makeBandit = function(options) {
     };
 
     mapN(supportIsStringy, numberOfArms);
-
-    if (prizeToUtility) {
-      var prizesHaveUtilities = function(arm) {
-	var erp = armToPrizeERP[arm];
-	map(function(x){
-	  assert.ok(_.isFinite(prizeToUtility[x]) && inSupport(x, erp),
-		    'makeBandit: some prizes do not have utilities');
-	}, erp.support);
-      };
-
-      mapN(prizesHaveUtilities, numberOfArms);
-      
-    } 
   }
   
   var world = makeBanditWorld(numberOfArms);
@@ -127,7 +114,8 @@ var makeBandit = function(options) {
     world: world,
     startState: startState,
     armToPrizeERP: armToPrizeERP,
-    numericalPrizes: numericalPrizes
+    numericalPrizes: numericalPrizes,
+    numberOfArms: numberOfArms
   };
 };
 
@@ -145,9 +133,20 @@ var makeStringBanditUtility = function(prizeToUtility) {
 };
 
 var makeBanditUtility = function(bandit, prizeToUtility) {
+  
   if (bandit.numericalPrizes) {
     return numericBanditUtility;
   } else {
+    var prizesHaveUtilities = function(arm) {
+      var erp = armToPrizeERP[arm];
+      map(function(x){
+	assert.ok(_.isFinite(prizeToUtility[x]) && inSupport(x, erp),
+		  'makeBandit: some prizes do not have utilities');
+      }, erp.support);
+    };
+
+    mapN(prizesHaveUtilities, bandit.numberOfArms);
+    
     return makeStringBanditUtility(prizeToUtility);
   }
 };
