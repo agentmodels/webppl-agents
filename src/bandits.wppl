@@ -4,6 +4,8 @@
 // The latent state stores each arm's ERP over prizes, and the manifest state
 // location contains the reward gained after the previous arm pull.
 
+// main constructor function is makeBandit
+
 var makeBanditWorld = function(numberOfArms) {
   var actions = range(numberOfArms);
 
@@ -56,7 +58,9 @@ var makeBanditStartState = function(numberOfTrials, armToPrizeERP) {
 
 var makeBandit = function(options) {
 
-  assert.ok(_.has(options, ['numberOfArms', 'armToPrizeERP', 'numberOfTrials']));
+  assert.ok(_.has(options, 'numberOfArms') && _.has(options, 'armToPrizeERP')
+	    && _.has(options, 'numberOfTrials'),
+	   'makeBandit args: options does not contain one or more of numberOfArms, armToPrizeERP, and numberOfTrials');
 
   var numberOfArms = options.numberOfArms;
   var armToPrizeERP = options.armToPrizeERP;
@@ -65,15 +69,15 @@ var makeBandit = function(options) {
   var prizeToUtility = options.prizeToUtility;
   
   // ensure that armToPrizeERP has an entry for every arm
-  mapN(function(n){
-    assert.ok(_.has(armToPrizeERP, _.toString(n)),
-	      'not every arm has an entry in armToPrizeERP in makeBandit');
+  mapN(function(arm){
+    assert.ok(_.has(armToPrizeERP, arm.toString()),
+	      'makeBandit: arm ' + arm + ' has no entry in armToPrizeERP');
   }, numberOfArms);
   
   // ensure that armToPrizeERP has an ERP for every arm
   mapN(function(arm){
-    assert.ok(isERP(armToPrizeERP[arm]),
-	      'not every arm has an ERP in armToPrizeERP in makeBandit');
+    assert.ok(isERP(armToPrizeERP[arm.toString()]),
+	      'makeBandit: arm ' + arm + ' has no ERP in armToPrizeERP');
   }, numberOfArms);
 
   // ensure that prizes are numerical iff numericalPrizes is true,
@@ -86,7 +90,7 @@ var makeBandit = function(options) {
       map(function(x){
 	assert.ok(_.isFinite(x) && inSupport(x, erp),
 		  'makeBandit: some prizes are non-numeric but numericalPrizes is true');
-      }, erp.support);
+      }, erp.support());
     };
 
     mapN(supportIsNumeric, numberOfArms);
@@ -97,7 +101,7 @@ var makeBandit = function(options) {
       map(function(x){
 	assert.ok(_.isString(x) && inSupport(x, erp),
 		  'makeBandit: some prizes are not strings but numericalPrizes is false');
-      }, erp.support);
+      }, erp.support());
     };
 
     mapN(supportIsStringy, numberOfArms);
