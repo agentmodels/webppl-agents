@@ -4,8 +4,8 @@
 // The latent state stores each arm's ERP over prizes, and the manifest state
 // location contains the reward gained after the previous arm pull.
 
-var makeBanditWorld = function(numberArms) {
-  var actions = range(numberArms);
+var makeBanditWorld = function(numberOfArms) {
+  var actions = range(numberOfArms);
 
   var advanceTime = function(manifestState) {
     var newTimeLeft = manifestState.timeLeft - 1;
@@ -40,17 +40,93 @@ var makeBanditWorld = function(numberArms) {
 
   };
 
-  return {manifestStateToActions: manifestStateToActions,
-	  transition: transition,
-	  observe: observe};
+  return {
+    manifestStateToActions: manifestStateToActions,
+    transition: transition,
+    observe: observe
+  };
 };
 
-var makeBanditStartState = function(numberTrials, armToPrizes) {
+var makeBanditStartState = function(numberOfTrials, armToPrizeERP) {
   return {manifestState: {loc: 'start',
-			  timeLeft: numberTrials,
+			  timeLeft: numberOfTrials,
 			  terminateAfterAction: false},
-	  latentState: armToPrizes};
+	  latentState: armToPrizeERP};
 };
+
+var makeBandit = function(options) {
+
+  assert.ok(_.has(options, ['numberOfArms', 'armToPrizeERP', 'numberOfTrials']));
+
+  var numberOfArms = options.numberOfArms;
+  var armToPrizeERP = options.armToPrizeERP;
+  var numberOfTrials = options.numberOfTrials;
+  var numericalPrizes = options.numericalPrizes;
+  var prizeToUtility = options.prizeToUtility;
+  
+  // ensure that armToPrizeERP has an entry for every arm
+  mapN(function(n){
+    assert.ok(_.has(armToPrizeERP, _.toString(n)),
+	      'not every arm has an entry in armToPrizeERP in makeBandit');
+  }, numberOfArms);
+  
+  // ensure that armToPrizeERP has an ERP for every arm
+  mapN(function(arm){
+    assert.ok(isERP(armToPrizeERP[arm]),
+	      'not every arm has an ERP in armToPrizeERP in makeBandit');
+  }, numberOfArms);
+
+  // ensure that prizes are numerical iff numericalPrizes is true,
+  // and strings iff numericalPrizes is false
+  // also, if numericalPrizes is false, and prizeToUtility is defined, ensure
+  // that every prize has a utility
+  if (numericalPrizes) {
+    var supportIsNumeric = function(arm) {
+      var erp = armToPrizeERP[arm];
+      map(function(x){
+	assert.ok(_.isFinite(x) && inSupport(x, erp),
+		  'makeBandit: some prizes are non-numeric but numericalPrizes is true');
+      }, erp.support);
+    };
+
+    mapN(supportIsNumeric, numberOfArms);
+    
+  } else {
+    var supportIsStringy = function(arm) {
+      var erp = armToPrizeERP[arm];
+      map(function(x){
+	assert.ok(_.isString(x) && inSupport(x, erp),
+		  'makeBandit: some prizes are not strings but numericalPrizes is false');
+      }, erp.support);
+    };
+
+    mapN(supportIsStringy, numberOfArms);
+
+    if (prizeToUtility) {
+      var prizesHaveUtilities = function(arm) {
+	var erp = armToPrizeERP[arm];
+	map(function(x){
+	  assert.ok(_.isFinite(prizeToUtility[x]) && inSupport(x, erp),
+		    'makeBandit: some prizes do not have utilities');
+	}, erp.support);
+      };
+
+      mapN(prizesHaveUtilities, numberOfArms);
+      
+    } 
+  }
+  
+  var world = makeBanditWorld(numberOfArms);
+  var startState = makeBanditStartState(numberOfTrials, armToPrizeERP);
+
+  return {
+    world: world,
+    startState: startState,
+    armToPrizeERP: armToPrizeERP,
+    numericalPrizes: numericalPrizes
+  };
+};
+
 
 var numericBanditUtility = function(state, action) {
   var prize = state.manifestState.loc;
@@ -64,110 +140,110 @@ var makeStringBanditUtility = function(prizeToUtility) {
   };
 };
 
-var makeBandit = function(numberArms, armToPrizes, numberTrials,
-			  numericalPrizes, prizeToUtility) {
+var makeBanditUtility = function(bandit, prizeToUtility) {
+  if (bandit.numericalPrizes) {
+    return numericBanditUtility;
+  } else {
+    return makeStringBanditUtility(prizeToUtility);
+  }
+};
 
-  // ensure that armToPrizes has an entry for every arm
-  mapN(function(n){
-    assert.ok(_.has(armToPrizes, _.toString(n)),
-	      'not every arm has an entry in armToPrizes in makeBandit');
-  }, numberArms);
+var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
+			       prizeToUtility) {
+  var priorBelief = agentParams.priorBelief;
+  var numericalPrizes = bandit.numericalPrizes;
+
+  if (ERPOverLatent(priorBelief)) {
+    assert.ok(_.isEqual(priorBelief.manifestState,
+			bandit.startState.manifestState),
+	      'makeBanditAgent: priorBelief has wrong start manifestState');
+  } else {
+    assert.ok(_.isEqual(sample(priorBelief).manifestState,
+			bandit.startState.manifestState),
+	      'makeBanditAgent: priorBelief has wrong start manifestState');
+  }
   
-  // ensure that armToPrizes has an ERP for every arm
-  mapN(function(arm){
-    assert.ok(isERP(armToPrizes[arm]),
-	      'not every arm has an ERP in armToPrizes in makeBandit');
-  }, numberArms);
+  var utility = makeBanditUtility(bandit, prizeToUtility);
 
-  // ensure that prizes are numerical iff numericalPrizes is true,
-  // and strings iff numericalPrizes is false
-  // also, if numericalPrizes is false, and prizeToUtility is defined, ensure
-  // that every prize has a utility
-  if (numericalPrizes) {
-    var supportIsNumeric = function(arm) {
-      var erp = armToPrizes[arm];
-      map(function(x){
-	assert.ok(_.isFinite(x) && inSupport(x, erp),
-		  'makeBandit: some prizes are non-numeric but numericalPrizes is true');
-      }, erp.support);
-    };
+  var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
 
-    mapN(supportIsNumeric, numberArms);
+  return makeAgent(update(agentParams, {utility: utility}),
+		   bandit.world);
+};
+
+// work in progress
+
+// Inference by sampling full trajectories or by doing 'off policy' inference
+
+// need to know if bandit is numeric - save this in bandit?
+
+var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
+			   trajectoryOrOffPolicy, numRejectionSamples,
+			   beliefOrBeliefDelay){
+  var world = bandit.world;
+  var startState = bandit.startState;
+  var worldObserve = world.observe;
+  var observe = getFullObserve(worldObserve);
+
+  var simulate = getSimulateFunction(beliefOrBeliefDelay);
+
+  var priorPrizeToUtility = prior.priorPrizeToUtility;
+  var priorAgentPrior = prior.priorAgentPrior;
+  var priorMyopia = prior.priorMyopia || false;
+
+
+  assert.ok(isPOMDPWorld(world) && isPOMDPState(startState) && isERP(priorPrizeToUtility) && isERP(priorAgentPrior), 'inferirlbandit args ' + priorPrizeToUtility + ' \n\n priorAgentPrior' + priorAgentPrior );
+  assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 'trajectoryOrOffPolicy bad');
+  assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferirlbandit');
+
+  
+  return Enumerate(function(){
+    // priors and makeAgent are specific to bandits
+    var prizeToUtility = sample(priorPrizeToUtility);
+    var priorBelief = sample(priorAgentPrior);
+    var myopiaUpdate = priorMyopia? {myopia: sample(priorMyopia) } : {};
+    var newAgentParams = update(baseAgentParams, update({priorBelief:priorBelief}, myopiaUpdate) );
     
-  } else {
-    var supportIsStringy = function(arm) {
-      var erp = armToPrizes[arm];
-      map(function(x){
-	assert.ok(_.isString(x) && inSupport(x, erp),
-		  'makeBandit: some prizes are not strings but numericalPrizes is false');
-      }, erp.support);
+    var agent = _makeBanditAgent(newAgentParams, bandit, beliefOrBeliefDelay);
+    var agentAct = agent.act;
+    var agentUpdateBelief = agent.updateBelief;
+
+    // Factor on whole sampled trajectory (SLOW IF NOT DETERMINISTIC AND NUM SAMPLES HIGH)
+    var factorOnTrajectory = function(){
+      var trajectoryERP = Rejection( function(){
+        return simulate(startState, world, agent, 'states')}, numRejectionSamples);
+      factor(trajectoryERP.score([], map(first, observedStateAction)));
     };
 
-    mapN(supportIsStringy, numberArms);
+    // Move agent through observed sequence 
+    var factorSequenceOffPolicy = function(currentBelief, previousAction, timeIndex){
+      if (timeIndex < observedStateAction.length) { 
 
-    if (prizeToUtility) {
-      var prizesHaveUtilities = function(arm) {
-	var erp = armToPrizes[arm];
-	map(function(x){
-	  assert.ok(_.isFinite(prizeToUtility[x]) && inSupport(x, erp),
-		    'makeBandit: some prizes do not have utilities');
-	}, erp.support);
-      };
+        // Go to next world state and sample observation from that state
+        var state = observedStateAction[timeIndex][0];
+        var observation = observe(state);
 
-      mapN(prizesHaveUtilities, numberArms);
-      
-    } 
-  }
-  
-  var world = makeBanditWorld(numberArms);
-  var startState = makeBanditStartState(numberTrials, armToPrizes);
-  var utility = numericalPrizes ? numericBanditUtility :
-	makeStringBanditUtility(prizeToUtility);
+        // Update agent's internal state and get action ERP
+        var delay = 0;     
+        var nextBelief = beliefOrBeliefDelay == 'belief' ?
+            agentUpdateBelief(currentBelief, observation, previousAction) :
+            agentUpdateBelief(currentBelief, observation, previousAction, delay);
 
-  return {world: world, startState: startState, utility: utility};
-};
+        
+        var nextActionERP = beliefOrBeliefDelay == 'belief' ? 
+            agentAct(nextBelief) : agentAct(nextBelief, delay); 
 
-// agentParams does not require utility argument
-var makeBanditAgent = function(agentParams, worldAndStart, beliefOrBeliefDelay,
-			       numericalPrizes, prizeToUtility) {
-  var priorBelief = agentParams.priorBelief;
+        var observedAction = observedStateAction[timeIndex][1];
+        factor(nextActionERP.score([], observedAction));
 
-  if (ERPOverLatent(priorBelief)) {
-    assert.ok(_.isEqual(priorBelief.manifestState,
-			worldAndStart.startState.manifestState),
-	      'makeBanditAgent: priorBelief has wrong start manifestState');
-  } else {
-    assert.ok(_.isEqual(sample(priorBelief).manifestState,
-			worldAndStart.startState.manifestState),
-	      'makeBanditAgent: priorBelief has wrong start manifestState');
-  }
-  
-  var utility = numericalPrizes ? numericBanditUtility :
-	makeStringBanditUtility(prizeToUtility);
+        // condition on next world state, passing through updated internal state
+        factorSequenceOffPolicy(nextBelief, observedAction, timeIndex + 1);
+      }
+    };
 
-  var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
-
-  return makeAgent(update(agentParams, {utility:utility}), worldAndStart.world);
-};
-
-// alternative makeBanditAgent that takes an object with world, startState,
-// and utility
-var _makeBanditAgent = function(agentParams, worldStartAndUtility,
-				beliefOrBeliefDelay){
-  var priorBelief = agentParams.priorBelief;
-
-  if (ERPOverLatent(priorBelief)) {
-    assert.ok(_.isEqual(priorBelief.manifestState,
-			worldAndStart.startState.manifestState),
-	      '_makeBanditAgent: priorBelief has wrong start manifestState');
-  } else {
-    assert.ok(_.isEqual(sample(priorBelief).manifestState,
-			worldAndStart.startState.manifestState),
-	      '_makeBanditAgent: priorBelief has wrong start manifestState');
-  }
-
-  var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
-
-  return makeAgent(update(agentParams, {utility: worldStartAndUtility.utility}),
-		   worldStartAndUtility.world);
+    var doInfer = (trajectoryOrOffPolicy=='trajectory') ? factorOnTrajectory() : 
+        factorSequenceOffPolicy(priorBelief,'noAction', 0);
+    
+    return {prizeToUtility: prizeToUtility, priorBelief:priorBelief, myopiaBound: newAgentParams.myopia.bound};
+  });
 };
