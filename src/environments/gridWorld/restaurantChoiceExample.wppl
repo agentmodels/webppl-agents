@@ -1,221 +1,3 @@
-
-
-var inGrid_ = function(gridMap, loc) {
-  return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
-          loc[1] >= 0 && loc[1] < gridMap.yLim);
-}
-
-var isBlockedLoc = function(gridMap, loc) {
-  var getFeature = gridMap.feature;
-  var feature = getFeature({ loc : loc});
-  return feature === '#';
-}
-
-var isAllowedState_ = function(gridMap, loc) {
-  return (inGrid_(gridMap, loc)) && !isBlockedLoc(gridMap, loc);
-};
-
-var advanceStateTime = function(state) { 
-  return update(state, { 
-    timeLeft : state.timeLeft - 1, 
-    terminateAfterAction : state.timeLeft - 1> 1 ? state.terminateAfterAction : true, 
-    previousLoc : state.loc
-  });
-};
-
-var addPrevious = function(state) { 
-  return update(state, { previousLoc : state.loc });
-};
-
-var advanceRestaurant = function(state, maxTimeAtRestaurant) { 
-  var timeAtRestaurant = (state.timeAtRestaurant === undefined) ? 0 : state.timeAtRestaurant + 1 ;
-  var state = update(state, { timeAtRestaurant : timeAtRestaurant }); 
-
-  if (state.timeAtRestaurant < maxTimeAtRestaurant - 1) {
-    return state;
-  } else {
-    return update(state, { terminateAfterAction : true });
-  }
-};
-
-var moveState = function(gridMap, state, action) { 
-  var loc = state.loc;
-  var gridTransition = {l: [loc[0]-1, loc[1]],
-                        r: [loc[0]+1, loc[1]],
-                        u: [loc[0], loc[1]+1],
-                        d: [loc[0], loc[1]-1]};
-
-  var possibleNextLoc = gridTransition[action];
-  assert.ok(possibleNextLoc != undefined, 'action was not found');
-
-  var nextLoc = isAllowedState_(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
-  return update(state, { loc : nextLoc });
-};
-
-var makeGridTransition_ = function(gridMap, options) {
-  return function(state,action){
-    var getFeature = gridMap.feature;
-    var state = options.noReverse ? addPrevious(state) : state;
-    var state = !getFeature(state).name ? advanceStateTime(state) : state;
-
-    var state = !getFeature(state).name ? moveState(gridMap, state, action) : state;
-    var state = getFeature(state).name ? advanceRestaurant(state, options.maxTimeAtRestaurant) : state;
-
-    return state;
-  };
-};
-
-var makeNoisyGridTransition_ = function(gridMap, options, transitionNoiseProb) {
-  var deterministicTransition = makeGridTransition_(gridMap, options);
-  // If agent selects *key*, with *transitionNoiseProb* they do one of the two
-  // orthogonal actions
-  var noiseActionTable = {u: ['l','r'],
-			  d: ['l','r'],
-			  l: ['u','d'],
-			  r: ['u','d']};
-
-  return function(state,action){
-    return flip(1-transitionNoiseProb) ? deterministicTransition(state,action)
-      : deterministicTransition(state, uniformDraw(noiseActionTable[action]));
-  };
-};
-
-
-var makeGridMap = function(rfeatures)  { 
-  var features = rfeatures.reverse();
-  return { 
-    features : features,
-    xLim : features[0].length,
-    yLim : features.length,
-    feature : function (state) { 
-      return features[state.loc[1]][state.loc[0]];
-    }
-  };
-};
-
-
-
-var makeGridWorld = function(features, options) {
-  var defaults = { noReverse : false, maxTimeAtRestaurant : 1 };
-
-  var options = update(defaults, options);
-  var gridMap = makeGridMap(features); 
-
-  var transition = makeGridTransition_(gridMap, options);
-  var actions = ['l', 'r', 'u', 'd'];
-
-  var stateToActions = function (state) { 
-
-    var possibleActions = filter(function (action) { 
-      var newState = transition(state, action);
-      if (options.noReverse && 
-          state.previousLoc && 
-          state.previousLoc[0] === newState.loc[0] && state.previousLoc[1] === newState.loc[1]) { return false; }
-      return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
-    }, actions);
-
-    if (possibleActions.length > 0) {
-      return possibleActions;
-    } else { 
-      return [actions[0]];
-    }
-  };
-
-  return update(gridMap,
-    { transition : transition, 
-      actions    : actions,
-      stateToActions    : stateToActions
-    });
-};
-
-
-var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
-  var defaults = { noReverse: false, maxTimeAtRestaurant : 1 };
-
-  var options = update(defaults, inputOptions);
-  var gridMap = makeGridMap(features); 
-
-  var transition = makeNoisyGridTransition_(gridMap, options,
-					    transitionNoiseProb);
-  var actions = ['l', 'r', 'u', 'd'];
-
-  var stateToActions = function (state) { 
-    var possibleActions = filter(function (action) {
-      // if noReverse, check that MAP of newState doesn't reverse you
-      var transitionERP = Enumerate(function(){
-	return transition(state, action);
-      });
-      var likelyNewState = MAP(transitionERP).val;
-      if (options.noReverse && state.previousLoc
-	  && state.previousLoc[0] === likelyNewState.loc[0]
-	  && state.previousLoc[1] === likelyNewState.loc[1]) {
-	return false;
-      } else {
-	return state.loc[0] !== likelyNewState.loc[0]
-	  || state.loc[1] !== likelyNewState.loc[1];
-      }}, actions);
-			
-
-    if (possibleActions.length > 0) {
-      return possibleActions;
-    } else { 
-      return [actions[0]];
-    }
-  };
-
-  return update(gridMap,
-    { transition : transition, 
-      actions : actions,
-      stateToActions : stateToActions
-    });
-};
-
-
-
-// Hike constructor
-var makeHike = function(transitionNoiseProb, options) {
-  assert.ok( _.isFinite(transitionNoiseProb) && 0 <= transitionNoiseProb
-	    && transitionNoiseProb <= 1,
-	    'something wrong with transitionNoiseProb argument to makeHike');
-
-  var H = {name: 'Hill'};
-  var W = {name: 'West'};
-  var E = {name: 'East'};
-  var __ = ' ';
-  
-  var smallFeatures =
-	[[ __ ,  __ ,  __ ,  __ ,  __ ],
-	 [ __ , '#',  __ ,  __ ,  __ ],
-	 [ __ , '#',  W , '#',  E ],
-	 [ __ ,  __ ,  __ ,  __ ,  __ ],
-	 [ H ,  H ,  H ,  H ,  H ]];
-
-  var bigFeatures =
-	[[ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
-	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
-	 [ __ ,  __ , '#',  __ ,  __ ,  __ ],
-	 [ __ ,  __ , '#',  W , '#',  E ],
-	 [ __ ,  __ ,  __ ,  __ ,  __ ,  __ ],
-	 [ H ,  H ,  H ,  H ,  H ,  H ]];
-
-  var options_ = options ? options : {big: false};
-  
-  var features = options_.big ? bigFeatures : smallFeatures;
-  
-  return makeNoisyGridworld(features, options_, transitionNoiseProb);
-};
-
-var makeHikeUtilityFunction = function(world, utilityTable){
-  var feature = world.feature;
- 
-  return function(state, action) {
-    var stateFeatureName = feature(state).name;
-    return stateFeatureName ? utilityTable[stateFeatureName] : utilityTable.timeCost;
-  };
-};
-
-
-
 // Restaurant Choice Constructor and Helpers
 
 var restaurant = {
@@ -346,6 +128,56 @@ var makeRestaurantUtilityFunction = function (world, utilityTable) {
   };
 };
 
+
+
+
+
+
+
+// POMDP case
+// Make big gridworld
+var getBigDonutWorld = function(){
+  var gridworldMDP = makeDonutWorld2({big: true});
+  var feature = gridworldMDP.feature;
+  return update(makeGridworldPOMDP(gridworldMDP), {feature:feature, gridworldMDP:gridworldMDP});
+};
+
+// make restaurant choice POMDP with variable maxTimeAtRestaurant
+var getRestaurantChoicePOMDP = function(maxTimeAtRestaurant_){
+  var maxTimeAtRestaurant = _.isUndefined(maxTimeAtRestaurant_) ? 1
+	: maxTimeAtRestaurant_;
+  var gridworldMDP = makeDonutWorld2({big: true, noReverse: true,
+				      maxTimeAtRestaurant: maxTimeAtRestaurant});
+  var feature = gridworldMDP.feature;
+  return update(makeGridworldPOMDP(gridworldMDP), {feature: feature,
+						   restaurantChoiceMDP: gridworldMDP});
+};
+
+var allOpenRestaurantChoiceStart = {
+  manifestState: { loc: [3,1],
+		   terminateAfterAction: false,
+		   timeLeft: 11},
+  latentState: {'Donut N': true,
+		'Donut S': true,
+		Veg: true,
+		Noodle: true}
+};
+
+
+
+// exludes last state
+var naiveDonutNorthStates = [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]];
+//var sophisticatedVegStates = 
+var straightToVegStates = [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]];
+
+
+
+
+
+
+
+
+// TODO MOVE THIS
 // constructor for restaurant search bandit gridworld example
 
 var makeRestaurantSearchMDP = function(options_) { 

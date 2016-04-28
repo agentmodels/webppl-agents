@@ -67,8 +67,25 @@ var testStochastic = function(){
   var actions = simulateMDP(startState, world, agent, 'actions');
   assert.ok( !( actions[0]==='r' && actions[1]==='r' && actions[2]==='r' ) );
 };
+
+
+var testHike = function(){
   
-var tests = [testSimple(), testNamed(), testStochastic()];
+  var transitionNoiseProb = 0;
+  var world = makeHike(transitionNoiseProb);
+  var startState = {loc: [0,1],
+		    timeLeft: 12,
+		    terminateAfterAction: false};
+  
+  // parameters for agent
+  var utilityTable = {East: 10, West: 1, Hill: -10, timeCost: -.1};
+  var utility = makeHikeUtilityFunction(world, utilityTable);
+  var agent = makeMDPAgent({utility: utility, alpha: 1000}, world);
+  var actions = simulateMDP(startState, world, agent, 'actions');
+  assert.ok( actions[0]==='r' && actions[1]==='r' && actions[2]==='r' );
+};
+  
+var tests = [testSimple(), testNamed(), testStochastic(), testHike()];
 console.log('passed all tests in makeGridworld.wppl')
 
 
