@@ -300,3 +300,12 @@ var agentModelsBanditInfer = function(baseAgentParams, priorPrizeToUtility,
     return {prizeToUtility: prizeToUtility, priorBelief:initialBelief};
   });
 };
+
+var noDiscountBaseAgentParams = { // doesn't contain priorBelief or utility
+  alpha: 100,
+  noDelays: true,
+  discount: 0,
+  sophisticatedOrNaive: 'naive',
+  myopia: {on: false, bound:0},
+  boundVOI: {on: false, bound:0}
+};
