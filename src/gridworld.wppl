@@ -95,7 +95,6 @@ var makeGridMap = function(rfeatures)  {
 
 
 
-
 var makeGridWorld = function(features, options) {
   var defaults = { noReverse : false, maxTimeAtRestaurant : 1 };
 

@@ -65,7 +65,6 @@ var testStochastic = function(){
   var startState = {loc:[0,0], terminateAfterAction: false, timeLeft: 15};
   var agent = makeMDPAgent({alpha:100, utility:utility}, world);
   var actions = simulateMDP(startState, world, agent, 'actions');
-  console.log('actions', actions);
   assert.ok( !( actions[0]==='r' && actions[1]==='r' && actions[2]==='r' ) );
 };
   
