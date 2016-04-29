@@ -1,0 +1,91 @@
+
+// simple grid with no named features
+
+var testSimple = function(){
+  var features = [[ '' ,  '' ],
+	          [ '' , '#'] ];
+
+  var options = {noReverse: false};
+  var world = makeGridWorld(features, options);
+
+  var utility = function(state,action){
+    if (state.loc[0]==1 && state.loc[1]==1){
+      return 1;
+    } else {
+      return 0;
+    };
+  };
+
+  var startState = {loc:[0,0], terminateAfterAction: false, timeLeft: 4};
+  var agent = makeMDPAgent({alpha:100, utility:utility}, world);
+  var actions = simulateMDP(startState, world, agent, 'actions');
+  assert.ok( actions[0]==='u' && actions[1]==='r' && actions[2]==='l');
+};
+
+  // simple grid with named feature
+var testNamed = function(){
+  
+  var features = [[ '' ,  {name:'cafe'} ],
+	          [ '' , '#'] ];
+
+  var options = {noReverse: false};
+  var world = makeGridWorld(features, options);
+
+  var utility = function(state,action){
+    var feature = world.feature;
+    var table = {cafe:1};
+    var featureStateName = feature(state).name
+    return featureStateName ? table[featureStateName] : 0;
+  };
+  
+  var startState = {loc:[0,0], terminateAfterAction: false, timeLeft: 4};
+  var agent = makeMDPAgent({alpha:100, utility:utility}, world);
+  var actions = simulateMDP(startState, world, agent, 'actions');
+  assert.ok( actions.length == 3 && actions[0]==='u' && actions[1]==='r' && actions[2]==='l');
+};
+
+
+var testStochastic = function(){
+  var line = ['', '', '', ''];
+  var features = [line, line];
+  
+  var options = {noReverse: false};
+  var world = makeNoisyGridworld(features, options, .1);
+
+  // utility:
+  // [0, 0, -1000, -1000],
+  // [0, 0, 0, 10] 
+  
+  var utility = function(state,action){
+    if (state.loc[0]>=2 && state.loc[1]==1){return -1000;};
+    if (state.loc[0]==3 && state.loc[1]==0){return 10;};
+    return 0;
+  };
+
+  var startState = {loc:[0,0], terminateAfterAction: false, timeLeft: 15};
+  var agent = makeMDPAgent({alpha:100, utility:utility}, world);
+  var actions = simulateMDP(startState, world, agent, 'actions');
+  assert.ok( !( actions[0]==='r' && actions[1]==='r' && actions[2]==='r' ) );
+};
+
+
+var testHike = function(){
+  
+  var transitionNoiseProb = 0;
+  var world = makeHike(transitionNoiseProb);
+  var startState = {loc: [0,1],
+		    timeLeft: 12,
+		    terminateAfterAction: false};
+  
+  // parameters for agent
+  var utilityTable = {East: 10, West: 1, Hill: -10, timeCost: -.1};
+  var utility = makeHikeUtilityFunction(world, utilityTable);
+  var agent = makeMDPAgent({utility: utility, alpha: 1000}, world);
+  var actions = simulateMDP(startState, world, agent, 'actions');
+  assert.ok( actions[0]==='r' && actions[1]==='r' && actions[2]==='r' );
+};
+  
+var tests = [testSimple(), testNamed(), testStochastic(), testHike()];
+console.log('passed all tests in makeGridworld.wppl')
+
+

@@ -1,0 +1,171 @@
+
+
+var inGrid_ = function(gridMap, loc) {
+  return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
+          loc[1] >= 0 && loc[1] < gridMap.yLim);
+}
+
+var isBlockedLoc = function(gridMap, loc) {
+  var getFeature = gridMap.feature;
+  var feature = getFeature({ loc : loc});
+  return feature === '#';
+}
+
+var isAllowedState_ = function(gridMap, loc) {
+  return (inGrid_(gridMap, loc)) && !isBlockedLoc(gridMap, loc);
+};
+
+var advanceStateTime = function(state) { 
+  return update(state, { 
+    timeLeft : state.timeLeft - 1, 
+    terminateAfterAction : state.timeLeft - 1> 1 ? state.terminateAfterAction : true, 
+    previousLoc : state.loc
+  });
+};
+
+var addPrevious = function(state) { 
+  return update(state, { previousLoc : state.loc });
+};
+
+var advanceRestaurant = function(state, maxTimeAtRestaurant) { 
+  var timeAtRestaurant = (state.timeAtRestaurant === undefined) ? 0 : state.timeAtRestaurant + 1 ;
+  var state = update(state, { timeAtRestaurant : timeAtRestaurant }); 
+
+  if (state.timeAtRestaurant < maxTimeAtRestaurant - 1) {
+    return state;
+  } else {
+    return update(state, { terminateAfterAction : true });
+  }
+};
+
+var moveState = function(gridMap, state, action) { 
+  var loc = state.loc;
+  var gridTransition = {l: [loc[0]-1, loc[1]],
+                        r: [loc[0]+1, loc[1]],
+                        u: [loc[0], loc[1]+1],
+                        d: [loc[0], loc[1]-1]};
+
+  var possibleNextLoc = gridTransition[action];
+  assert.ok(possibleNextLoc != undefined, 'action was not found');
+
+  var nextLoc = isAllowedState_(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
+  return update(state, { loc : nextLoc });
+};
+
+var makeGridTransition_ = function(gridMap, options) {
+  return function(state,action){
+    var getFeature = gridMap.feature;
+    var state = options.noReverse ? addPrevious(state) : state;
+    var state = !getFeature(state).name ? advanceStateTime(state) : state;
+
+    var state = !getFeature(state).name ? moveState(gridMap, state, action) : state;
+    var state = getFeature(state).name ? advanceRestaurant(state, options.maxTimeAtRestaurant) : state;
+
+    return state;
+  };
+};
+
+var makeNoisyGridTransition_ = function(gridMap, options, transitionNoiseProb) {
+  var deterministicTransition = makeGridTransition_(gridMap, options);
+  // If agent selects *key*, with *transitionNoiseProb* they do one of the two
+  // orthogonal actions
+  var noiseActionTable = {u: ['l','r'],
+			  d: ['l','r'],
+			  l: ['u','d'],
+			  r: ['u','d']};
+
+  return function(state,action){
+    return flip(1-transitionNoiseProb) ? deterministicTransition(state,action)
+      : deterministicTransition(state, uniformDraw(noiseActionTable[action]));
+  };
+};
+
+
+var makeGridMap = function(rfeatures)  { 
+  var features = rfeatures.reverse();
+  return { 
+    features : features,
+    xLim : features[0].length,
+    yLim : features.length,
+    feature : function (state) { 
+      return features[state.loc[1]][state.loc[0]];
+    }
+  };
+};
+
+
+
+var makeGridWorld = function(features, options) {
+  var defaults = { noReverse : false, maxTimeAtRestaurant : 1 };
+
+  var options = update(defaults, options);
+  var gridMap = makeGridMap(features); 
+
+  var transition = makeGridTransition_(gridMap, options);
+  var actions = ['l', 'r', 'u', 'd'];
+
+  var stateToActions = function (state) { 
+
+    var possibleActions = filter(function (action) { 
+      var newState = transition(state, action);
+      if (options.noReverse && 
+          state.previousLoc && 
+          state.previousLoc[0] === newState.loc[0] && state.previousLoc[1] === newState.loc[1]) { return false; }
+      return state.loc[0] !== newState.loc[0] || state.loc[1] !== newState.loc[1];
+    }, actions);
+
+    if (possibleActions.length > 0) {
+      return possibleActions;
+    } else { 
+      return [actions[0]];
+    }
+  };
+
+  return update(gridMap,
+    { transition : transition, 
+      actions    : actions,
+      stateToActions    : stateToActions
+    });
+};
+
+
+var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
+  var defaults = { noReverse: false, maxTimeAtRestaurant : 1 };
+
+  var options = update(defaults, inputOptions);
+  var gridMap = makeGridMap(features); 
+
+  var transition = makeNoisyGridTransition_(gridMap, options,
+					    transitionNoiseProb);
+  var actions = ['l', 'r', 'u', 'd'];
+
+  var stateToActions = function (state) { 
+    var possibleActions = filter(function (action) {
+      // if noReverse, check that MAP of newState doesn't reverse you
+      var transitionERP = Enumerate(function(){
+	return transition(state, action);
+      });
+      var likelyNewState = MAP(transitionERP).val;
+      if (options.noReverse && state.previousLoc
+	  && state.previousLoc[0] === likelyNewState.loc[0]
+	  && state.previousLoc[1] === likelyNewState.loc[1]) {
+	return false;
+      } else {
+	return state.loc[0] !== likelyNewState.loc[0]
+	  || state.loc[1] !== likelyNewState.loc[1];
+      }}, actions);
+			
+
+    if (possibleActions.length > 0) {
+      return possibleActions;
+    } else { 
+      return [actions[0]];
+    }
+  };
+
+  return update(gridMap,
+    { transition : transition, 
+      actions : actions,
+      stateToActions : stateToActions
+    });
+};
