@@ -11,9 +11,10 @@ Make it easy for user to create custom gridworld:
 
 ### Incremental plan
 
-1. Could have makeRestaurantChoice output the startState and
-utility function constructor also. At least test this in the
-makeGridWorld test. 
+0. Remove examples that fail and have some simple examples of restaurant choice that pass (with mdp and belief agents). 
+
+1. Could have makeRestaurantChoiceMDP and makeHike output the startState and
+utility function constructor also. 
 
 3. Merge pomdp with mdp script.
 
