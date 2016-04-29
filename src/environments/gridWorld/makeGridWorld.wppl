@@ -95,10 +95,11 @@ var makeGridMap = function(rfeatures)  {
 
 
 
-var makeGridWorld = function(features, options) {
+var makeGridWorldDeterministic = function(features, options) {
   var defaults = { noReverse : false, maxTimeAtRestaurant : 1 };
 
   var options = update(defaults, options);
+
   var gridMap = makeGridMap(features); 
 
   var transition = makeGridTransition_(gridMap, options);
@@ -169,3 +170,50 @@ var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
       stateToActions : stateToActions
     });
 };
+
+
+
+
+var makeGridWorld = function(options){
+  
+  var defaults = {
+    noReverse: false,
+    maxTimeAtRestaurant: 1,
+    transitionNoiseProbability: 0,
+    startingLocation: [0,0],
+  };
+
+  var options = update(defaults, options);
+
+  // add asserts (gridFeatures is wellformed, totalTime is, transition time is
+
+  var world = (options.transitionNoiseProbability == 0) ?
+      makeGridWorldDeterministic(options.gridFeatures, options) :
+      makeNoisyGridworld(options.gridFeatures, options, options.transitionNoiseProbability);
+
+  var startState = {loc: options.startingLocation, 
+                    terminateAfterAction: false,
+                    timeLeft: options.totalTime};
+
+  var makeUtility = function(world, utilityTable){
+    assert.ok( world.hasOwnProprty('timeCost'), 'makeUtility needs timeCost');
+    return function(state, action){
+      var getFeature = world.feature;
+      var feature = getFeature(state);
+      if (feature.name) { return utilityTable[feature.name][state.timeAtRestaurant]; }
+      return utilityTable.timeCost;
+    };
+  };  
+  
+  // we could output 'feature' or a world
+  return {world: world, startState: startState, makeUtility: makeUtility};
+
+};  
+      
+
+  
+  
+
+
+
+

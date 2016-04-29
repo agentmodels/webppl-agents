@@ -5,8 +5,9 @@ var testSimple = function(){
   var features = [[ '' ,  '' ],
 	          [ '' , '#'] ];
 
-  var options = {noReverse: false};
-  var world = makeGridWorld(features, options);
+  var options = {noReverse: false,
+                 gridFeatures: features};
+  var world = makeGridWorld(options).world;
 
   var utility = function(state,action){
     if (state.loc[0]==1 && state.loc[1]==1){
@@ -22,14 +23,17 @@ var testSimple = function(){
   assert.ok( actions[0]==='u' && actions[1]==='r' && actions[2]==='l');
 };
 
+
   // simple grid with named feature
 var testNamed = function(){
   
   var features = [[ '' ,  {name:'cafe'} ],
 	          [ '' , '#'] ];
 
-  var options = {noReverse: false};
-  var world = makeGridWorld(features, options);
+  var options = {noReverse: false,
+                 gridFeatures: features};
+  var world = makeGridWorld(options).world;
+
 
   var utility = function(state,action){
     var feature = world.feature;
@@ -49,9 +53,12 @@ var testStochastic = function(){
   var line = ['', '', '', ''];
   var features = [line, line];
   
-  var options = {noReverse: false};
-  var world = makeNoisyGridworld(features, options, .1);
-
+  var options = {noReverse: false,
+                 gridFeatures: features,
+                 transitionNoiseProbability: .1};
+  
+  var world = makeGridWorld(options).world;
+  
   // utility:
   // [0, 0, -1000, -1000],
   // [0, 0, 0, 10] 

@@ -28,7 +28,12 @@ var makeHike = function(transitionNoiseProb, options) {
   
   var features = options_.big ? bigFeatures : smallFeatures;
   
-  return makeNoisyGridworld(features, options_, transitionNoiseProb);
+  var options = {
+    gridFeatures: features,
+    transitionNoiseProbability: transitionNoiseProb
+  };
+  
+  return makeGridWorld(options).world;
 };
 
 var makeHikeUtilityFunction = function(world, utilityTable){
