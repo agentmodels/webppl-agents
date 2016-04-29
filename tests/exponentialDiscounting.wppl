@@ -1,4 +1,5 @@
 // test exponential discounting for hyperbolic and beliefDelay agent
+// takes approximately 1 minute to run
 
 // in gridworld, exponential discounter should never go to donut north.
 // this test is probabilistic in the discount: it always passes when exponential
@@ -29,15 +30,15 @@ var test1 = function() {
     'timeCost': -.01
   });
 
-  var gamma = uniform(0,1);
-  
+  var gamma = uniform(0, 1);
+
   var exponentialDiscount = function(delay) {
     return Math.pow(gamma, delay);
   };
   
   var baseAgentParams = {
     utility : restaurantUtility,
-    alpha : 500000, 
+    alpha : 5000, 
     discount : 0,
     discountFunction: exponentialDiscount
   };
@@ -52,20 +53,26 @@ var test1 = function() {
     world
   );
 
-  var naiveTrajectory = simulateHyperbolic(startState, world, naiveAgent,
-					   'states');
+  var naiveTrajectoryDistribution = Enumerate(function(){
+    return simulateHyperbolic(startState, world, naiveAgent, 'states');
+  });
+
+  var mostLikelyNaiveTrajectory = MAP(naiveTrajectoryDistribution).val;
   
-  var sophisticatedTrajectory = simulateHyperbolic(startState, world,
-						   sophisticatedAgent,
-						   'states');
+  var sophisticatedTrajectoryDistribution = Enumerate(function(){
+    return simulateHyperbolic(startState, world, sophisticatedAgent, 'states');
+  });
+
+  var mostLikelySophisticatedTrajectory = MAP(sophisticatedTrajectoryDistribution).val;
 
   var goesToDonutN = function(trajectory){
     return any(function(state){return _.isEqual(state.loc, [2,5]);},
 	       trajectory);
   };
 
-  assert.ok(!goesToDonutN(naiveTrajectory) && !goesToDonutN(sophisticatedTrajectory),
-	    'exponential discounter should never go to donut north, test 1 fails');
+  assert.ok(!goesToDonutN(mostLikelyNaiveTrajectory)
+	    && !goesToDonutN(mostLikelySophisticatedTrajectory),
+	    'exponential discounter should never go to donut north, test 1 fails with gamma = ' + gamma);
 };
 
 // trajectories of naive and sophisticated agent should be identical. this test
@@ -162,27 +169,38 @@ var test2 = function() {
 // exponential discounter should not explore in bandits, unless discount factor
 // is small
 var test3 = function(){
-  var world = makeDeterministicBandit(2);
-  var latentState = {start: 0, rewards: [0.5, 1]};
-  var startState = buildDeterministicBanditStartState(3, latentState);
-  var priorBelief = Enumerate(function(){
-    var reward1 = categorical([0.6, 0.4], [0,1]);
-    var latent =  {start: 0,
-		   rewards: [0.5, reward1]};
-    return buildDeterministicBanditStartState(3, latent);
-  });
+  var options = {
+    numberOfArms: 2,
+    armToPrizeERP: {
+      0: deltaERP(0.5),
+      1: deltaERP(1)
+    },
+    numberOfTrials: 3,
+    numericalPrizes: true
+  };
+  var armToPrizeERP = options.armToPrizeERP;
+  var numberOfTrials = options.numberOfTrials;
+  var bandit = makeBandit(options);
+  var world = bandit.world;
+  var startState = bandit.startState;
+
+  var armToPrizeERPSampler = function() {
+    return {
+      0: deltaERP(0.5),
+      1: categorical([0.6, 0.4], [deltaERP(0), deltaERP(1)])
+    };
+  };
+
+  var agentPrior = _getPriorBelief(numberOfTrials, 'start',
+				   armToPrizeERPSampler);
 
   var lightDiscount = function(delay) {
     return Math.pow(0.8, delay);
   };
   
   var lightDiscounterParams = { 
-    utility: function (state,action) {
-      return state.manifestState.loc === 'start' ? state.latentState.start
-	: state.latentState.rewards[state.manifestState.loc];
-    },
     alpha: 100000,
-    priorBelief: priorBelief,
+    priorBelief: agentPrior,
     discount: 0,
     discountFunction: lightDiscount,
     sophisticatedOrNaive: 'naive',
@@ -191,7 +209,8 @@ var test3 = function(){
     boundVOI: {on: false, bound: 0}
   };
 
-  var lightDiscounter = makeBeliefDelayAgent(lightDiscounterParams, world);
+  var lightDiscounter = makeBanditAgent(lightDiscounterParams, bandit,
+					'beliefDelay');
   
   var lightDiscounterTrajectory = simulateBeliefDelayAgent(startState, world,
 							   lightDiscounter,
@@ -205,12 +224,8 @@ var test3 = function(){
   };
   
   var heavyDiscounterParams = { 
-    utility: function (state,action) {
-      return state.manifestState.loc === 'start' ? state.latentState.start
-	: state.latentState.rewards[state.manifestState.loc];
-    },
     alpha: 100000,
-    priorBelief: priorBelief,
+    priorBelief: agentPrior,
     discount: 0,
     discountFunction: heavyDiscount,
     sophisticatedOrNaive: 'naive',
@@ -219,7 +234,8 @@ var test3 = function(){
     boundVOI: {on: false, bound: 0}
   };
 
-  var heavyDiscounter = makeBeliefDelayAgent(heavyDiscounterParams, world);
+  var heavyDiscounter = makeBanditAgent(heavyDiscounterParams, bandit,
+					'beliefDelay');
   
   var heavyDiscounterTrajectory = simulateBeliefDelayAgent(startState, world,
 							   heavyDiscounter,
