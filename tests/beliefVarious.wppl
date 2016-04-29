@@ -81,9 +81,8 @@ var testAgent = function(){
 
   
   // gridworld tests
-
-  var gridworldMDP = makeDonutWorld2({big: true, maxTimeAtRestaurant : 1});
-  var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
+  var options = {maxTimeAtRestaurant: 1};
+  var gridworldPOMDP = makeRestaurantChoicePOMDP(options);
 
   var makePriorGridworld = function(manifestState, latentStateERP) {
     return Enumerate(function(){

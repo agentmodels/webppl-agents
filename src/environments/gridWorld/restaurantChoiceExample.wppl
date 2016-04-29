@@ -7,25 +7,17 @@ var restaurant = {
   noodle: { name : 'Noodle'}
 };
 
-var makeDonutWorld2 = function(options) { 
+var makeRestaurantChoiceMDP = function(options) { 
   var __ = ' '; 
   var DN = restaurant.donutN;
   var DS = restaurant.donutS;
   var V = restaurant.veg;
   var N = restaurant.noodle;
 
-  var options = options || {};
+  var defaults = {noReverse:true, maxTimeAtRestaurant:2};
+  var options = update(defaults, options);
 
-  var small = 
-    [['#', '#', '#',  V , '#'],
-     ['#', '#',  __ ,  __ ,  __ ],  
-     ['#', DN ,  __ , '#',  __ ],
-     ['#', '#',  __ ,  __ ,  __ ],
-     ['#', '#',  __ , '#',  N ],
-     [ __ ,  __ ,  __ , '#', '#'],
-     [DS , '#',  __ , '#', '#']];
-
-  var big = 
+  var features = 
     [['#', '#', '#', '#',  V , '#'],
      ['#', '#', '#',  __ ,  __ ,  __ ],  
      ['#', '#', DN ,  __ , '#',  __ ],
@@ -35,29 +27,16 @@ var makeDonutWorld2 = function(options) {
      [ __ ,  __ ,  __ ,  __ , '#', '#'],
      [DS , '#', '#',  __ , '#', '#']];
 
-  var features = options.big ? big : small;
   var options = update(options, {gridFeatures: features});
   return makeGridWorld(options).world;
 };
 
-var makeRestaurantChoiceMDP = function(options){
-  if (options){
-    return makeDonutWorld2( update(options,{big:true} ) );
-  } else {
-    return makeDonutWorld2( update(options,{big:true, noReverse:true, maxTimeAtRestaurant:2} ) );
-  }
-};
 
-
-var restaurantChoiceMDP = makeDonutWorld2({ big : true, noReverse : true, maxTimeAtRestaurant : 2});
 var restaurantChoiceStart = { 
   loc : [3,1],
   terminateAfterAction : false,
   timeLeft : 11
 };
-
-var restaurantChoiceMDPWithReverse = makeDonutWorld2({ big : true, noReverse : false, maxTimeAtRestaurant : 2});
-
 
 
 
@@ -109,7 +88,6 @@ var restaurantNameToObservationTime11Reverse = function(name){
   }, ar);
 };
 
-var allButLast = function(ar){return ar.slice(0,ar.length-1);};
 
 
 var restaurantPathToName = function(path){
@@ -132,27 +110,14 @@ var makeRestaurantUtilityFunction = function (world, utilityTable) {
 
 
 
-
-
-
 // POMDP case
-// Make big gridworld
-var getBigDonutWorld = function(){
-  var gridworldMDP = makeDonutWorld2({big: true});
+var makeRestaurantChoicePOMDP = function(options){
+  var gridworldMDP = makeRestaurantChoiceMDP(options);
   var feature = gridworldMDP.feature;
-  return update(makeGridworldPOMDP(gridworldMDP), {feature:feature, gridworldMDP:gridworldMDP});
+  return update(makeGridworldPOMDP(gridworldMDP), 
+                {feature: feature, restaurantChoiceMDP: gridworldMDP});
 };
 
-// make restaurant choice POMDP with variable maxTimeAtRestaurant
-var getRestaurantChoicePOMDP = function(maxTimeAtRestaurant_){
-  var maxTimeAtRestaurant = _.isUndefined(maxTimeAtRestaurant_) ? 1
-	: maxTimeAtRestaurant_;
-  var gridworldMDP = makeDonutWorld2({big: true, noReverse: true,
-				      maxTimeAtRestaurant: maxTimeAtRestaurant});
-  var feature = gridworldMDP.feature;
-  return update(makeGridworldPOMDP(gridworldMDP), {feature: feature,
-						   restaurantChoiceMDP: gridworldMDP});
-};
 
 var allOpenRestaurantChoiceStart = {
   manifestState: { loc: [3,1],
@@ -208,6 +173,7 @@ var restaurantSearchStartState =
 		       timeLeft: 17,
 		       terminateAfterAction: false},
        latentState: {A: 3, B: 3, C: 4, D: 5, E: 0}};
+
 
 
 

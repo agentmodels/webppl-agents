@@ -25,6 +25,9 @@ var isGridworld = function(world){return world
 // case the agent stays put.
 // observe tells the agent which adjacent restaurants are open. If the agent is not
 // adjacent to any restaurants, they get 'noObservation'.
+
+
+// TODO rename gridworld to gridWorldMDPWorld or something
 var makeGridworldPOMDP = function(gridworld) {
   assert.ok(isGridworld(gridworld), 'makeGridworldPOMDP arg');
 

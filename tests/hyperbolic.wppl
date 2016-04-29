@@ -5,7 +5,7 @@ var start = {
 };
 
 
-var world = makeDonutWorld2({ big : true, maxTimeAtRestaurant : 2 });
+var world = makeRestaurantChoiceMDP({noReverse:false});
 var donutUtility = makeDonutUtility(world, {
     'Donut N' : [10, -10],
     'Donut S' : [10, -10],
