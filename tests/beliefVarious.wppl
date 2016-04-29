@@ -210,8 +210,8 @@ var testAgent = function(){
 	   [ _ , '#'],
 	   [ _ , '#'],
 	   [ _ ,  N ]];
-    
-    return makeGridWorld(features, myOptions);
+    var myOptions = update(myOptions, {gridFeatures: features});
+    return makeGridWorld(myOptions).world;
   };
 
   var forkyGridworldMDP = makeForkRoad({noReverse: true});

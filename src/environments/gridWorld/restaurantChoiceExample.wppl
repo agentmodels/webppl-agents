@@ -176,8 +176,6 @@ var straightToVegStates = [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7
 
 
 
-
-
 // TODO MOVE THIS
 // constructor for restaurant search bandit gridworld example
 
@@ -210,4 +208,8 @@ var restaurantSearchStartState =
 		       timeLeft: 17,
 		       terminateAfterAction: false},
        latentState: {A: 3, B: 3, C: 4, D: 5, E: 0}};
+
+
+
+
 
