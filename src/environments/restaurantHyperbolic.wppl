@@ -1,3 +1,6 @@
+// TODO move to gridWorld directory
+
+
 var getRestaurantHyperbolicInfer = function(){
 
   var getObservations = function(world, start, pathName){
