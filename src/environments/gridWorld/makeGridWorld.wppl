@@ -97,7 +97,6 @@ var makeGridMap = function(rfeatures)  {
 
 var makeGridWorldDeterministic = function(features, options) {
   var defaults = { noReverse : false, maxTimeAtRestaurant : 1 };
-
   var options = update(defaults, options);
 
   var gridMap = makeGridMap(features); 
@@ -204,6 +203,7 @@ var makeGridWorld = function(options){
       return utilityTable.timeCost;
     };
   };  
+
   
   // we could output 'feature' or a world
   return {world: world, startState: startState, makeUtility: makeUtility};

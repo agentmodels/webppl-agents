@@ -37,7 +37,7 @@ var makeDonutWorld2 = function(options) {
 
   var features = options.big ? big : small;
   var options = update(options, {gridFeatures: features});
-  return makeGridWorld(options);
+  return makeGridWorld(options).world;
 };
 
 var makeRestaurantChoiceMDP = function(options){
@@ -201,7 +201,7 @@ var makeRestaurantSearchMDP = function(options_) {
 	 ['#', '#', '#',  E ]];
 
   var options = update(options, {gridFeatures: features});
-  return makeGridWorld(options);
+  return makeGridWorld(options).world;
 };
 
 // start state for restaurant search pomdp
@@ -210,3 +210,4 @@ var restaurantSearchStartState =
 		       timeLeft: 17,
 		       terminateAfterAction: false},
        latentState: {A: 3, B: 3, C: 4, D: 5, E: 0}};
+
