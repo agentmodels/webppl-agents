@@ -11,9 +11,9 @@ Make it easy for user to create custom gridworld:
 
 ### Incremental plan
 
-1. Clean up makeDonutWorld2 and so on. Fix existing TODOs.
-
-3. Spec and implement more uniform utilityFunction constructor. 
+1. Could have makeRestaurantChoice output the startState and
+utility function constructor also. At least test this in the
+makeGridWorld test. 
 
 3. Merge pomdp with mdp script.
 

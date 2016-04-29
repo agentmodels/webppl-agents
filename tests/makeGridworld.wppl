@@ -31,10 +31,15 @@ var testNamed = function(){
 	          [ '' , '#'] ];
 
   var options = {noReverse: false,
-                 gridFeatures: features};
-  var world = makeGridWorld(options).world;
+                 gridFeatures: features,
+                 totalTime: 4,
+                 startingLocation: [0,0]};
+  
+  var gridWorld = makeGridWorld(options)
+  var world = gridWorld.world;
+  var makeUtility = gridWorld.makeUtility;
 
-
+  // make utility and startState manually
   var utility = function(state,action){
     var feature = world.feature;
     var table = {cafe:1};
@@ -42,10 +47,23 @@ var testNamed = function(){
     return featureStateName ? table[featureStateName] : 0;
   };
   
-  var startState = {loc:[0,0], terminateAfterAction: false, timeLeft: 4};
+  var startState = {loc:options.startingLocation, 
+                    terminateAfterAction: false,
+                    timeLeft: options.totalTime};
+  
   var agent = makeMDPAgent({alpha:100, utility:utility}, world);
   var actions = simulateMDP(startState, world, agent, 'actions');
   assert.ok( actions.length == 3 && actions[0]==='u' && actions[1]==='r' && actions[2]==='l');
+
+  
+  // utility and startState from gridworld constructor
+  var utilityTable = {cafe: 1, timeCost:0};
+  var utility = makeUtility(utilityTable);
+  var startState = gridWorld.startState;
+
+  var agent = makeMDPAgent({alpha:100, utility:utility}, world);
+  var actions = simulateMDP(startState, world, agent, 'actions');
+  assert.ok( actions.length == 3 && actions[0]==='u' && actions[1]==='r' && actions[2]==='l');  
 };
 
 
