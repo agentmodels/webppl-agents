@@ -24,7 +24,7 @@
       "src/beliefAgent.wppl",
       "src/beliefDelayAgent.wppl",
       "src/bandits.wppl",
-      "src/banditGridworld.wppl"	
+      "src/banditGridworld.wppl",	
       "src/environments/gridWorld/hikingExample.wppl",
       "src/environments/gridWorld/restaurantChoiceExample.wppl"
     ]
