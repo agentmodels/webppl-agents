@@ -172,7 +172,6 @@ var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
 
 
 
-
 var makeGridWorld = function(options){
   
   var defaults = {
@@ -180,11 +179,19 @@ var makeGridWorld = function(options){
     maxTimeAtRestaurant: 1,
     transitionNoiseProbability: 0,
     startingLocation: [0,0],
+    totalTime: 2
   };
 
   var options = update(defaults, options);
 
-  // add asserts (gridFeatures is wellformed, totalTime is, transition time is
+  map( function(el){
+    assert.ok( _.isString(el) || _.isString(el.name), 'gridFeatures is invalid')
+  }, _.flatten(options.gridFeatures));
+
+  assert.ok( options.totalTime >= 1, 'totalTime is invalid');
+  assert.ok( options.transitionNoiseProbability <= 1, 'transitionNoiseProbability is invalid');
+  assert.ok( options.startingLocation.length == 2, 'startingLocation is invalid');
+  
 
   var world = (options.transitionNoiseProbability == 0) ?
       makeGridWorldDeterministic(options.gridFeatures, options) :
@@ -194,6 +201,8 @@ var makeGridWorld = function(options){
                     terminateAfterAction: false,
                     timeLeft: options.totalTime};
 
+  
+  // assumes that utilities are only defined on named features and timeCost
   var makeUtility = function(world, utilityTable){
     assert.ok( world.hasOwnProprty('timeCost'), 'makeUtility needs timeCost');
     return function(state, action){

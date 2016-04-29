@@ -13,9 +13,6 @@ Make it easy for user to create custom gridworld:
 
 1. Clean up makeDonutWorld2 and so on. Fix existing TODOs.
 
-2. Add a single constructor with options as below. Change noisyGridworld examples in
-agentModels and tests.
-
 3. Spec and implement more uniform utilityFunction constructor. 
 
 3. Merge pomdp with mdp script.

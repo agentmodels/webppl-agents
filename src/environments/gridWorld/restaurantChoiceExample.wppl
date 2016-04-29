@@ -88,15 +88,13 @@ var restaurantNameToObservationTime11Reverse = function(name){
   }, ar);
 };
 
-
-
 var restaurantPathToName = function(path){
   var table = _.invert(restaurantNameToPath);
   var name = table[path] || 'not in table';
   return 'path: ' + name;
 };
 
-
+// TODO can get rid of this
 var makeRestaurantUtilityFunction = function (world, utilityTable) { 
   return function(state, action) {
     var getFeature = world.feature;
