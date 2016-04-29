@@ -7,7 +7,23 @@ Make it easy for user to create custom gridworld:
 - need some way of specifying terminal states (independent of specifying something as a named feature).
 - add labels
 - remove references to restaurants. talk about terminals, landmarks, namedLocation. 
- 
+
+
+### Incremental plan
+
+1. Clean up makeDonutWorld2 and so on. Fix existing TODOs.
+
+2. Add a single constructor with options as below. Change noisyGridworld examples in
+agentModels and tests.
+
+3. Spec and implement more uniform utilityFunction constructor. 
+
+3. Merge pomdp with mdp script.
+
+4. Make a more detailed plan for having non-terminal features. 
+
+
+
 
 ```javascript
 var makeGridWorld = function(options){
