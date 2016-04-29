@@ -133,16 +133,16 @@ var makeStringBanditUtility = function(prizeToUtility) {
 };
 
 var makeBanditUtility = function(bandit, prizeToUtility) {
-  
   if (bandit.numericalPrizes) {
     return numericBanditUtility;
   } else {
     var prizesHaveUtilities = function(arm) {
+      var armToPrizeERP = bandit.armToPrizeERP;
       var erp = armToPrizeERP[arm];
       map(function(x){
 	assert.ok(_.isFinite(prizeToUtility[x]) && inSupport(x, erp),
 		  'makeBandit: some prizes do not have utilities');
-      }, erp.support);
+      }, erp.support());
     };
 
     mapN(prizesHaveUtilities, bandit.numberOfArms);
@@ -153,6 +153,7 @@ var makeBanditUtility = function(bandit, prizeToUtility) {
 
 var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
 			       prizeToUtility) {
+
   var priorBelief = agentParams.priorBelief;
   var numericalPrizes = bandit.numericalPrizes;
 
@@ -161,13 +162,13 @@ var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
 			bandit.startState.manifestState),
 	      'makeBanditAgent: priorBelief has wrong start manifestState');
   } else {
+    assert.ok(isERP(priorBelief), 'makeBanditAgent: priorBelief is neither an ERP nor an object containing a manifest state and a latentStateERP');
     assert.ok(_.isEqual(sample(priorBelief).manifestState,
 			bandit.startState.manifestState),
 	      'makeBanditAgent: priorBelief has wrong start manifestState');
   }
-  
-  var utility = makeBanditUtility(bandit, prizeToUtility);
 
+  var utility = makeBanditUtility(bandit, prizeToUtility);
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
 
   return makeAgent(update(agentParams, {utility: utility}),

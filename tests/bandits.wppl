@@ -130,11 +130,11 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
   var priorBelief = getPriorBelief( numberOfTrials,
 				    function(){return armToPrizeERP;},
 				    beliefOrBeliefDelay);
-//  console.log('prior: ', sample(priorBelief), sample(priorBelief), sample(priorBelief)); ash();
+  //  console.log('prior: ', sample(priorBelief), sample(priorBelief), sample(priorBelief)); ash();
   var trajectory = getTrajectory( priorBelief );
   assert.ok( trajectory[0] === 0, 'fail banditexample 1');
 
-  // Agent has .5 chance on arm 1 having best prize c, and so tries 1 before switching to 0. 
+  // Agent has .5 chance on arm 1 having best prize c, and so tries 1 before switching to 0.
   var priorBelief = getPriorBelief( numberOfTrials, function(){
     return categorical( [.5, .5], [ armToPrizeERP,
 				   {0:deltaERP('a'), 1:deltaERP('c')}]);
@@ -143,7 +143,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
   
   assert.ok( trajectory[0] === 1 && trajectory[1] === 0, 'fail banditexample 2');
 
-  
+
  
   
   // --------------------------------
@@ -236,7 +236,7 @@ var banditGenerativeDelay = function(){
     function(){
       var dist = function(){
 	return categorical([.02, 0.49, 0.49],
-			   [deltaERP('a'), deltaERP('b'),deltaERP('c')]);
+			   [deltaERP('a'), deltaERP('b'), deltaERP('c')]);
       };
 
       return {0:deltaERP('a'), 1:dist(), 2:dist(), 3:dist()};
@@ -266,7 +266,7 @@ var banditGenerativeDelay = function(){
   assert.ok(  _.difference([1,2,3], actions).length == 0, 'fail bandit example 4');
   
   console.log('\n No discounting: (actions, timeit) ', out.value,
-	      out.runtimeInMilliseconds);
+  	      out.runtimeInMilliseconds);
 
   // Discounting
   var replaceParams = {discount:4, noDelays:false, priorBelief:priorBelief};
@@ -306,7 +306,6 @@ var banditGenerativeDelay = function(){
 		'fail bandit example myopia');
   };
   console.log( '\n MYOPIA \n Myopia should be faster than discount');
-  
   testMyopia(1,'not');
   testMyopia(2,'not');
   testMyopia(3,'explore');
@@ -319,7 +318,8 @@ var banditGenerativeDelay = function(){
       noDelays:false,
       sophisticatedOrNaive: 'naive',
       boundVOI:{on:true, bound:boundVOIBound}, 
-      priorBelief:priorBelief
+      priorBelief:priorBelief,
+      fastUpdateBelief: false
     };
     var agentParams = update(baseAgentParams, replaceParams);
     var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
@@ -329,14 +329,13 @@ var banditGenerativeDelay = function(){
     };
     var out = timeit(thunk);
     var actions = out.value.slice(0,3);
-    var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
-    assert.ok(  _.difference(prediction,actions).length == 0, 'fail bandit example boundVOI');
+    var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0];
+    assert.ok(  _.difference(prediction,actions).length === 0, 'fail bandit example boundVOI');
     console.log( '\n BoundVOI bound: ' + boundVOIBound + ' (actions, timeit) ',
                  out.value, out.runtimeInMilliseconds + ' ms');
   };
   console.log('\n BOUND VOI \n BoundVOI should be similar in runtime to discount');
   testBoundVOI(0,'not');
-  testBoundVOI(1,'explore');
   testBoundVOI(1,'explore');
 
   console.log('\n Passed banditGenerativeDelay');
@@ -502,32 +501,6 @@ var testInferBandit = function(beliefOrBeliefDelay){
   console.log('\n-----\npassed ALL inferBandit tests');
 };
 
-var runTestInferBandit = function(){
-  testInferBandit('beliefDelay');
-  testInferBandit('belief');
-};
-
-var speedTestOnly = function(){
-  speedTestBandits('beliefDelay');
-  console.log('\n\ BELIEF DELAY speedtest');
-  speedTestBandits('beliefDelay');
-};
-
-var beliefAgentTests = function(){
-  banditGenerativeNoDelay('belief');
-  testInferBandit('belief');
-  speedTestBandits('belief');
-};
-
-
-var beliefDelayAgentTests = function(){
-  banditGenerativeNoDelay('beliefDelay');
-  banditGenerativeDelay();
-  testInferBandit('beliefDelay');   
-  speedTestBandits('beliefDelay');
-};
-
-
 var stochasticTest1 = function() {
   // prizes are deterministic, and the agent knows this (as well as what the
   // prizes actually are). the agent should just pick the arm with the highest
@@ -673,6 +646,7 @@ var stochasticTest2 = function() {
   console.log('passed second stochastic test');
 };
 
+
 var stochasticTest3 = function(){
   // have example where agent isn't sure what the probabilities for the second
   // arm are. if the lifetime is long enough, agent should explore, and stay on
@@ -684,12 +658,12 @@ var stochasticTest3 = function(){
 
 
   // parameters for world
-  
+
   var luckyArmToPrizeERP = {0: deltaERP(1),
 			    1: categoricalERP([0.2, 0.8], [0, 1.5])};
 
   var unluckyArmToPrizeERP = {0: deltaERP(1),
-		       1: categoricalERP([0.8, 0.2], [0, 1.5])};
+			      1: categoricalERP([0.8, 0.2], [0, 1.5])};
 
   var shortBandit = makeBandit({
     numberOfTrials: 2,
@@ -713,19 +687,19 @@ var stochasticTest3 = function(){
   });
 
   // parameters for agent
-  
+
   var agentArmToPrizeERPPrior = function() {
     return uniformDraw([luckyArmToPrizeERP, unluckyArmToPrizeERP]);
   };
 
   var shortPrior = {manifestState: shortBandit.startState.manifestState,
-		    latentStateERP: agentArmToPrizeERPPrior};
+		    latentStateERP: Enumerate(agentArmToPrizeERPPrior)};
 
   var longPrior = {manifestState: longLuckyBandit.startState.manifestState,
-		   latentStateERP: agentArmToPrizeERPPrior};
+		   latentStateERP: Enumerate(agentArmToPrizeERPPrior)};
 
   // simulating agent in short environment
-  
+
   var agentParamsShort = {alpha: 100,
 			  priorBelief: shortPrior};
 
@@ -762,20 +736,48 @@ var stochasticTest3 = function(){
     assert.ok(trajectoryLongUnlucky[1][1] === 0,
 	      'agent should learn from bad luck');
   }
+};
 
+var runTestInferBandit = function(){
+  testInferBandit('beliefDelay');
+  testInferBandit('belief');
+};
+
+var speedTestOnly = function(){
+  speedTestBandits('beliefDelay');
+  console.log('\n\ BELIEF DELAY speedtest');
+  speedTestBandits('beliefDelay');
+};
+
+var beliefAgentTests = function(){
+  banditGenerativeNoDelay('belief');
+  testInferBandit('belief');
+  speedTestBandits('belief');
+};
+
+
+var beliefDelayAgentTests = function(){
+  banditGenerativeNoDelay('beliefDelay');
+  banditGenerativeDelay();
+  testInferBandit('beliefDelay');   
+  speedTestBandits('beliefDelay');
+};
+
+var stochasticTests = function(){
+  stochasticTest1();
+  stochasticTest2();
+  repeat(3, stochasticTest3);
   console.log('passed third stochastic test');
 };
 
-// console.log('\n\n------\n  BELIEF DELAY \n');
-// beliefDelayAgentTests();
-// console.log('\n\n------\n  BELIEF \n');
-// beliefAgentTests();
-// console.log('\n\n-----------\n ALL STRINGY "IRL" BANDIT TESTS PASSED');
+console.log('\n\n------\n  BELIEF DELAY \n');
+beliefDelayAgentTests();
+console.log('\n\n------\n  BELIEF \n');
+beliefAgentTests();
+console.log('\n\n-----------\n ALL STRINGY "IRL" BANDIT TESTS PASSED');
 
 console.log('\n\n-----------\n BEGINNING STOCHASTIC NUMERICAL BANDIT TESTS \n-----------');
-stochasticTest1();
-stochasticTest2();
-// stochasticTest3();
+stochasticTests();
 console.log('\n\n-----------\n ALL STOCHASTIC NUMERICAL BANDIT TESTS PASSED');
 null;
 
