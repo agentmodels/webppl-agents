@@ -19,13 +19,15 @@ var makeBanditWorld = function(numberOfArms) {
   var manifestStateToActions = function(manifestState) {return actions;};
 
   var transition = function(state, action){
+    
+    assert.ok(isERP(state.latentState[action]), 'bandit transition: latent state has no ERP for given action');
     // figure out what the prize is
     var prize = sample(state.latentState[action]);
 
     // make the new location the prize, advance the time
     var manifestStateWithReward = update(state.manifestState, {loc: prize});
     var newManifestState = advanceTime(manifestStateWithReward);
-    
+
     return buildState( newManifestState, state.latentState);
   };
 

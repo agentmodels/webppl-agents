@@ -167,9 +167,9 @@ var makeBeliefAgent = function(params, world) {
 	  } else {
 	    var nextState = transition(state, action);
 	    var nextObservation = observe(nextState);
-	    var nextBelief = updateBelief(belief, nextObservation, action);            
+	    var nextBelief = updateBelief(belief, nextObservation, action);
 	    var nextAction = sample(act(nextBelief));
-            
+	    
 	    var futureU = expectedUtilityBelief(nextBelief, nextAction);
 	    return u + futureU;
 	  }
@@ -239,7 +239,6 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
   var useDelays = beliefOrBeliefDelay=='beliefDelay';
 
   return function (startState, world, agent, outputType) {
-
     var totalTime = startState.manifestState.timeLeft;
     
     assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
@@ -265,7 +264,7 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
     };
 
     var shouldTerminate = function (manifestState) { return manifestState.terminateAfterAction; };
-    
+
     var sampleSequence = function(state, priorBelief, action) {
 
       var observation = observe(state);

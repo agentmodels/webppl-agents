@@ -2,8 +2,7 @@
 
 console.log('--- Stringy "IRL" bandit tests ---\n');
 
-var getPriorBelief = function(numberOfTrials, armToPrizeERPThunk,
-			      beliefOrBeliefDelay){
+var getPriorBelief = function(numberOfTrials, armToPrizeERPThunk){
   return _getPriorBelief(numberOfTrials, 'start', armToPrizeERPThunk);
 };
 
@@ -38,8 +37,7 @@ var speedTestBandits = function(beliefOrBeliefDelay){
 
       return {0:deltaERP('a'), 1:dist(), 2:dist(), 3:dist()};
     };
-    var priorBelief = getPriorBelief( numberOfTrials, armToPrizeERPThunk,
-				      beliefOrBeliefDelay) ;
+    var priorBelief = getPriorBelief( numberOfTrials, armToPrizeERPThunk);
     
     var baseAgentParams = {
       priorBelief: priorBelief,
@@ -128,8 +126,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
 
   // Agent knows armToPrizeERP, picks arm with best prize
   var priorBelief = getPriorBelief( numberOfTrials,
-				    function(){return armToPrizeERP;},
-				    beliefOrBeliefDelay);
+				    function(){return armToPrizeERP;});
   //  console.log('prior: ', sample(priorBelief), sample(priorBelief), sample(priorBelief)); ash();
   var trajectory = getTrajectory( priorBelief );
   assert.ok( trajectory[0] === 0, 'fail banditexample 1');
@@ -138,7 +135,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
   var priorBelief = getPriorBelief( numberOfTrials, function(){
     return categorical( [.5, .5], [ armToPrizeERP,
 				   {0:deltaERP('a'), 1:deltaERP('c')}]);
-  }, beliefOrBeliefDelay);
+  });
   var trajectory = getTrajectory( priorBelief );
   
   assert.ok( trajectory[0] === 1 && trajectory[1] === 0, 'fail banditexample 2');
@@ -184,7 +181,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
     };
     
     return {0:dist(), 1:dist(), 2:dist(), 3:dist()};
-  }, beliefOrBeliefDelay);
+  });
   
   var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
   var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
@@ -240,7 +237,7 @@ var banditGenerativeDelay = function(){
       };
 
       return {0:deltaERP('a'), 1:dist(), 2:dist(), 3:dist()};
-    }, beliefOrBeliefDelay);
+    });
 
   var baseAgentParams = {
     priorBelief: priorBelief,
@@ -369,7 +366,7 @@ var testInferBandit = function(beliefOrBeliefDelay){
 
   var agentPrior = getPriorBelief(numberOfTrials, function(){
     return {0:deltaERP('a'), 1:deltaERP('b')};
-  }, beliefOrBeliefDelay);
+  });
   var priorAgentPrior = deltaERP(agentPrior);
   var prior = {
     priorPrizeToUtility: Enumerate(function(){
@@ -445,13 +442,13 @@ var testInferBandit = function(beliefOrBeliefDelay){
       0:deltaERP('a'),
       1: categorical([.05, .95], [deltaERP('b'), deltaERP('c')])
     };
-  }, beliefOrBeliefDelay);
+  });
   var falseAgentPrior = getPriorBelief(numberOfTrials, function(){
     return {
       0:deltaERP('a'),
       1: categorical([.5, .5], [deltaERP('b'), deltaERP('c')])
     };
-  }, beliefOrBeliefDelay);
+  });
 
   var priorAgentPrior = Enumerate(function(){
     return flip() ? trueAgentPrior : falseAgentPrior;
@@ -738,13 +735,218 @@ var stochasticTest3 = function(){
   }
 };
 
+var deterministicTest1 = function() {
+  // Agent thinks 0 is likely better. It is better and so agent stays
+  var options = {
+    numberOfArms: 2,
+    armToPrizeERP: {
+      0: deltaERP(10),
+      1: deltaERP(5)
+    },
+    numberOfTrials: 3,
+    numericalPrizes: true
+  };
+  var bandit = makeBandit(options);
+  var armToPrizeERP = options.armToPrizeERP;
+  var numberOfTrials = options.numberOfTrials;
+  
+  var armToPrizeERPSampler = function(){
+    return categorical([0.8, 0.2], [armToPrizeERP, update(armToPrizeERP,
+							  {1: deltaERP(15)})]);
+  };
+
+  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
+  var agentParams = {
+    alpha: 100,
+    priorBelief: priorBelief
+  };
+  var agent = makeBanditAgent(agentParams, bandit, 'belief');
+
+  
+  var trajectory = simulateBeliefAgent(bandit.startState, bandit.world, agent,
+				       'actions');
+
+  map( function(index){assert.ok( trajectory[index] === 0,
+				  'Fail test 1 of deterministic numerical bandits');},
+       [0,1] );
+  console.log('Passed test 1');
+};
+
+var deterministicTest2 = function() {
+  // Agent thinks 0 is likely better, but tries 1 for the VOI.
+  // 1 is worse, so it goes back to 0.
+  var options = {
+    numberOfArms: 2,
+    armToPrizeERP: {
+      0: deltaERP(10),
+      1: deltaERP(5)
+    },
+    numberOfTrials: 5,
+    numericalPrizes: true
+  };
+  var bandit = makeBandit(options);
+  var armToPrizeERP = options.armToPrizeERP;
+  var numberOfTrials = options.numberOfTrials;
+  
+  var armToPrizeERPSampler = function(){
+    return categorical([0.6, 0.4], [armToPrizeERP, update(armToPrizeERP,
+							  {1: deltaERP(15)})]);
+  };
+
+  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
+  var agentParams = {
+    alpha: 100,
+    priorBelief: priorBelief
+  };
+  var agent = makeBanditAgent(agentParams, bandit, 'belief');
+
+  
+  var trajectory = simulateBeliefAgent(bandit.startState, bandit.world, agent,
+				       'actions');
+
+  assert.ok(trajectory[0] === 1, 'deterministic numerical bandit test 2 fails');
+
+  map(function(index){assert.ok(trajectory[index] === 0,
+				'deterministic numerical bandit test 2 fails');},
+      [1,2]);
+
+  console.log('Passed test 2');
+};
+
+
+var deterministicTest3 = function(){
+  // same as deterministicTest2, but arm 1 is actually better
+
+  var options = {
+    numberOfArms: 2,
+    armToPrizeERP: {
+      0: deltaERP(10),
+      1: deltaERP(15)
+    },
+    numberOfTrials: 5,
+    numericalPrizes: true
+  };
+  var bandit = makeBandit(options);
+  var armToPrizeERP = options.armToPrizeERP;
+  var numberOfTrials = options.numberOfTrials;
+  
+  var armToPrizeERPSampler = function(){
+    return categorical([0.4, 0.6], [armToPrizeERP, update(armToPrizeERP,
+							  {1: deltaERP(5)})]);
+  };
+
+  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
+  var agentParams = {
+    alpha: 100,
+    priorBelief: priorBelief
+  };
+  var agent = makeBanditAgent(agentParams, bandit, 'belief');
+
+  
+  var trajectory = simulateBeliefAgent(bandit.startState, bandit.world, agent,
+				       'actions');
+
+  map(function(index){assert.ok(trajectory[index] === 1,
+				'deterministic numerical bandit test 3 fails');},
+      [0,1,2]);
+
+  console.log('passed test 3');
+  
+};
+
+var deterministicTest4 = function(){
+  // three arms. agent should explore 1, then 2, then stick with 0.
+
+  var options = {
+    numberOfArms: 3,
+    armToPrizeERP: {
+      0: deltaERP(1),
+      1: deltaERP(0),
+      2: deltaERP(0)
+    },
+    numberOfTrials: 5,
+    numericalPrizes: true
+  };
+  var bandit = makeBandit(options);
+  var armToPrizeERP = options.armToPrizeERP;
+  var numberOfTrials = options.numberOfTrials;
+  
+  var armToPrizeERPSampler = function(){
+    return {
+      0: deltaERP(1),
+      1: categorical([0.8, 0.2], [deltaERP(0), deltaERP(200)]),
+      2: categorical([0.8, 0.2], [deltaERP(0), deltaERP(150)])
+    };
+  };
+  
+  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
+  
+  var agentParams = {
+    alpha: 100,
+    priorBelief: priorBelief
+  };
+  var agent = makeBanditAgent(agentParams, bandit, 'belief');
+  // something is wrong with trajectory
+  var trajectory = simulateBeliefAgent(bandit.startState, bandit.world, agent,
+				       'actions');
+
+  assert.ok(_.isEqual([1,2,0], trajectory.slice(0,3)),
+	    'deterministic numerical bandit test 4 fails');
+
+  console.log('passed test 4');
+  
+};
+
+var deterministicTest5 = function(){
+  // three arms. agent should explore 1, then stick with 2.
+
+  var options = {
+    numberOfArms: 3,
+    armToPrizeERP: {
+      0: deltaERP(1),
+      1: deltaERP(0),
+      2: deltaERP(150)
+    },
+    numberOfTrials: 5,
+    numericalPrizes: true
+  };
+  var bandit = makeBandit(options);
+  var armToPrizeERP = options.armToPrizeERP;
+  var numberOfTrials = options.numberOfTrials;
+  
+  var armToPrizeERPSampler = function(){
+    return {
+      0: deltaERP(1),
+      1: categorical([0.8, 0.2], [deltaERP(0), deltaERP(200)]),
+      2: categorical([0.8, 0.2], [deltaERP(0), deltaERP(150)])
+    };
+  };
+  
+  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
+  
+  var agentParams = {
+    alpha: 100,
+    priorBelief: priorBelief
+  };
+  var agent = makeBanditAgent(agentParams, bandit, 'belief');
+  // something is wrong with trajectory
+  var trajectory = simulateBeliefAgent(bandit.startState, bandit.world, agent,
+				       'actions');
+
+  assert.ok(_.isEqual([1,2,2], trajectory.slice(0,3)),
+	    'deterministic numerical bandit test 5 fails');
+
+  console.log('passed test 5');
+  
+};
+
 var runTestInferBandit = function(){
   testInferBandit('beliefDelay');
   testInferBandit('belief');
 };
 
 var speedTestOnly = function(){
-  speedTestBandits('beliefDelay');
+  speedTestBandits('belief');
   console.log('\n\ BELIEF DELAY speedtest');
   speedTestBandits('beliefDelay');
 };
@@ -770,6 +972,14 @@ var stochasticTests = function(){
   console.log('passed third stochastic test');
 };
 
+var deterministicTests = function(){
+  deterministicTest1();
+  deterministicTest2();
+  deterministicTest3();
+  deterministicTest4();
+  deterministicTest5();
+};
+
 console.log('\n\n------\n  BELIEF DELAY \n');
 beliefDelayAgentTests();
 console.log('\n\n------\n  BELIEF \n');
@@ -779,8 +989,8 @@ console.log('\n\n-----------\n ALL STRINGY "IRL" BANDIT TESTS PASSED');
 console.log('\n\n-----------\n BEGINNING STOCHASTIC NUMERICAL BANDIT TESTS \n-----------');
 stochasticTests();
 console.log('\n\n-----------\n ALL STOCHASTIC NUMERICAL BANDIT TESTS PASSED');
+
+console.log('\n\n-----------\n BEGINNING DETERMINISTIC NUMERICAL BANDIT TESTS \n-----------');
+deterministicTests();
+console.log('\n\n-----------\n ALL DETERMINISTIC NUMERICAL BANDIT TESTS PASSED');
 null;
-
-
-
-
