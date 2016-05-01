@@ -17,8 +17,6 @@
       "src/mdpAgent.wppl",
       "src/hyperbolic.wppl",
       "src/environments/gridWorld/makeGridWorld.wppl",
-      "src/environments/gridWorld/restaurantChoiceHyperbolicInfer.wppl",
-      "src/environments/procrastinationMDP.wppl",
       "src/POMDPUtils.wppl",
       "src/environments/gridWorld/gridworldPOMDP.wppl",
       "src/beliefAgent.wppl",
@@ -28,7 +26,9 @@
       "src/stochasticBandits.wppl",
       "src/banditGridworld.wppl",
       "src/environments/gridWorld/hikingExample.wppl",
-      "src/environments/gridWorld/restaurantChoiceExample.wppl"
+      "src/environments/gridWorld/restaurantChoiceExample.wppl",
+      "src/environments/gridWorld/restaurantChoiceHyperbolicInfer.wppl",
+      "src/environments/procrastinationMDP.wppl"      
     ]
   },
   "repository": {
