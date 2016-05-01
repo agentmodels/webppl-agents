@@ -13,10 +13,12 @@ Make it easy for user to create custom gridworld:
 
 0. Go through beliefDelay and belief/ examples and simplify them. 
 
+1. Currently, makeGridworld and other stuff in src/ have lots of globals. We could make many of these local. Is this worth doing?
+
 1. Could have makeRestaurantChoiceMDP and makeHike output the startState and
 utility function constructor also. 
 
-3. Merge pomdp with mdp script.
+3. Merge pomdp with mdp script?
 
 4. Make a more detailed plan for having non-terminal features. 
 

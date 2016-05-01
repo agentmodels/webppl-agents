@@ -133,7 +133,6 @@ var allOpenRestaurantChoiceStart = {
 
 // exludes last state
 var naiveDonutNorthStates = [[3,1], [3,2], [3,3], [3,4], [3,5], [2,5]];
-//var sophisticatedVegStates = 
 var straightToVegStates = [[3,1], [3,2], [3,3], [3,4], [3,5], [3,6], [4,6], [4,7]];
 
 
