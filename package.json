@@ -17,7 +17,7 @@
       "src/mdpAgent.wppl",
       "src/hyperbolic.wppl",
       "src/environments/gridWorld/makeGridWorld.wppl",
-      "src/environments/restaurantHyperbolic.wppl",
+      "src/environments/gridWorld/restaurantChoiceHyperbolicInfer.wppl",
       "src/environments/procrastinationMDP.wppl",
       "src/POMDPUtils.wppl",
       "src/environments/gridWorld/gridworldPOMDP.wppl",

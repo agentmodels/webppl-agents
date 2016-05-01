@@ -23,7 +23,7 @@ var getRestaurantHyperbolicInfer = function(){
         sophisticatedOrNaive  : sophisticatedOrNaive
       }, world);
     var observedStateAction = simulateHyperbolic(start, world, agent);
-    var observedLocs = getLocationsHyperbolic(observedStateAction);   
+    var observedLocs = map( function(x){return x[0].loc;}, observedStateAction);   
     // assert.ok( _.isEqual( observedLocs, restaurantNameToPath[pathName]), 'generated locs: ' + observedLocs + ' \n stored locs: 
 // ' + restaurantNameToPath[pathName]);
     return observedStateAction;

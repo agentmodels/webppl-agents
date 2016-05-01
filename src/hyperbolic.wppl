@@ -88,9 +88,9 @@ var simulateHyperbolic = function(startState, world, agent, outputType) {
 };
 
 // only works when outputType === 'stateAction'
-var getStatesHyperbolic = function(out){return _.map(out,0);};
-var getActionsHyperbolic = function(out){return _.map(out,1);};
-var getLocationsHyperbolic = function(out){return _.map(getStatesHyperbolic(out),'loc');};
+// var getStatesHyperbolic = function(out){return _.map(out,0);};
+// var getActionsHyperbolic = function(out){return _.map(out,1);};
+// var getLocationsHyperbolic = function(out){return _.map(getStatesHyperbolic(out),'loc');};
 
 
 
