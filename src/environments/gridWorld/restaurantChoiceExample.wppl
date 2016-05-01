@@ -1,13 +1,13 @@
 // Restaurant Choice Constructor and Helpers
 
-var restaurant = {
-  donutN : { name : 'Donut N'},
-  donutS : { name : 'Donut S'},
-  veg   : { name : 'Veg'},
-  noodle: { name : 'Noodle'}
-};
-
-var makeRestaurantChoiceMDP = function(options) { 
+var makeRestaurantChoiceMDP = function(options) {
+  var restaurant = {
+    donutN : { name : 'Donut N'},
+    donutS : { name : 'Donut S'},
+    veg   : { name : 'Veg'},
+    noodle: { name : 'Noodle'}
+  };
+  
   var __ = ' '; 
   var DN = restaurant.donutN;
   var DS = restaurant.donutS;
@@ -29,6 +29,17 @@ var makeRestaurantChoiceMDP = function(options) {
 
   var options = update(options, {gridFeatures: features});
   return makeGridWorld(options).world;
+};
+
+// NOTE: assumes two utilities per restaurant
+var makeRestaurantUtilityFunction = function (world, utilityTable) { 
+  return function(state, action) {
+    var getFeature = world.feature;
+    var feature = getFeature(state);
+
+    if (feature.name) { return utilityTable[feature.name][state.timeAtRestaurant]; }
+    return utilityTable.timeCost || -.01;
+  };
 };
 
 
@@ -94,16 +105,7 @@ var restaurantPathToName = function(path){
   return 'path: ' + name;
 };
 
-// NOTE: assumes two utilities per restaurant
-var makeRestaurantUtilityFunction = function (world, utilityTable) { 
-  return function(state, action) {
-    var getFeature = world.feature;
-    var feature = getFeature(state);
 
-    if (feature.name) { return utilityTable[feature.name][state.timeAtRestaurant]; }
-    return utilityTable.timeCost || -.01;
-  };
-};
 
 
 
