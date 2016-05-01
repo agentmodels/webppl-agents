@@ -111,3 +111,5 @@ var getPriorBeliefGridworld = function(startManifestState, latentStateSampler){
     return buildState(startManifestState, latentState);
   });
 };
+
+
