@@ -6,11 +6,12 @@ var start = {
 
 
 var world = makeRestaurantChoiceMDP({noReverse:false});
-var donutUtility = makeDonutUtility(world, {
+var donutUtility = makeRestaurantUtilityFunction(world, {
     'Donut N' : [10, -10],
     'Donut S' : [10, -10],
     'Veg'   : [-10, 20],
-    'Noodle': [0, 0]
+  'Noodle': [0, 0],
+  'timecost' : -.01
 });
 
 var agent = makeHyperbolicDiscounter(
