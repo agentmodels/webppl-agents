@@ -94,7 +94,7 @@ var restaurantPathToName = function(path){
   return 'path: ' + name;
 };
 
-// TODO can get rid of this
+
 var makeRestaurantUtilityFunction = function (world, utilityTable) { 
   return function(state, action) {
     var getFeature = world.feature;

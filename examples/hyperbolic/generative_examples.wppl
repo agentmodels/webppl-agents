@@ -1,4 +1,4 @@
-var world = restaurantChoiceMDP; 
+var world = makeRestaurantChoiceMDP(); 
 var start = restaurantChoiceStart;
 
 var restaurantUtility = makeRestaurantUtilityFunction(world, {
