@@ -94,7 +94,7 @@ var restaurantPathToName = function(path){
   return 'path: ' + name;
 };
 
-
+// NOTE: assumes two utilities per restaurant
 var makeRestaurantUtilityFunction = function (world, utilityTable) { 
   return function(state, action) {
     var getFeature = world.feature;

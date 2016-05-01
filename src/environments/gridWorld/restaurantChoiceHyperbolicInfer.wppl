@@ -1,8 +1,8 @@
-// TODO move to gridWorld directory
 
 
 var getRestaurantHyperbolicInfer = function(){
 
+  // Note: agentmodels doesn't use this code currently
   var getObservations = function(world, start, pathName){
     
     var temptationUtility = makeRestaurantUtilityFunction(world, {
@@ -29,7 +29,6 @@ var getRestaurantHyperbolicInfer = function(){
     return observedStateAction;
   };
 
-
   
   var factorSequence = function(agentAction, observedStateAction){
     map(function (stateAction) {
@@ -39,25 +38,9 @@ var getRestaurantHyperbolicInfer = function(){
     }, observedStateAction);
   };
 
-  
-  // Could split up like this
-  // var hyperbolicFactor = function(agentParams, world, observedStateAction){
-  //   var agent = makeHyperbolicDiscounter(
-  //       { utility   : makeRestaurantUtilityFunction(world, utilityTable),
-  //         alpha     : alpha, 
-  //         discount  : discounting.discount, 
-  //         sophisticatedOrNaive : discounting.sophisticatedOrNaive
-  //       }, world);
-  //   var agentAction = agent.act;
-      
-  //   factorSequence(agentAction, observedStateAction);
-  // };
-
- 
-  
+    
   var getPosterior = function(world, prior, observedStateAction, repeatObservations){
     var Infer = Enumerate;
-
     var priorUtilityTable = prior.utility;
     var priorDiscounting = prior.discounting;
     var priorAlpha = prior.alpha;
