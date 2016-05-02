@@ -129,10 +129,8 @@ var makeBeliefAgent = function(params, world) {
 
   // TODO fix
   // Optimizations that work in bandits and gridworld (not for boundVOI agent)
-  var recurseOnStateOrBelief = params.recurseOnStateOrBelief;
-  var fastUpdateBelief = params.fastUpdateBelief;
   
-  var updateBelief = fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
+  var updateBelief = params.fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
       getUpdateBeliefSimple(transition, observe);
 
 
@@ -211,8 +209,8 @@ var makeBeliefAgent = function(params, world) {
         }));
     });
 
-  var act = recurseOnStateOrBelief === 'belief' ? act : act_recState;
-  var expectedUtilityBelief = recurseOnStateOrBelief === 'belief' ? 
+  var act = params.recurseOnStateOrBelief === 'belief' ? act : act_recState;
+  var expectedUtilityBelief = params.recurseOnStateOrBelief === 'belief' ? 
       expectedUtilityBelief : expectedUtilityBelief_recState;
 
   return {
