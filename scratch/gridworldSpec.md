@@ -27,49 +27,14 @@ utility function constructor also.
 
 
 
-```javascript
-var makeGridWorld = function(options){
-
-//  assert: check correctness of options
-var defaultOptions = {transitionNoiseProbability: 0,
-    startingLocation: [0,0],
-    noReverse: false
-}
 
 
-  return {world: world, startState: startState, feature: feature}
-};
-  
+### Redo beliefAgent
 
-// example
-var gridFeatures = [[ '' ,  '' ],
-                     [ '' , '#'] ];
-// with terminals:
-// [ [ '', 'T'],                     
+**makePOMDPAgent**
 
-var options = {
-    gridFeatures: gridFeatures,
-    noReverse: false,
-    transitionNoiseProbability:0,
-    totalTime: 5,
-    startingLocation: [0,0],
-    labels: [ {location:[0,1], label:'cafe'} ]
-    }
+- if you have no delays, then it goes to beliefAgent, otherwise beliefDelay.
+- rename as POMDPAgentOptimal, POMDPAgentDelays.
+- gridworld and bandits have a flag: useManifestStates. makeAgent functions checks for this flag in world. if present, then you do fastUpdateBelief (so getBeliefFunctin, getObserve and so on). if not, then you don't use these things. need a unit test to show this.
 
-
-var gridWorld = makeGridWorld(options);
-var agent = makeMDPAgent({alpha:100, utility:utility}, gridWorld.world);
-var actions = simulateMDP(gridWorld.startState, gridWorld.world, agent, 'actions');
-
-
-```
-
-
-### Todos for restaurant and other examples
-
-1. remove restaurant and hiking examples from gridworld.wppl and put them in separate script. this script can go last in the JSON since nothing in src/ depends on it.
-
-2. get rid of makeDonutWorld2. and do other cleanups
-
-3. Maybe put pomdp gridworld in same script as gridworld. 
 

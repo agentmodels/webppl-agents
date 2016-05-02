@@ -1,4 +1,4 @@
-// Stochastic bandit pomdp constructor. Can output bandits whose prizes are
+// Stochastic bandit pomdp constructor: outputs Bandit environments whose prizes are
 // strings or numbers.
 
 // The latent state stores each arm's ERP over prizes, and the manifest state
