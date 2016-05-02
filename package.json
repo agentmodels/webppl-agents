@@ -14,8 +14,8 @@
   "webppl": {
     "wppl": [
       "src/generalUtils.wppl",
-      "src/mdpAgent.wppl",
-      "src/hyperbolic.wppl",
+      "src/agents/makeMDPAgent.wppl",
+      "src/agents/makeMDPAgentHyperbolic.wppl",
       "src/POMDPUtils.wppl",
       "src/beliefAgent.wppl",
       "src/beliefDelayAgent.wppl",
