@@ -42,7 +42,7 @@ var makeMDPAgent = function(params, world) {
   };
 };
 
-var simulateMDP = function(startState, world, agent, outputType) {
+var simulateMDPAgent = function(startState, world, agent, outputType) {
   // if outputType is undefined, default to stateAction
   var act = agent.act;
   var transition = world.transition;
@@ -65,14 +65,9 @@ var simulateMDP = function(startState, world, agent, outputType) {
   return sampleSequence(startState);
 };
 
-var mdpTableToUtilityFunction = function(table, world) {
-  assert.ok(hasProperties(world, ['transition', 'stateToActions', 'actions']), 'second argument of mdpTableToUtilityFunction should be mdp world');
-  var feature = world.feature;
-  return function(state, action) {
-    var stateFeatureName = feature(state).name;
-    return stateFeatureName ? table[stateFeatureName] : table.timeCost;
-  };
-};
+// TODO remove
+var simulateMDP = simulateMDPAgent;
+
 
 // *trajectory* must be a trajectory of states
 var getExpectedUtilitiesMDP = function(stateTrajectory, world, agent) {
