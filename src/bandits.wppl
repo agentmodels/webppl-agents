@@ -156,6 +156,8 @@ var makeBanditUtility = function(bandit, prizeToUtility) {
 var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
 			       prizeToUtility) {
 
+  console.log(beliefOrBeliefDelay);
+  
   var priorBelief = agentParams.priorBelief;
   var numericalPrizes = bandit.numericalPrizes;
 
@@ -170,9 +172,18 @@ var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
 	      'makeBanditAgent: priorBelief has wrong start manifestState');
   }
 
+  console.log('Passed asserts');
+  
   var utility = makeBanditUtility(bandit, prizeToUtility);
+
+  console.log('Defined the utility function');
+  
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
 
+  var testAgent = makeAgent(update(agentParams, {utility: utility}), bandit.world);
+
+  console.log('Made the agent');
+  
   return makeAgent(update(agentParams, {utility: utility}),
 		   bandit.world);
 };
