@@ -17,6 +17,7 @@
       "src/mdpAgent.wppl",
       "src/hyperbolic.wppl",
       "src/environments/gridWorld/makeGridWorld.wppl",
+      "src/environments/gridWorld/restaurantChoiceExample.wppl",
       "src/environments/restaurantHyperbolic.wppl",
       "src/environments/procrastinationMDP.wppl",
       "src/POMDPUtils.wppl",
@@ -24,7 +25,6 @@
       "src/beliefAgent.wppl",
       "src/beliefDelayAgent.wppl",
       "src/bandits.wppl",
-      "src/environments/gridWorld/restaurantChoiceExample.wppl",
       "src/banditGridworld.wppl",	
       "src/environments/gridWorld/hikingExample.wppl"
     ]
