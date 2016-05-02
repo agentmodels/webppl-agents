@@ -1,5 +1,6 @@
 // Restaurant Choice Constructor and Helpers
 
+
 var makeRestaurantChoiceMDPGridWorld = function(options) {
   var restaurant = {
     donutN : { name : 'Donut N'},
@@ -36,7 +37,7 @@ var makeRestaurantChoiceMDP = function(options){
 };
 
 
-// NOTE: assumes two utilities per restaurant
+
 var makeRestaurantUtilityFunction = function (world, utilityTable) {
   assert.ok(_.has(utilityTable,'Veg') && _.has(utilityTable,'timeCost'), 
             'makeRestaurantUtilityFunction: Veg or timeCost is missing');
