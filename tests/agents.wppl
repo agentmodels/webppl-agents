@@ -108,7 +108,7 @@ var makeLinePOMDP = function(totalTime, treasureAt3){
                     treasureAt3: treasureAt3};
   
   var utility = function(state, action){    
-    if (state.loc==3 && state.treasureAt3){return 2;}
+    if (state.loc==3 && state.treasureAt3){return 5;}
     if (state.loc==0){return 1;}
     return 0;
   };
@@ -135,7 +135,7 @@ var params = {alpha:1000,
              };
 
 var agent = makePOMDPAgent(params, world);
-var trajectory = simulatePOMDPAgent(truestartState, world, agent, 'states');
+var trajectory = simulatePOMDPAgent(trueStartState, world, agent, 'states');
 var locations = getLocations(trajectory);
 console.log('loc', locations);
 //assert.ok( last(locations)==0, 'MDPAgentHyperbolic test');
