@@ -1,6 +1,9 @@
 
 // HELPER FUNCTIONS
 
+
+// TODO only works when you have a manifestState
+
 // Observe both manifestState and the observation of the latent
 var getFullObserve = function(observeLatent){
   return function(state){
@@ -8,7 +11,7 @@ var getFullObserve = function(observeLatent){
   };
 };
 
-// (Generally, we might take the union of actions for all possible states)
+// requires a manifestState setup. need a different function in general
 var getBeliefToActions = function(manifestStateToActions){
   return function(belief){
     var manifestState = ERPOverLatent(belief) ? belief.manifestState : 
