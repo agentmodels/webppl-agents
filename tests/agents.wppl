@@ -11,51 +11,135 @@ var advanceStateTime = function(state){
 };
 
 
-var makeLineMDP = function(totalTime){
 
-  var stateToActions = function(state){return [-1, 0, 1];};
+var testMDPAgents = function(){
+  var makeLineMDP = function(totalTime){
 
-  var transition = function(state,action){
+    var stateToActions = function(state){return [-1, 0, 1];};
+
+    var transition = function(state,action){
+      var newLoc = state.loc + action;
+      var stateNewLoc = update(state,{loc: newLoc});
+      return advanceStateTime(stateNewLoc);
+    };
+
+    var world = {stateToActions:stateToActions, transition:transition};
+    
+    var startState = {timeLeft: totalTime, 
+                      terminateAfterAction: false, 
+                      loc: 0};
+
+    var utility = function(state, action){    
+      var table = {0:1, 3:2};
+      return table[state.loc] ? table[state.loc] : 0;
+    };
+
+    return {world:world, startState:startState, utility:utility};
+  };
+
+
+  // Make world
+  var line = makeLineMDP(6);
+  var world = line.world;
+  var utility = line.utility;
+
+
+  // MDPAgent
+  var params = {alpha:1000, utility:utility};
+  var agent = makeMDPAgent(params, world);
+  var trajectory = simulateMDP(line.startState, world, agent, 'states');
+  var locations = getLocations(trajectory);
+  assert.ok( last(locations)==3, 'MDPAgent test');
+
+  // random MDPAgent
+  var makeMDPAgentRandom = function(params, world){
+    var stateToActions = world.stateToActions;
+    var act = function(state){
+      return Enumerate(function(){return uniformDraw(stateToActions(state));})
+    };
+    return {act:act, params:params};
+  };
+  var agent = makeMDPAgentRandom(params, world);
+  var trajectory = simulateMDP(line.startState, world, agent, 'states');
+  var locations = getLocations(trajectory);
+  
+
+  // MDPAgentHyperbolic
+  var params = {alpha:1000,
+                utility:utility,
+                discount:2,
+                sophisticatedOrNaive: 'naive'};
+  var agent = makeHyperbolicDiscounter(params, world);
+  var trajectory = simulateHyperbolic(line.startState, world, agent, 'states');
+  var locations = getLocations(trajectory);
+  assert.ok( last(locations)==0, 'MDPAgentHyperbolic test');
+  
+};
+
+
+// TODO convert
+
+var makePOMDPAgent = makeBeliefAgent;
+var simulatePOMDPAgent = simulateBeliefAgent;
+
+
+var makeLinePOMDP = function(totalTime, treasureAt3){
+
+  var beliefToActions = function(belief){return [-1, 0, 1];};
+  
+  var transition = function(state, action){
     var newLoc = state.loc + action;
     var stateNewLoc = update(state,{loc: newLoc});
     return advanceStateTime(stateNewLoc);
   };
-
-  var world = {stateToActions:stateToActions, transition:transition};
   
+  var observe = function(state){
+    if (state.loc == 3){
+      return state.treasureAt3 ? 'treasure' : 'no treasure';
+    }
+    return 'noObservation';
+  };
+
+  var world = {beliefToActions:beliefToActions, transition:transition, observe:observe};
+    
   var startState = {timeLeft: totalTime, 
                     terminateAfterAction: false, 
-                    loc: 0};
-
+                    loc: 0,
+                    treasureAt3: treasureAt3};
+  
   var utility = function(state, action){    
-    var table = {0:1, 3:2};
-    return table[state.loc] ? table[state.loc] : 0;
+    if (state.loc==3 && state.treasureAt3){return 2;}
+    if (state.loc==0){return 1;}
+    return 0;
   };
 
   return {world:world, startState:startState, utility:utility};
 };
 
 
-var lineMDP = makeLineMDP(6);
-var world = lineMDP.world;
-var utility = lineMDP.utility;
+// // Make world
+// var treasureAt3 = false;
+// var line = makeLinePOMDP(4, treasureAt3);
+// var world = line.world;
+// var utility = line.utility;
+// var trueStartState = line.startState;
 
-// MDPAgent
-var params = {alpha:1000, utility:utility};
-var agent = makeMDPAgent(params, world);
-var trajectory = simulateMDP(lineMDP.startState, world, agent, 'states');
-var locations = getLocations(trajectory);
-console.log(locations, last(locations));
-assert.ok( last(locations)==3, 'MDPAgent test');
+// // POMDP agent (optimal)
+// var alternateStartState = update(trueStartState, {treasureAt3: true});
+// var agentPriorBelief = categoricalERP( [.5, .5],
+//                                        [trueStartState, alternateStartState]);
+// var params = {alpha:1000,              
+//               utility:utility, 
+//               priorBelief: agentPriorBelief};
 
-// MDPAgentHyperbolic
-var params = {alpha:1000,
-              utility:utility,
-              discount:2,
-              sophisticatedOrNaive: 'naive'};
-var agent = makeHyperbolicDiscounter(params, world);
-var trajectory = simulateHyperbolic(lineMDP.startState, world, agent, 'states');
-var locations = map(function(state){return state.loc;}, trajectory);
-assert.ok( last(locations)==0, 'MDPAgentHyperbolic test');
+// var agent = makePOMDPAgent(params, world);
+// var trajectory = simulatePOMDPAgent(line.startState, world, agent, 'states');
+// var locations = getLocations(trajectory);
+// console.log('loc', locations);
+// //assert.ok( last(locations)==0, 'MDPAgentHyperbolic test');
+
+
+// testMDPAgents();
+
 
 
