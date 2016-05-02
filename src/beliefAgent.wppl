@@ -119,16 +119,16 @@ var makeBeliefAgent = function(params, world) {
   var worldObserve = world.observe;
 
   // TODO fix
-  var useManifestLatent = params.fastUpdateBelief;
+  var priorBelief = params.priorBelief;
+  var sampleState = priorBelief.support()[0];
+  var useManifestLatent = _.has(sampleState,'manifestState');
+
   
   var observe = useManifestLatent ? getFullObserve(worldObserve) : worldObserve
   
   var beliefToActions = useManifestLatent ? 
       getBeliefToActions( world.manifestStateToActions ) :
       world.beliefToActions;
-
-  // TODO fix
-  // Optimizations that work in bandits and gridworld (not for boundVOI agent)
   
   var updateBelief = params.fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
       getUpdateBeliefSimple(transition, observe);
@@ -231,20 +231,28 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
   var useDelays = beliefOrBeliefDelay=='beliefDelay';
 
   return function (startState, world, agent, outputType) {
-    var totalTime = startState.manifestState.timeLeft;
+    var useManifestLatent = _.has(startState,'manifestState');
     
-    assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
+    var totalTime = useManifestLatent ? startState.manifestState.timeLeft : startState.timeLeft;
+    
+    //assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
     assert.ok( _.includes(['states','actions','stateAction','stateBelief', 'stateObservationAction'], outputType), 
                "outputType '" + outputType + "' not in ['states', 'actions', 'stateAction', 'stateBelief', 'stateObservationAction']");
+    
+    var terminateAfterAction = useManifestLatent ? startState.manifestState.terminateAfterAction :
+        startState.terminateAfterAction;
+    
     assert.ok(totalTime > 1 || startState.manifestState.terminateAfterAction, 
               'if totalTime==1, must also terminateAfterAction');
 
+    
+    
     var agentAct = agent.act;
     var agentUpdateBelief = agent.updateBelief;
     var priorBelief = agent.params.priorBelief;
     var transition = world.transition;
     var worldObserve = world.observe;
-    var observe = getFullObserve(worldObserve);
+    var observe = useManifestLatent ? getFullObserve(worldObserve) : worldObserve;
 
     var selectOutput = function(state, observation, action, belief){
       var table =  {states:state, actions:action, stateAction:[state, action], 
@@ -255,8 +263,11 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
       return table[outputType];
     };
 
-    var shouldTerminate = function (manifestState) { return manifestState.terminateAfterAction; };
+    var shouldTerminate = useManifestLatent ?
+        function (state) { return state.manifestState.terminateAfterAction;}:
+        function (state) { return state.terminateAfterAction; };
 
+    
     var sampleSequence = function(state, priorBelief, action) {
 
       var observation = observe(state);
@@ -272,7 +283,7 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
 
       var output = [selectOutput(state, observation, action, belief)];
 
-      if (shouldTerminate(state.manifestState)) {
+      if (shouldTerminate(state)) {
         return output;
       } else {   
         var nextState = transition(state, action);

@@ -135,7 +135,7 @@ var params = {alpha:1000,
              };
 
 var agent = makePOMDPAgent(params, world);
-var trajectory = simulatePOMDPAgent(line.startState, world, agent, 'states');
+var trajectory = simulatePOMDPAgent(truestartState, world, agent, 'states');
 var locations = getLocations(trajectory);
 console.log('loc', locations);
 //assert.ok( last(locations)==0, 'MDPAgentHyperbolic test');
