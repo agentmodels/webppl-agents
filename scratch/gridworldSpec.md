@@ -45,3 +45,4 @@ utility function constructor also.
 - individual simulate functions: simulateMDPAgent, simulatePOMDPAgent, etc.
 - where possible, script should have name of main function
 
+- TODO rename makeHyperbolic function
