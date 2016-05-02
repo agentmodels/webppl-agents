@@ -155,8 +155,6 @@ var makeBanditUtility = function(bandit, prizeToUtility) {
 
 var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
 			       prizeToUtility) {
-
-  console.log(beliefOrBeliefDelay);
   
   var priorBelief = agentParams.priorBelief;
   var numericalPrizes = bandit.numericalPrizes;
