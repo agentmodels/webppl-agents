@@ -119,7 +119,7 @@ var makeLinePOMDP = function(totalTime, treasureAt3){
 
 // // Make world
 var treasureAt3 = false;
-var line = makeLinePOMDP(4, treasureAt3);
+var line = makeLinePOMDP(5, treasureAt3);
 var world = line.world;
 var utility = line.utility;
 var trueStartState = line.startState;

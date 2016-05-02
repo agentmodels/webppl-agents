@@ -135,6 +135,7 @@ var makeBeliefAgent = function(params, world) {
   var shouldTerminate = useManifestLatent ?
       function (state) { return state.manifestState.terminateAfterAction;}:
       function (state) { return state.terminateAfterAction; };
+
   
   // RECURSE ON BELIEF (BELLMAN STYLE)
   var act = dp.cache(
@@ -197,7 +198,7 @@ var makeBeliefAgent = function(params, world) {
           var u = utility(state, action);
 	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
 		    + JSON.stringify(state));
-          if (state.manifestState.terminateAfterAction) {
+          if (shouldTerminate(state)) {
 	    return u;
           } else {
 	    var nextState = transition(state, action);

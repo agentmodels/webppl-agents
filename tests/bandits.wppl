@@ -1,89 +1,9 @@
 /* jshint shadow: true, newcap: false, maxerr:500, sub:false, latedef:false */
 
-console.log('--- Stringy "IRL" bandit tests ---\n');
+console.log('--- "IRL" bandit tests ---\n');
 
 var getPriorBelief = function(numberOfTrials, armToPrizeERPThunk){
   return _getPriorBelief(numberOfTrials, 'start', armToPrizeERPThunk);
-};
-
-
-var speedTestBandits = function(beliefOrBeliefDelay){
-  console.log('\nSpeedtest on bandits for agent: ', beliefOrBeliefDelay);
-  
-  var simulate = getSimulateFunction(beliefOrBeliefDelay);
-
-  var getBandit = function(numberOfTrials){
-    var armToPrizeERP = {
-      0:deltaERP('a'),
-      1:deltaERP('a'),
-      2:deltaERP('a'),
-      3:deltaERP('a')
-    };
-
-    return makeBandit({
-      numberOfArms: 4,
-      armToPrizeERP: armToPrizeERP,
-      numberOfTrials: numberOfTrials
-    });
-  };
-  
-  var getAgent = function(numberOfTrials, bandit){
-
-    var armToPrizeERPThunk = function(){
-      var dist = function(){
-	return categorical([0.02, 0.49, 0.49],
-			   [deltaERP('a'), deltaERP('b'), deltaERP('c')]);
-      };
-
-      return {0:deltaERP('a'), 1:dist(), 2:dist(), 3:dist()};
-    };
-    var priorBelief = getPriorBelief( numberOfTrials, armToPrizeERPThunk);
-    
-    var baseAgentParams = {
-      priorBelief: priorBelief,
-      alpha: 100,
-      noDelays: true,
-      discount: 0,
-      sophisticatedOrNaive: 'naive',
-      myopia: {on:false, bound:0},
-      boundVOI: {on:false, bound:0}
-    };
-
-    var agentParams = update(baseAgentParams, {priorBelief:priorBelief}); 
-    var prizeToUtility = {a:5, b:10, c:-8}; 
-    return makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
-			   prizeToUtility);
-  };
-
-  var testTime = function(numberOfTrials){
-    
-    var bandit = getBandit(numberOfTrials);
-    var agent = getAgent(numberOfTrials, bandit);
-
-    var thunk = function(){
-      return simulate(bandit.startState, bandit.world, agent, 'actions');
-    };
-
-    var out = timeit(thunk);
-
-    var actions = out.value.slice(0,3);
-    if (numberOfTrials > 5){
-      assert.ok( _.difference([1,2,3], actions).length === 0,
-		 'fail belief bandit example 4');
-    }
-    // console.log('\n Perceived Time: ', numberOfTrials, '  (locs, timeit) ', trajectoryToLocations(out.value), 
-    //             out.runtimeInMilliseconds);
-    return out.runtimeInMilliseconds + ' ms';
-  };
-
-  var numberTrialsValues = [5,6,7];
-  var runTimes = map( testTime, numberTrialsValues);
-  console.log('[numberOfTrials, runTime]: ', zip(numberTrialsValues, runTimes) );
-  console.log('----completed speed test for "irl" bandits' );
-};  
-
-var runSpeedTests = function(){
-  map( speedTestBandits, ['belief', 'beliefDelay'] );
 };
 
 
@@ -945,16 +865,9 @@ var runTestInferBandit = function(){
   testInferBandit('belief');
 };
 
-var speedTestOnly = function(){
-  speedTestBandits('belief');
-  console.log('\n\ BELIEF DELAY speedtest');
-  speedTestBandits('beliefDelay');
-};
-
 var beliefAgentTests = function(){
   banditGenerativeNoDelay('belief');
   testInferBandit('belief');
-  speedTestBandits('belief');
 };
 
 
@@ -962,7 +875,6 @@ var beliefDelayAgentTests = function(){
   banditGenerativeNoDelay('beliefDelay');
   banditGenerativeDelay();
   testInferBandit('beliefDelay');   
-  speedTestBandits('beliefDelay');
 };
 
 var stochasticTests = function(){
@@ -984,7 +896,7 @@ console.log('\n\n------\n  BELIEF DELAY \n');
 beliefDelayAgentTests();
 console.log('\n\n------\n  BELIEF \n');
 beliefAgentTests();
-console.log('\n\n-----------\n ALL STRINGY "IRL" BANDIT TESTS PASSED');
+console.log('\n\n-----------\n ALL "IRL" BANDIT TESTS PASSED');
 
 console.log('\n\n-----------\n BEGINNING STOCHASTIC NUMERICAL BANDIT TESTS \n-----------');
 stochasticTests();
