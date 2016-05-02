@@ -6,16 +6,16 @@ var start = {
 
 
 var world = makeRestaurantChoiceMDP({noReverse:false});
-var donutUtility = makeRestaurantUtilityFunction(world, {
-    'Donut N' : [10, -10],
-    'Donut S' : [10, -10],
-    'Veg'   : [-10, 20],
+var utility = makeRestaurantUtilityFunction(world, {
+  'Donut N' : [10, -10],
+  'Donut S' : [10, -10],
+  'Veg'   : [-10, 20],
   'Noodle': [0, 0],
-  'timecost' : -.01
+  'timeCost' : -.01
 });
 
 var agent = makeHyperbolicDiscounter(
-    { utility : donutUtility,
+    { utility : utility,
       alpha : 500, 
       discount : 1, 
       sophisticatedOrNaive  : 'sophisticated' 
@@ -28,7 +28,7 @@ assert.ok(_.isEqual(last(states).loc, [4, 7]), "sophisticated didn't end up in 4
 assert.ok(states[5].loc[0] == 5, "sophisticated didn't take right side");
 
 var agent2 = makeHyperbolicDiscounter(
-    { utility : donutUtility,
+    { utility : utility,
       alpha : 500, 
       discount : 1, 
       sophisticatedOrNaive  : 'naive' 

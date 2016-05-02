@@ -1,6 +1,6 @@
 // Restaurant Choice Constructor and Helpers
 
-var makeRestaurantChoiceMDP = function(options) {
+var makeRestaurantChoiceMDPGridWorld = function(options) {
   var restaurant = {
     donutN : { name : 'Donut N'},
     donutS : { name : 'Donut S'},
@@ -28,16 +28,30 @@ var makeRestaurantChoiceMDP = function(options) {
      [DS , '#', '#',  __ , '#', '#']];
 
   var options = update(options, {gridFeatures: features});
-  return makeGridWorld(options).world;
+  return makeGridWorld(options);
 };
 
+var makeRestaurantChoiceMDP = function(options){
+  return makeRestaurantChoiceMDPGridWorld(options).world;
+};
+
+
 // NOTE: assumes two utilities per restaurant
-var makeRestaurantUtilityFunction = function (world, utilityTable) { 
+var makeRestaurantUtilityFunction = function (world, utilityTable) {
+  assert.ok(_.has(utilityTable,'Veg') && _.has(utilityTable,'timeCost'), 
+            'makeRestaurantUtilityFunction: Veg or timeCost is missing');
+  
   return function(state, action) {
     var getFeature = world.feature;
     var feature = getFeature(state);
+    var name = feature.name;
 
-    if (feature.name) { return utilityTable[feature.name][state.timeAtRestaurant]; }
+    // compute whether there are "double utilities" (for hyperbolic discounting case)
+    var pairs = utilityTable['Veg'].length == 2;
+    
+    if (name){ 
+      return pairs ? utilityTable[name][state.timeAtRestaurant] : utilityTable[name];
+    }
     return utilityTable.timeCost || -.01;
   };
 };

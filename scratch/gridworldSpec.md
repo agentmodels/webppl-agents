@@ -38,3 +38,10 @@ utility function constructor also.
 - gridworld and bandits have a flag: useManifestStates. makeAgent functions checks for this flag in world. if present, then you do fastUpdateBelief (so getBeliefFunctin, getObserve and so on). if not, then you don't use these things. need a unit test to show this.
 
 
+**naming**:
+
+- agents/makeMDPAgent, makePOMDPAgent, makePOMDPAgentDelay, makeMDPAgentHyperbolic
+- one *simulate* function that dispatches based on agent type?
+- individual simulate functions: simulateMDPAgent, simulatePOMDPAgent, etc.
+- where possible, script should have name of main function
+
