@@ -1,12 +1,4 @@
-var makeDonutUtility = function (world, rewards) { 
-  return function(state, action) {
-    var getFeature = world.feature;
-    var feature = getFeature(state);
 
-    if (feature.name) { return rewards[feature.name][state.timeAtRestaurant]; }
-    return -0.01;
-  };
-};
 
 
 var makeHyperbolicDiscounter = function (params, world) {
@@ -86,11 +78,6 @@ var simulateHyperbolic = function(startState, world, agent, outputType) {
   };
   return sampleSequence(startState);
 };
-
-// only works when outputType === 'stateAction'
-var getStatesHyperbolic = function(out){return _.map(out,0);};
-var getActionsHyperbolic = function(out){return _.map(out,1);};
-var getLocationsHyperbolic = function(out){return _.map(getStatesHyperbolic(out),'loc');};
 
 
 

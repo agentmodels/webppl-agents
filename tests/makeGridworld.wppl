@@ -5,8 +5,9 @@ var testSimple = function(){
   var features = [[ '' ,  '' ],
 	          [ '' , '#'] ];
 
-  var options = {noReverse: false};
-  var world = makeGridWorld(features, options);
+  var options = {noReverse: false,
+                 gridFeatures: features};
+  var world = makeGridWorld(options).world;
 
   var utility = function(state,action){
     if (state.loc[0]==1 && state.loc[1]==1){
@@ -22,15 +23,23 @@ var testSimple = function(){
   assert.ok( actions[0]==='u' && actions[1]==='r' && actions[2]==='l');
 };
 
+
   // simple grid with named feature
 var testNamed = function(){
   
   var features = [[ '' ,  {name:'cafe'} ],
 	          [ '' , '#'] ];
 
-  var options = {noReverse: false};
-  var world = makeGridWorld(features, options);
+  var options = {noReverse: false,
+                 gridFeatures: features,
+                 totalTime: 4,
+                 startingLocation: [0,0]};
+  
+  var gridWorld = makeGridWorld(options)
+  var world = gridWorld.world;
+  var makeUtility = gridWorld.makeUtility;
 
+  // make utility and startState manually
   var utility = function(state,action){
     var feature = world.feature;
     var table = {cafe:1};
@@ -38,10 +47,23 @@ var testNamed = function(){
     return featureStateName ? table[featureStateName] : 0;
   };
   
-  var startState = {loc:[0,0], terminateAfterAction: false, timeLeft: 4};
+  var startState = {loc:options.startingLocation, 
+                    terminateAfterAction: false,
+                    timeLeft: options.totalTime};
+  
   var agent = makeMDPAgent({alpha:100, utility:utility}, world);
   var actions = simulateMDP(startState, world, agent, 'actions');
   assert.ok( actions.length == 3 && actions[0]==='u' && actions[1]==='r' && actions[2]==='l');
+
+  
+  // utility and startState from gridworld constructor
+  var utilityTable = {cafe: 1, timeCost:0};
+  var utility = makeUtility(utilityTable);
+  var startState = gridWorld.startState;
+
+  var agent = makeMDPAgent({alpha:100, utility:utility}, world);
+  var actions = simulateMDP(startState, world, agent, 'actions');
+  assert.ok( actions.length == 3 && actions[0]==='u' && actions[1]==='r' && actions[2]==='l');  
 };
 
 
@@ -49,9 +71,12 @@ var testStochastic = function(){
   var line = ['', '', '', ''];
   var features = [line, line];
   
-  var options = {noReverse: false};
-  var world = makeNoisyGridworld(features, options, .1);
-
+  var options = {noReverse: false,
+                 gridFeatures: features,
+                 transitionNoiseProbability: .1};
+  
+  var world = makeGridWorld(options).world;
+  
   // utility:
   // [0, 0, -1000, -1000],
   // [0, 0, 0, 10] 

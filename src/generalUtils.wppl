@@ -32,13 +32,6 @@ var downToOne = function(n){
   else {return [n].concat(downToOne(n-1));}
 };
 
-var makePick = function(keys) {
-  return function(object) {
-    return _.pick(object, keys);
-  };
-};
-
-
 var arraysEqual = function(xs, ys){
   return JSON.stringify(xs) === JSON.stringify(ys);
 };
@@ -101,3 +94,7 @@ var hasProperties = function(object, listProperties){
       return _.has(object, property);
     }, listProperties));
 };
+
+
+
+

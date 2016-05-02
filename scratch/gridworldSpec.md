@@ -3,25 +3,27 @@
 ### Custom gridworlds
 Make it easy for user to create custom gridworld:
 
-- single constructor function for both stochastic and not.
-- need some way of specifying terminal states (independent of specifying something as a named feature).
-- add labels
-- remove references to restaurants. talk about terminals, landmarks, namedLocation. 
 
+- need some way of specifying terminal states (independent of specifying something as a named feature).
+
+- add labels
+
+- remove references to restaurants. talk about terminals, landmarks, namedLocation. 
 
 ### Incremental plan
 
-1. Clean up makeDonutWorld2 and so on. Fix existing TODOs.
+0. Go through beliefDelay and belief/ examples and simplify them. 
 
-2. Add a single constructor with options as below. Change noisyGridworld examples in
-agentModels and tests.
+1. Currently, makeGridworld and other stuff in src/ have lots of globals. We could make many of these local. Is this worth doing?
 
-3. Spec and implement more uniform utilityFunction constructor. 
+1. Instead of restaurantNameToObsevationTime11, have some special agent models example object. IT's ok to put this in the restaurantChoice example. 
 
-3. Merge pomdp with mdp script.
+1. Could have makeRestaurantChoiceMDP and makeHike output the startState and
+utility function constructor also. 
+
+3. Merge makeGridworldPomdp with mdp script?
 
 4. Make a more detailed plan for having non-terminal features. 
-
 
 
 

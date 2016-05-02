@@ -8,7 +8,7 @@
 // will need to rewrite this
 
 
-// BELIEF AGENT HELPER FUNCTIONS: should be moved to utilsForBeliefAgent.wppl once beliefDelayAgent
+// TODO BELIEF AGENT HELPER FUNCTIONS: should be moved to utilsForBeliefAgent.wppl once beliefDelayAgent
 // has had manifest states removed.
 
 

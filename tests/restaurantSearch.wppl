@@ -1,0 +1,30 @@
+// optimal_agent_restaurant_search
+
+var pomdp = makeRestaurantSearchPOMDP();
+var world = pomdp.world
+var makeUtility = pomdp.makeUtility;
+
+var agentPrior = Enumerate(function(){
+  var rewardD = uniformDraw([0,5]); // D is bad or great (E is opposite)
+  var latentState = {A: 3,
+		             B: uniformDraw(range(6)),
+		             C: uniformDraw(range(6)),
+		             D: rewardD,
+		             E: 5 - rewardD};
+  return buildState(pomdp.startState.manifestState, latentState);
+});
+
+// Construct optimal agent
+var params = {
+  utility: makeUtility(-0.01), // timeCost is -.01
+  alpha: 1000,
+  priorBelief: agentPrior
+};
+
+var agent = makeBeliefAgent(params, world);
+var trajectory = simulateBeliefAgent(pomdp.startState, world, agent, 'states');
+var manifestStates = map(function(state){return state.manifestState;},
+                         trajectory);
+var loc =  last(trajectory).manifestState.loc;
+assert.ok( loc[0]==3 && loc[1]==2, 'restaurantSearch test failed');
+console.log('restaurantSearch test passed');

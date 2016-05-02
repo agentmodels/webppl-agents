@@ -42,6 +42,41 @@ var makeBanditGridworldUtility = function(feature, timeCost) {
   };
 };
 
+
+
+
+
+var makeRestaurantSearchMDP = function(options_) { 
+  var A = {name: 'A'};
+  var B = {name: 'B'};
+  var C = {name: 'C'};
+  var D = {name: 'D'};
+  var E = {name: 'E'};
+
+  var options = options_ || {};
+
+  var features =
+	[['#', ' ', ' ', '#'],
+	 [ C , ' ', ' ', '#'],
+	 ['#', ' ', '#', '#'],
+	 ['#', ' ',  B , '#'],
+	 [ A , ' ', '#', '#'],
+	 ['#', ' ', '#',  D ],
+	 ['#', ' ', ' ', ' '],
+	 ['#', '#', '#',  E ]];
+
+  var options = update(options, {gridFeatures: features});
+  return makeGridWorld(options).world;
+};
+
+// start state for restaurant search pomdp
+var restaurantSearchStartState =
+      {manifestState: {loc: [1, 2],
+		       timeLeft: 17,
+		       terminateAfterAction: false},
+       latentState: {A: 3, B: 3, C: 4, D: 5, E: 0}};
+
+
 var makeRestaurantSearchPOMDP = function(){
   var gridworld = makeRestaurantSearchMDP({noReverse: true});
   var world = makeBanditGridworld(gridworld);

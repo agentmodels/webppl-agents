@@ -95,10 +95,10 @@ var makeGridMap = function(rfeatures)  {
 
 
 
-var makeGridWorld = function(features, options) {
+var makeGridWorldDeterministic = function(features, options) {
   var defaults = { noReverse : false, maxTimeAtRestaurant : 1 };
-
   var options = update(defaults, options);
+
   var gridMap = makeGridMap(features); 
 
   var transition = makeGridTransition_(gridMap, options);
@@ -169,3 +169,62 @@ var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
       stateToActions : stateToActions
     });
 };
+
+
+
+var makeGridWorld = function(options){
+  
+  var defaults = {
+    noReverse: false,
+    maxTimeAtRestaurant: 1,
+    transitionNoiseProbability: 0,
+    startingLocation: [0,0],
+    totalTime: 2
+  };
+
+  var options = update(defaults, options);
+
+  map( function(el){
+    assert.ok( _.isString(el) || _.isString(el.name), 'gridFeatures is invalid')
+  }, _.flatten(options.gridFeatures));
+
+  assert.ok( options.totalTime >= 1, 'totalTime is invalid');
+  assert.ok( options.transitionNoiseProbability <= 1, 'transitionNoiseProbability is invalid');
+  assert.ok( options.startingLocation.length == 2, 'startingLocation is invalid');
+  
+
+  var world = (options.transitionNoiseProbability == 0) ?
+      makeGridWorldDeterministic(options.gridFeatures, options) :
+      makeNoisyGridworld(options.gridFeatures, options, options.transitionNoiseProbability);
+
+  var startState = {loc: options.startingLocation, 
+                    terminateAfterAction: false,
+                    timeLeft: options.totalTime};
+
+  
+  // assumes that utilities are only defined on named features and timeCost
+  // doesnt work for the hyperbolic case
+  var makeUtility = function(utilityTable){
+    assert.ok( utilityTable.hasOwnProperty('timeCost'), 'makeUtility utilityTable lacks timeCost');
+    return function(state, action){
+      var getFeature = world.feature;
+      var feature = getFeature(state);
+
+      if (feature.name) { return utilityTable[feature.name]; }
+      return utilityTable.timeCost;
+    };
+  };  
+
+  
+  // we could output 'feature' or a world
+  return {world: world, startState: startState, makeUtility: makeUtility};
+
+};  
+      
+
+  
+  
+
+
+
+

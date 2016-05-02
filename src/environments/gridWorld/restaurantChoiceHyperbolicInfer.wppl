@@ -1,8 +1,7 @@
-// TODO move to gridWorld directory
-
 
 var getRestaurantHyperbolicInfer = function(){
 
+  // Note: agentmodels doesn't use this code currently
   var getObservations = function(world, start, pathName){
     
     var temptationUtility = makeRestaurantUtilityFunction(world, {
@@ -23,12 +22,11 @@ var getRestaurantHyperbolicInfer = function(){
         sophisticatedOrNaive  : sophisticatedOrNaive
       }, world);
     var observedStateAction = simulateHyperbolic(start, world, agent);
-    var observedLocs = getLocationsHyperbolic(observedStateAction);   
+    var observedLocs = map( function(x){return x[0].loc;}, observedStateAction);   
     // assert.ok( _.isEqual( observedLocs, restaurantNameToPath[pathName]), 'generated locs: ' + observedLocs + ' \n stored locs: 
 // ' + restaurantNameToPath[pathName]);
     return observedStateAction;
   };
-
 
   
   var factorSequence = function(agentAction, observedStateAction){
@@ -39,25 +37,9 @@ var getRestaurantHyperbolicInfer = function(){
     }, observedStateAction);
   };
 
-  
-  // Could split up like this
-  // var hyperbolicFactor = function(agentParams, world, observedStateAction){
-  //   var agent = makeHyperbolicDiscounter(
-  //       { utility   : makeRestaurantUtilityFunction(world, utilityTable),
-  //         alpha     : alpha, 
-  //         discount  : discounting.discount, 
-  //         sophisticatedOrNaive : discounting.sophisticatedOrNaive
-  //       }, world);
-  //   var agentAction = agent.act;
-      
-  //   factorSequence(agentAction, observedStateAction);
-  // };
-
- 
-  
+    
   var getPosterior = function(world, prior, observedStateAction, repeatObservations){
     var Infer = Enumerate;
-
     var priorUtilityTable = prior.utility;
     var priorDiscounting = prior.discounting;
     var priorAlpha = prior.alpha;

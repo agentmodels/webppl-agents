@@ -7,9 +7,8 @@
 var testAgent = function(){
   
   // gridworld tests
-
-  var gridworldMDP = makeDonutWorld2({big: true, maxTimeAtRestaurant : 1});
-  var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
+  var options = {maxTimeAtRestaurant: 1};
+  var gridworldPOMDP = makeRestaurantChoicePOMDP(options);
 
   var makePriorGridworld = function(manifestState, latentStateERP) {
     return Enumerate(function(){
@@ -136,8 +135,8 @@ var testAgent = function(){
 	   [ _ , '#'],
 	   [ _ , '#'],
 	   [ _ ,  N ]];
-    
-    return makeGridWorld(features, myOptions);
+    var myOptions = update(myOptions, {gridFeatures: features});
+    return makeGridWorld(myOptions).world;
   };
 
   var forkyGridworldMDP = makeForkRoad({noReverse: true});

@@ -27,7 +27,7 @@ var checkEqualDeltaErps = function(erpArray) {
 var test1 = function() {
 
   // WORLD PARAMS
-  var world = getBigDonutWorld();
+  var world = makeRestaurantChoicePOMDP();
   var perceivedTotalTime = 10;
   var startingLocation = [2,1];
 
@@ -145,7 +145,7 @@ var test2 = function() {
   // thought that the noodle shop was closed.
 
   // WORLD PARAMS
-  var world = getBigDonutWorld();
+  var world = makeRestaurantChoicePOMDP();
   var perceivedTotalTime = 10;
 
   // possible latent states
@@ -370,7 +370,7 @@ var test3 = function() {
   // around)
 
   // WORLD PARAMS
-  var world = getBigDonutWorld();
+  var world = makeRestaurantChoicePOMDP();
 
   // possible latent states
   var noodleClosedLatent = {'Donut N': true,
