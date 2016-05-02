@@ -19,7 +19,7 @@
       "src/POMDPUtils.wppl",
       "src/beliefAgent.wppl",
       "src/beliefDelayAgent.wppl",
-      "src/bandits.wppl",
+      "src/environments/bandits/makeBandit.wppl",
       "src/environments/gridWorld/makeGridWorld.wppl",
       "src/environments/gridWorld/gridworldPOMDP.wppl",
       "src/environments/gridWorld/hikingExample.wppl",
