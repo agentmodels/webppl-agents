@@ -117,19 +117,20 @@ var makeBeliefAgent = function(params, world) {
   var utility = params.utility;
   var transition = world.transition;
   var worldObserve = world.observe;
-
-  var priorBelief = params.priorBelief;
-  var sampleState = sampleBelief(priorBelief);
-  var useManifestLatent = _.has(sampleState,'manifestState');
-
+  var priorBelief = params.priorBelief
   
+  var useManifestLatent = params.useManifestLatent || 
+      _.has(sampleBelief(priorBelief),'manifestState');
+
+  // Depending on whether states have *manifestState* property,
+  // define *observe*, *beliefToActions*, *shouldTerminate* 
   var observe = useManifestLatent ? getFullObserve(worldObserve) : worldObserve
   
   var beliefToActions = useManifestLatent ? 
-      getBeliefToActions( world.manifestStateToActions ) :
+      getBeliefToActions(world.manifestStateToActions) :
       world.beliefToActions;
   
-  var updateBelief = params.fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
+  var updateBelief = useManifestLatent ? getUpdateBeliefLatent(transition, observe) :
       getUpdateBeliefSimple(transition, observe);
 
   var shouldTerminate = useManifestLatent ?
