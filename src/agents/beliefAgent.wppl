@@ -20,7 +20,7 @@ var toERPOverLatent = function(belief){
 
 
 // Construct functions needed for running the POMDP agent
-// Most of the code is for the the manifest-latent optimization
+// Most of the code is for the manifest-latent optimization
 
 var getPOMDPFunctions = function(params, world){
 
@@ -286,6 +286,7 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
     var agentAct = agent.act;
     var agentUpdateBelief = agent.updateBelief;
     var priorBelief = agent.params.priorBelief;
+
 
     // world methods
     var transition = world.transition;

@@ -31,22 +31,26 @@ utility function constructor also.
 
 ### Redo beliefAgent
 
-**makePOMDPAgent**
+** general **
+- two simple inference functions for general use (not gridworld or bandits specific)
 
-- if you have no delays, then it goes to beliefAgent, otherwise beliefDelay.
-- rename as POMDPAgent, POMDPAgentDelays.
-- single simulate function
-- general inference function
+**makePOMDPAgent**
+- better asserts. check that startState is in support of prior
+- clean up POMDP utils
+
 
 **naming**:
-
 - agents/makeMDPAgent, makePOMDPAgent, makePOMDPAgentDelay, makeMDPAgentHyperbolic
 - one *simulate* function that dispatches based on agent type?
 - individual simulate functions: simulateMDPAgent, simulatePOMDPAgent, etc.
-- where possible, script should have name of main function
+- one makeMDPAgent function and same for POMDP. Could put things in same script. 
 
 - TODO rename makeHyperbolic function
 
 
+BIG:
+- write the chapter explaining the library
+- rename REPO
+- DO GREEDY AND MYOPIC (ask AS)
 
 
