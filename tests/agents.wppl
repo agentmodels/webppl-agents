@@ -77,7 +77,7 @@ var testMDPAgents = function(){
 };
 
 
-// TODO convert
+
 
 var makePOMDPAgent = makeBeliefAgent;
 var simulatePOMDPAgent = simulateBeliefAgent;
@@ -120,88 +120,88 @@ var makeLinePOMDP = function(totalTime, treasureAt3){
 };
 
 
-// OPTIMAL AGENT
 
-var runAgent = function(totalTime, delayAgent){
-  var treasureAt3 = false;
-  var line = makeLinePOMDP(totalTime, treasureAt3);
-  var world = line.world;
-  var utility = line.utility;
-  var trueStartState = line.startState;
 
-  // POMDP agent (optimal)
-  var alternateStartState = update(trueStartState, {treasureAt3: true});
-  var agentPriorBelief = categoricalERP( [.5, .5],
-                                         [trueStartState, alternateStartState]);
-  var params = {alpha:1000,              
-                utility:utility, 
-                priorBelief: agentPriorBelief,            
-               };
+var testPOMDPAgentOptimal = function(){
+  // OPTIMAL AGENT
+  var runAgent = function(totalTime, delayAgent){
+    var treasureAt3 = false;
+    var line = makeLinePOMDP(totalTime, treasureAt3);
+    var world = line.world;
+    var utility = line.utility;
+    var trueStartState = line.startState;
 
-  var agent = delayAgent ? makePOMDPAgentDelay(params, world) : makePOMDPAgent(params, world);
-  var trajectory = delayAgent ? simulatePOMDPAgentDelay(trueStartState, world, agent, 'states') :
-      simulatePOMDPAgent(trueStartState, world, agent, 'states');
-  return getLocations(trajectory);
+    // POMDP agent (optimal)
+    var alternateStartState = update(trueStartState, {treasureAt3: true});
+    var agentPriorBelief = categoricalERP( [.5, .5],
+                                           [trueStartState, alternateStartState]);
+    var params = {alpha:1000,              
+                  utility:utility, 
+                  priorBelief: agentPriorBelief,            
+                 };
+
+    var agent = delayAgent ? makePOMDPAgentDelay(params, world) : makePOMDPAgent(params, world);
+    var trajectory = delayAgent ? simulatePOMDPAgentDelay(trueStartState, world, agent, 'states') :
+        simulatePOMDPAgent(trueStartState, world, agent, 'states');
+    return getLocations(trajectory);
+  };
+  
+  map( function(delayAgent){
+    var locations = runAgent(4, delayAgent);
+    assert.ok(last(locations)==0, 'test POMDP line');
+    var locations = runAgent(5, delayAgent);
+    assert.ok(locations[3]==3, 'test POMDP line');
+    var locations = runAgent(7, delayAgent);
+    assert.ok(last(locations)==0, 'test POMDP line');
+  }, [true, false] );
 };
 
-map( function(delayAgent){
-  var locations = runAgent(4, delayAgent);
+
+
+var testPOMDPAgentDelay = function(){
+
+  // BOUNDED AGENTS
+  var runAgent = function(paramsBase){
+    var totalTime = 5;
+    var treasureAt3 = false;
+    var line = makeLinePOMDP(totalTime, treasureAt3);
+    var world = line.world;
+    var utility = line.utility;
+    var trueStartState = line.startState;
+
+    // Agent params
+    var alternateStartState = update(trueStartState, {treasureAt3: true});
+    var agentPriorBelief = categoricalERP( [.5, .5],
+                                           [trueStartState, alternateStartState]);
+
+    var params = update(paramsBase, {utility: utility, priorBelief: agentPriorBelief});
+    var agent =  makePOMDPAgentDelay(params, world);
+    var trajectory = simulatePOMDPAgentDelay(trueStartState, world, agent, 'states');
+    return getLocations(trajectory);
+  };
+  
+  // Hyperbolic agent
+  var paramsHyperbolic = {alpha:1000,              
+                          noDelays: false,
+                          discount: 2};
+  
+  var locations = runAgent(paramsHyperbolic);
   assert.ok(last(locations)==0, 'test POMDP line');
-  var locations = runAgent(5, delayAgent);
+
+  var paramsMyopia = update(paramsHyperbolic,
+                            {discount: 0, myopia:{on:true, bound:2} });
+  var locations = runAgent(paramsMyopia);
+  assert.ok(last(locations)==0, 'test POMDP line');
+
+  var paramsBoundVOI = update(paramsHyperbolic,
+                              {discount: 0, boundVOI:{on:true, bound:2} });
+  var locations = runAgent(paramsBoundVOI);
   assert.ok(locations[3]==3, 'test POMDP line');
-  var locations = runAgent(7, delayAgent);
-  assert.ok(last(locations)==0, 'test POMDP line');
-}, [true, false] );
-
-
-
-// BOUNDED AGENTS
-var runAgent = function(paramsBase){
-  var totalTime = 5;
-  var treasureAt3 = false;
-  var line = makeLinePOMDP(totalTime, treasureAt3);
-  var world = line.world;
-  var utility = line.utility;
-  var trueStartState = line.startState;
-
-  // Agent params
-  var alternateStartState = update(trueStartState, {treasureAt3: true});
-  var agentPriorBelief = categoricalERP( [.5, .5],
-                                         [trueStartState, alternateStartState]);
-
-  var params = update(paramsBase, {utility: utility, priorBelief: agentPriorBelief});
-  var agent =  makePOMDPAgentDelay(params, world);
-  var trajectory = simulatePOMDPAgentDelay(trueStartState, world, agent, 'states');
-  return getLocations(trajectory);
 };
 
-// Hyperbolic agent
-var paramsHyperbolic = {alpha:1000,              
-                        noDelays: false,
-                        discount: 2};
 
-var locations = runAgent(paramsHyperbolic);
-console.log(locations);
-assert.ok(last(locations)==0, 'test POMDP line');
-
-var paramsMyopia = update(paramsHyperbolic,
-                          {discount: 0, myopia:{on:true, bound:2} });
-var locations = runAgent(paramsHyperbolic);
-console.log(locations);
-assert.ok(last(locations)==0, 'test POMDP line');
-
-var paramsBoundVOI = update(paramsHyperbolic,
-                            {discount: 0, boundVOI:{on:true, bound:5} });
-var locations = runAgent(paramsHyperbolic);
-console.log(locations);
-assert.ok(locations[3]==3, 'test POMDP line');
-
-
-
-
-
-
-// testMDPAgents();
-
+testMDPAgents();
+testPOMDPAgentOptimal();
+testPOMDPAgentDelay();
 
 
