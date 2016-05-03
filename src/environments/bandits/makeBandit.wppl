@@ -159,7 +159,7 @@ var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
   var priorBelief = agentParams.priorBelief;
   var numericalPrizes = bandit.numericalPrizes;
 
-  if (ERPOverLatent(priorBelief)) {
+  if (isERPOverLatent(priorBelief)) {
     assert.ok(_.isEqual(priorBelief.manifestState,
 			bandit.startState.manifestState),
 	      'makeBanditAgent: priorBelief has wrong start manifestState');
@@ -185,9 +185,6 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
 			   beliefOrBeliefDelay){
   var world = bandit.world;
   var startState = bandit.startState;
-  var worldObserve = world.observe;
-  var observe = getFullObserve(worldObserve);
-
   var numericPrizes = bandit.numericPrizes;
 
   var simulate = getSimulateFunction(beliefOrBeliefDelay);
@@ -228,6 +225,7 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
 				prizeToUtility);
     var agentAct = agent.act;
     var agentUpdateBelief = agent.updateBelief;
+    var observe = agent.POMDPFunctions.observe;
 
     // Factor on whole sampled trajectory (SLOW IF NOT DETERMINISTIC AND NUM SAMPLES HIGH)
     var factorOnTrajectory = function(){

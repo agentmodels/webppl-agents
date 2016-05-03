@@ -10,7 +10,7 @@ var isNullAction = function(action){return action=='noAction';};
 
 // Test whether belief has right form for fastUpdateBelief, i.e. it's not
 // an ERP but an object with 'manifestState' and 'latentStateERP' properties
-var ERPOverLatent = function(belief){
+var isERPOverLatent = function(belief){
   return _.has(belief, 'manifestState') && _.has(belief, 'latentStateERP')
     && !_.has(belief,'support') && isERP(belief.latentStateERP);
 };
@@ -25,87 +25,87 @@ var toERPOverLatent = function(belief){
 
 // Sample a state from belief: works for both fast and slow updateBelief
 var sampleBelief = function(belief){
-  if (ERPOverLatent(belief)){
+  if (isERPOverLatent(belief)){
     return buildState(belief.manifestState, sample(belief.latentStateERP) );
   } else {
     return sample(belief);
   };
 };
 
-// this update function works in the general case, e.g. for stochastic transitions
-var getUpdateBeliefSimple = function(transition, observe){
-   return dp.cache(
-     function(belief, observation, action){
-      return Enumerate(function(){
-	var state = sample(belief);
-        var predictedNextState = isNullAction(action) ? state : transition(state, action);
-        var predictedObservation = observe(predictedNextState);
-	condition(_.isEqual(predictedObservation, observation));
-	return predictedNextState;
-	});
-    });
-};
-
-var getUpdateBeliefManifestLatent = function(transition, observe){
-  
-  var isDeltaERP = function(erp){return erp.support().length===1;};
-  
-  return dp.cache(
-    function(belief_, observation, action){
-
-      // If belief has form of "ERP over {manifest:, latent:}" then we convert
-      // to form of "{manifest:, ERP over latent}". 
-      var belief = ERPOverLatent(belief_) ? belief_ : toERPOverLatent(belief_);
-
-      // we set the manifest state to the observed manifest state
-      var newManifestState = observation.manifestState;
-      
-      // Don't update latent when you don't need to
-      if (observation.observation === 'noObservation'
-	  || isDeltaERP(belief.latentStateERP) ) {
-        return update(belief, {manifestState: newManifestState});
-      } else {
-
-        // Sample latent, update state, compare predicted observation from state
-        // to actual observation.
-
-        var newLatentERP = Enumerate(function(){
-          var latentState = sample(belief.latentStateERP);
-	  var state = buildState( belief.manifestState, latentState);    
-          var predictedNextState = isNullAction(action) ? state : transition(state, action);
-          var predictedObservation = observe(predictedNextState);
-
-	   condition(_.isEqual(predictedObservation, observation));
-	  return latentState;});
-        
-        return {manifestState: newManifestState, latentStateERP: newLatentERP};
-      }
-    });
-};
-
-
-// TODO consider moving int body of getManifestLatentFunctions
-
-// Observe both manifestState and the observation of the latent
-var getFullObserve = function(observeLatent){
-  return function(state){
-    return {manifestState: state.manifestState, observation: observeLatent(state)};
-    };
-};
 
 
 
 var getPOMDPFunctions = function(params, world){
 
-  // helper function assuming *manifestLatent* factored states
+
+  // helper functions assuming states with *manifestLatent* form
   var getBeliefToActions = function(manifestStateToActions){
     return function(belief){
-      var manifestState = ERPOverLatent(belief) ? belief.manifestState : 
+      var manifestState = isERPOverLatent(belief) ? belief.manifestState : 
           sample(belief).manifestState;
       return manifestStateToActions( manifestState );
     };
   };
 
+  var getFullObserve = function(observeLatent){
+    return function(state){
+      return {manifestState: state.manifestState, observation: observeLatent(state)};
+    };
+  };
+
+  // updateBelief function for general POMDPs (no manifest/latent structure)
+  var getUpdateBeliefSimple = function(transition, observe){
+    return dp.cache(
+      function(belief, observation, action){
+        return Enumerate(function(){
+	  var state = sample(belief);
+          var predictedNextState = isNullAction(action) ? state : transition(state, action);
+          var predictedObservation = observe(predictedNextState);
+	  condition(_.isEqual(predictedObservation, observation));
+	  return predictedNextState;
+	});
+      });
+  };
+
+  var getUpdateBeliefManifestLatent = function(transition, observe){
+    
+    var isDeltaERP = function(erp){return erp.support().length===1;};
+    
+    return dp.cache(
+      function(belief_, observation, action){
+
+        // If belief has form of "ERP over {manifest:, latent:}" then we convert
+        // to form of "{manifest:, ERP over latent}". 
+        var belief = isERPOverLatent(belief_) ? belief_ : toERPOverLatent(belief_);
+
+        // we set the manifest state to the observed manifest state
+        var newManifestState = observation.manifestState;
+        
+        // Don't update latent when you don't need to
+        if (observation.observation === 'noObservation'
+	    || isDeltaERP(belief.latentStateERP) ) {
+          return update(belief, {manifestState: newManifestState});
+        } else {
+
+          // Sample latent, update state, compare predicted observation from state
+          // to actual observation.
+
+          var newLatentERP = Enumerate(function(){
+            var latentState = sample(belief.latentStateERP);
+	    var state = buildState( belief.manifestState, latentState);    
+            var predictedNextState = isNullAction(action) ? state : transition(state, action);
+            var predictedObservation = observe(predictedNextState);
+
+	    condition(_.isEqual(predictedObservation, observation));
+	    return latentState;});
+          
+          return {manifestState: newManifestState, latentStateERP: newLatentERP};
+        }
+      });
+  };
+  
+
+  
   var useManifestLatent = params.useManifestLatent || _.has(sampleBelief(params.priorBelief),'manifestState');
 
   if (useManifestLatent){

@@ -43,7 +43,7 @@ var makeBeliefDelayAgent = function (params, world){
         var state = sampleBelief(belief);
         return transition(state,action); 
       });
-      return params.fastUpdateBelief ? toERPOverLatent(nextBelief) : nextBelief;
+      return POMDPFunctions.useManifestLatent ? toERPOverLatent(nextBelief) : nextBelief;
       
     } else {
       return _updateBelief(belief, observation, action);
