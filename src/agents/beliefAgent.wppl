@@ -261,6 +261,8 @@ var makeBeliefAgent = function(params, world) {
 
 var getSimulateFunction = function(beliefOrBeliefDelay){
 
+  //TODO add test that agent's prior contains the true startState
+
   assert.ok( _.includes(['belief','beliefDelay'], beliefOrBeliefDelay), 
              'getSimulateFunction invalid input: '+ beliefOrBeliefDelay);
 
