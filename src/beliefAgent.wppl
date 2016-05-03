@@ -115,19 +115,31 @@ var getManifestLatentFunctions = function(world){
   };
 };
 
-var getCoreFunctions = function(world){
+var getCoreFunctions = function(params, world){
+
+  var useManifestLatent = params.useManifestLatent || 
+      _.has(sampleBelief(params.priorBelief),'manifestState');
+
+  if (useManifestLatent){
+    var observe = getFullObserve(world.observe);
+    return {
+      useManifestLatent: true,
+      observe : observe,
+      beliefToActions : getBeliefToActions(world.manifestStateToActions),
+      updateBelief : getUpdateBeliefManifestLatent(world.transition, observe),
+      shouldTerminate: function(state){return state.manifestState.terminateAfterAction;}
+    };
+  };
+
   return {
     useManifestLatent: false,
     observe: world.observe,
     beliefToActions: world.beliefToActions,
     updateBelief: getUpdateBeliefSimple(world.transition, world.observe),
-    shouldTerminate:  function (state) {return state.terminateAfterAction;}
+    shouldTerminate:  function(state){return state.terminateAfterAction;}
   };
 };
 
-var shouldUseManifestLatent = function(params){
-  return params.useManifestLatent || _.has(sampleBelief(params.priorBelief),'manifestState');
-};
 
 // MAKE AGENT
 
@@ -142,12 +154,7 @@ var makeBeliefAgent = function(params, world) {
 
   var utility = params.utility;
   var transition = world.transition;
-  var priorBelief = params.priorBelief
-  
-  var useManifestLatent = shouldUseManifestLatent(params);
-
-  var coreFunctions = useManifestLatent ? getManifestLatentFunctions(world) : 
-      getCoreFunctions(world);
+  var coreFunctions = getCoreFunctions(params, world);
 
   var observe = coreFunctions.observe;
   var beliefToActions = coreFunctions.beliefToActions;

@@ -30,11 +30,7 @@ var makeBeliefDelayAgent = function (params, world){
   var transition = world.transition;
   var utility = params.utility;
 
-  var useManifestLatent = shouldUseManifestLatent(params);
-
-  var coreFunctions = useManifestLatent ? getManifestLatentFunctions(world) : 
-      getCoreFunctions(world);
-
+  var coreFunctions = getCoreFunctions(params, world);
   var observe = coreFunctions.observe;
   var beliefToActions = coreFunctions.beliefToActions;
   var _updateBelief = coreFunctions.updateBelief;
@@ -51,7 +47,7 @@ var makeBeliefDelayAgent = function (params, world){
       
     } else {
       return _updateBelief(belief, observation, action);
-    }
+    };
   };
   
 
@@ -71,7 +67,7 @@ var makeBeliefDelayAgent = function (params, world){
 
   // Termination condition for *expectedUtility*
   var shouldTerminate = function(state, delay) {
-    var terminateAfterAction = useManifestLatent ? 
+    var terminateAfterAction = coreFunctions.useManifestLatent ? 
         state.manifestState.terminateAfterAction :
         state.terminateAfterAction;
     
