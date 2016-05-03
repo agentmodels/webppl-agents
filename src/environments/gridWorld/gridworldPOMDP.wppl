@@ -136,9 +136,8 @@ var tableToUtilityFunction = function(table, world) {
 
 var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParams, prior, agentTypeAndFunctions,
                                    trajectoryOrOffPolicy, numRejectionSamples){
-  var worldObserve = world.observe;
-  var observe = getFullObserve(worldObserve);
   
+ 
   var makeAgent = agentTypeAndFunctions.makeAgent;
   var simulate = agentTypeAndFunctions.simulate;
   var beliefOrBeliefDelay = agentTypeAndFunctions.type;
@@ -165,7 +164,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   // get observations using trueAgentParams
   var agent = makeAgent(trueAgentParams, world);
   var observedStateAction = simulate(startState, world, agent, 'stateAction');
-
+  var observe = agent.POMDPFunctions.observe;
   
   assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferGridWorld');
 

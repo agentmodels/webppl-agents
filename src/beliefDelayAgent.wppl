@@ -30,10 +30,10 @@ var makeBeliefDelayAgent = function (params, world){
   var transition = world.transition;
   var utility = params.utility;
 
-  var coreFunctions = getCoreFunctions(params, world);
-  var observe = coreFunctions.observe;
-  var beliefToActions = coreFunctions.beliefToActions;
-  var _updateBelief = coreFunctions.updateBelief;
+  var POMDPFunctions = getPOMDPFunctions(params, world);
+  var observe = POMDPFunctions.observe;
+  var beliefToActions = POMDPFunctions.beliefToActions;
+  var _updateBelief = POMDPFunctions.updateBelief;
   
   var updateBelief = function (belief, observation, action, delay) {
     if (params.boundVOI.on && (delay > params.boundVOI.bound)){
@@ -67,7 +67,7 @@ var makeBeliefDelayAgent = function (params, world){
 
   // Termination condition for *expectedUtility*
   var shouldTerminate = function(state, delay) {
-    var terminateAfterAction = coreFunctions.useManifestLatent ? 
+    var terminateAfterAction = POMDPFunctions.useManifestLatent ? 
         state.manifestState.terminateAfterAction :
         state.terminateAfterAction;
     
@@ -174,7 +174,7 @@ var makeBeliefDelayAgent = function (params, world){
     updateBelief: updateBelief, 
     expectedUtility : expectedUtility, 
     params: params,
-    coreFunctions: coreFunctions
+    POMDPFunctions: POMDPFunctions
   };
 };
 

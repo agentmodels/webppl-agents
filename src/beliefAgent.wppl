@@ -93,7 +93,12 @@ var getFullObserve = function(observeLatent){
     };
 };
 
-var getBeliefToActions = function(manifestStateToActions){
+
+
+var getPOMDPFunctions = function(params, world){
+
+  // helper function assuming *manifestLatent* factored states
+  var getBeliefToActions = function(manifestStateToActions){
     return function(belief){
       var manifestState = ERPOverLatent(belief) ? belief.manifestState : 
           sample(belief).manifestState;
@@ -101,24 +106,7 @@ var getBeliefToActions = function(manifestStateToActions){
     };
   };
 
-var getManifestLatentFunctions = function(world){
-    
-  // requires a manifestState setup. need a different function in general
-  
-  var observe = getFullObserve(world.observe);
-  return {
-    useManifestLatent: true,
-    observe : observe,
-    beliefToActions : getBeliefToActions(world.manifestStateToActions),
-    updateBelief : getUpdateBeliefManifestLatent(world.transition, observe),
-    shouldTerminate: function(state){return state.manifestState.terminateAfterAction;}
-  };
-};
-
-var getCoreFunctions = function(params, world){
-
-  var useManifestLatent = params.useManifestLatent || 
-      _.has(sampleBelief(params.priorBelief),'manifestState');
+  var useManifestLatent = params.useManifestLatent || _.has(sampleBelief(params.priorBelief),'manifestState');
 
   if (useManifestLatent){
     var observe = getFullObserve(world.observe);
@@ -154,12 +142,12 @@ var makeBeliefAgent = function(params, world) {
 
   var utility = params.utility;
   var transition = world.transition;
-  var coreFunctions = getCoreFunctions(params, world);
+  var POMDPFunctions = getPOMDPFunctions(params, world);
 
-  var observe = coreFunctions.observe;
-  var beliefToActions = coreFunctions.beliefToActions;
-  var updateBelief = coreFunctions.updateBelief;
-  var shouldTerminate = coreFunctions.shouldTerminate;
+  var observe = POMDPFunctions.observe;
+  var beliefToActions = POMDPFunctions.beliefToActions;
+  var updateBelief = POMDPFunctions.updateBelief;
+  var shouldTerminate = POMDPFunctions.shouldTerminate;
 
   
   // RECURSE ON BELIEF (BELLMAN STYLE)
@@ -245,7 +233,7 @@ var makeBeliefAgent = function(params, world) {
     expectedUtilityBelief: expectedUtilityBelief,
     params: params,
     updateBelief: updateBelief,
-    coreFunctions: coreFunctions,
+    POMDPFunctions: POMDPFunctions,
   };
 };
 
@@ -261,7 +249,7 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
 
   
   return function (startState, world, agent, outputType) {
-    var useManifestLatent = agent.coreFunctions.useManifestLatent;
+    var useManifestLatent = agent.POMDPFunctions.useManifestLatent;
     
     var totalTime = useManifestLatent ? startState.manifestState.timeLeft : startState.timeLeft;
     
@@ -275,16 +263,20 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
     assert.ok(totalTime > 1 || startState.manifestState.terminateAfterAction, 
               'if totalTime==1, must also terminateAfterAction');
 
-    
+    // agent methods
     var agentAct = agent.act;
     var agentUpdateBelief = agent.updateBelief;
     var priorBelief = agent.params.priorBelief;
+
+    // world methods
     var transition = world.transition;
-    var observe = agent.coreFunctions.observe;
-    var shouldTerminate = agent.coreFunctions.shouldTerminate;
+    var observe = agent.POMDPFunctions.observe;
+    var shouldTerminate = agent.POMDPFunctions.shouldTerminate;
 
     var selectOutput = function(state, observation, action, belief){
-      var table =  {states:state, actions:action, stateAction:[state, action], 
+      var table =  {states:state, 
+                    actions:action, 
+                    stateAction:[state, action], 
                     stateBelief: [state, belief],
 		    stateObservationAction:{state: state,
 					    observation: observation,
