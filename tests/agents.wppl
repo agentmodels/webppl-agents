@@ -119,7 +119,7 @@ var makeLinePOMDP = function(totalTime, treasureAt3){
 
 // // Make world
 
-var runAgent = function(totalTime){
+var runAgent = function(totalTime, delayAgent){
   var treasureAt3 = false;
   var line = makeLinePOMDP(totalTime, treasureAt3);
   var world = line.world;
@@ -135,16 +135,17 @@ var runAgent = function(totalTime){
                 priorBelief: agentPriorBelief,            
                };
 
-  var agent = makePOMDPAgent(params, world);
+  var agent = delayAgent ? makePOMDPAgentDelay(params, world) :makePOMDPAgent(params, world);
   var trajectory = simulatePOMDPAgent(trueStartState, world, agent, 'states');
   return getLocations(trajectory);
 };
 
-var locations = runAgent(4);
+var delayAgent = false;
+var locations = runAgent(4, delayAgent);
 assert.ok(last(locations)==0, 'test POMDP line');
-var locations = runAgent(5);
+var locations = runAgent(5, delayAgent);
 assert.ok(locations[3]==3, 'test POMDP line');
-var locations = runAgent(7);
+var locations = runAgent(7, delayAgent);
 assert.ok(last(locations)==0, 'test POMDP line');
 
 

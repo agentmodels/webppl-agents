@@ -1,34 +1,54 @@
 
 
 var makeBeliefDelayAgent = function (params, world){
-
-  assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
-                                    'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
-             'makeBeliefDelayAgent args  \n'+JSON.stringify(params));
-//  assert.ok( isPOMDPWorld(world), 'makeBeliefDelay world is not world' );
-  assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI must be false");
   
   if (params.myopia.on || params.boundVOI.on){
     assert.ok( params.noDelays === false && params.sophisticatedOrNaive=== 'naive', 
     'myopia and boundVOI require Naive agent with delays');
   }
 
-  
-  var params = update({recurseOnStateOrBelief: 'belief',
-		       fastUpdateBelief : true}, params);
+  var defaults = {
+    recurseOnStateOrBelief: 'belief',
+    fastUpdateBelief : true,
+    discount: 0,
+    sophisticatedOrNaive: 'naive',
+    noDelays: true,
+    myopia: {on:false},
+    boundVOI: {on:false}
+  };
 
+  var params = update(defaults, params);
+
+  assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
+                                    'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
+             'makeBeliefDelayAgent args  \n'+JSON.stringify(params));
+  //  assert.ok( isPOMDPWorld(world), 'makeBeliefDelay world is not world' );
+  assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI must be false");
+  
+  
   // Variables for methods
   var transition = world.transition;
   var utility = params.utility;
-  var manifestStateToActions = world.manifestStateToActions;
-
-  var worldObserve = world.observe;
-  var observe = getFullObserve(worldObserve);
-  var beliefToActions = getBeliefToActions( manifestStateToActions );
+  
+  
   var recurseOnStateOrBelief = params.recurseOnStateOrBelief;
   var paramsDiscountFunction = params.discountFunction;
-  
 
+
+  var useManifestLatent = params.useManifestLatent || 
+      _.has(sampleBelief(params.priorBelief),'manifestState');
+
+  var coreFunctions = useManifestLatent ? getManifestLatentFunctions(world) : 
+      getCoreFunctions(world);
+
+  var observe = coreFunctions.observe;
+  var beliefToActions = coreFunctions.beliefToActions;
+  var updateBelief = coreFunctions.updateBelief;
+
+
+
+
+  
   // Update the *delay* parameter in *expectedUtility* for sampling actions and future utilities
   var transformDelay = function(delay){
     var table = {naive: delay + 1, sophisticated: 0 };
@@ -45,7 +65,11 @@ var makeBeliefDelayAgent = function (params, world){
 
   // Termination condition for *expectedUtility*
   var shouldTerminate = function(state, delay) {
-    if (state.manifestState.terminateAfterAction) {
+    var terminateAfterAction = useManifestLatent ? 
+        state.manifestState.terminateAfterAction :
+        state.terminateAfterAction;
+    
+    if (terminateAfterAction){
       return true;
     }
     if (params.myopia.on) {
@@ -157,12 +181,17 @@ var makeBeliefDelayAgent = function (params, world){
         }));
     });
 
-  var act = recurseOnStateOrBelief === 'belief' ? act : act_recState;
-  var expectedUtility = recurseOnStateOrBelief === 'belief' ? 
+  var act = params.recurseOnStateOrBelief === 'belief' ? act : act_recState;
+  var expectedUtility = params.recurseOnStateOrBelief === 'belief' ? 
 	expectedUtilityBelief : expectedUtilityBelief_recState;
 
-
-  return { act:act, updateBelief:updateBelief, expectedUtility : expectedUtility, params: params};
+  return { 
+    act:act, 
+    updateBelief: updateBelief, 
+    expectedUtility : expectedUtility, 
+    params: params,
+    coreFunctions: coreFunctions
+  };
 };
 
 

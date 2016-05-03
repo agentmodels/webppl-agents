@@ -105,7 +105,6 @@ var getManifestLatentFunctions = function(world){
     
   // requires a manifestState setup. need a different function in general
   
-
   var observe = getFullObserve(world.observe);
   return {
     useManifestLatent: true,
@@ -113,6 +112,16 @@ var getManifestLatentFunctions = function(world){
     beliefToActions : getBeliefToActions(world.manifestStateToActions),
     updateBelief : getUpdateBeliefManifestLatent(world.transition, observe),
     shouldTerminate: function(state){return state.manifestState.terminateAfterAction;}
+  };
+};
+
+var getCoreFunctions = function(world){
+  return {
+    useManifestLatent: false,
+    observe: world.observe,
+    beliefToActions: world.beliefToActions,
+    updateBelief: getUpdateBeliefSimple(world.transition, world.observe),
+    shouldTerminate:  function (state) {return state.terminateAfterAction;}
   };
 };
 
@@ -134,14 +143,8 @@ var makeBeliefAgent = function(params, world) {
   var useManifestLatent = params.useManifestLatent || 
       _.has(sampleBelief(priorBelief),'manifestState');
 
-  var coreFunctions = {
-    useManifestLatent: false,
-    observe: world.observe,
-    beliefToActions: world.beliefToActions,
-    updateBelief: getUpdateBeliefSimple(transition, world.observe),
-    shouldTerminate:  function (state) { return state.terminateAfterAction; }
-  };
-  var coreFunctions = useManifestLatent ? getManifestLatentFunctions(world) : coreFunctions;
+  var coreFunctions = useManifestLatent ? getManifestLatentFunctions(world) : 
+      getCoreFunctions(world);
 
   var observe = coreFunctions.observe;
   var beliefToActions = coreFunctions.beliefToActions;
