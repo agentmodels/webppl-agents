@@ -33,6 +33,8 @@ var makeBeliefDelayAgent = function (params, world){
   var POMDPFunctions = getPOMDPFunctions(params, world);
   var observe = POMDPFunctions.observe;
   var beliefToActions = POMDPFunctions.beliefToActions;
+  var sampleBelief = POMDPFunctions.sampleBelief;
+  
   var _updateBelief = POMDPFunctions.updateBelief;
   
   var updateBelief = function (belief, observation, action, delay) {

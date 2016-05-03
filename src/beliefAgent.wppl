@@ -2,12 +2,6 @@
 // HELPER FUNCTIONS
 
 
-
-// Agent gets an obervation in starting state without having taken an action
-var isNullAction = function(action){return action=='noAction';};
-
-
-
 // Test whether belief has right form for fastUpdateBelief, i.e. it's not
 // an ERP but an object with 'manifestState' and 'latentStateERP' properties
 var isERPOverLatent = function(belief){
@@ -23,20 +17,17 @@ var toERPOverLatent = function(belief){
           latentStateERP: latentStateERP};
 };
 
-// Sample a state from belief: works for both fast and slow updateBelief
-var sampleBelief = function(belief){
-  if (isERPOverLatent(belief)){
-    return buildState(belief.manifestState, sample(belief.latentStateERP) );
-  } else {
-    return sample(belief);
-  };
-};
-
-
-
 
 var getPOMDPFunctions = function(params, world){
 
+  // Sample a state from belief: works for general states and manifestLatent states.
+  var sampleBelief = function(belief){
+    if (isERPOverLatent(belief)){
+      return buildState(belief.manifestState, sample(belief.latentStateERP) );
+    } else {
+      return sample(belief);
+    };
+  };
 
   // helper functions assuming states with *manifestLatent* form
   var getBeliefToActions = function(manifestStateToActions){
@@ -53,6 +44,9 @@ var getPOMDPFunctions = function(params, world){
     };
   };
 
+  // Agent gets an obervation in starting state without having taken an action
+  var isNullAction = function(action){return action=='noAction';};
+  
   // updateBelief function for general POMDPs (no manifest/latent structure)
   var getUpdateBeliefSimple = function(transition, observe){
     return dp.cache(
@@ -111,6 +105,7 @@ var getPOMDPFunctions = function(params, world){
   if (useManifestLatent){
     var observe = getFullObserve(world.observe);
     return {
+      sampleBelief: sampleBelief,
       useManifestLatent: true,
       observe : observe,
       beliefToActions : getBeliefToActions(world.manifestStateToActions),
@@ -120,6 +115,7 @@ var getPOMDPFunctions = function(params, world){
   };
 
   return {
+    sampleBelief: sampleBelief,
     useManifestLatent: false,
     observe: world.observe,
     beliefToActions: world.beliefToActions,
@@ -148,6 +144,7 @@ var makeBeliefAgent = function(params, world) {
   var beliefToActions = POMDPFunctions.beliefToActions;
   var updateBelief = POMDPFunctions.updateBelief;
   var shouldTerminate = POMDPFunctions.shouldTerminate;
+  var sampleBelief = POMDPFunctions.sampleBelief;
 
   
   // RECURSE ON BELIEF (BELLMAN STYLE)
