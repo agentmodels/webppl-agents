@@ -146,11 +146,9 @@ var getPOMDPFunctions = function(params, world){
 // MAKE AGENT
 
 var makeBeliefAgent = function(params, world) {
-  map(function(s){assert.ok(params.hasOwnProperty(s),'makeBeliefAgent args');}, 
-      ['utility','alpha', 'priorBelief']);
-  // assert.ok( isPOMDPWorld(world),
-  //            'world argument lacks transition, stateToActions, or observe');
-
+  assert.ok( _.has(params, 'utility') && _.has(params,'priorBelief'), 'makePOMDPAgent params');
+  assert.ok( hasTransitionObserve(world), 'makePOMDPAgent world');
+  
   // set defaults
   var defaults = {
     recurseOnStateOrBelief: 'belief',

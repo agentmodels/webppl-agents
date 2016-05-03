@@ -14,6 +14,15 @@ var isPOMDPWorld = function(world){
   return hasProperties(world, ['transition', 'manifestStateToActions', 'observe']);
 };
 
+var hasTransitionObserve = function(world){
+  if ( _.has(world,'transition') && _.has(world,'observe') ){
+    var transition = world.transition;
+    var observe = world.observe;
+    return _.isFunction(transition) && _.isFunction(observe);
+  }
+  return false;
+};
+
 
 var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
                    
