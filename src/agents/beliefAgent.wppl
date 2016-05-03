@@ -146,8 +146,7 @@ var getPOMDPFunctions = function(params, world){
 // MAKE AGENT
 
 var makeBeliefAgent = function(params, world) {
-  assert.ok( _.has(params, 'utility') && _.has(params,'priorBelief'), 'makePOMDPAgent params');
-  assert.ok( hasTransitionObserve(world), 'makePOMDPAgent world');
+  assert.ok( hasUtilityPriorBelief(params) && hasTransitionObserve(world), 'makePOMDPAgent params and world');
   
   // set defaults
   var defaults = {
