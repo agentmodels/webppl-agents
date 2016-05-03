@@ -83,7 +83,7 @@ var makeGridworldPOMDP = function(gridworld) {
   };
 
   var transition = function(state, action) {
-    assert.ok(isPOMDPState(state), 'transition state arg');
+    assert.ok(stateHasManifestLatent(state), 'transition state arg');
 
     var proposedNewState = mdpTransition(state, action);
     var newFeatureName = feature(proposedNewState.manifestState).name;
@@ -150,10 +150,10 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   var priorAgentPrior = isJointPrior ? undefined : prior.priorAgentPrior;
 
   if (isJointPrior) {
-    assert.ok(isPOMDPState(startState) && isERP(jointPrior),
+    assert.ok(stateHasManifestLatent(startState) && isERP(jointPrior),
 	      'inferGridworld args');
   } else {
-    assert.ok(isPOMDPState(startState) && isERP(priorUtilityTable) && isERP(priorAgentPrior), 'inferGridworld args');
+    assert.ok(stateHasManifestLatent(startState) && isERP(priorUtilityTable) && isERP(priorAgentPrior), 'inferGridworld args');
   }
   
   assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 
@@ -166,7 +166,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   var observedStateAction = simulate(startState, world, agent, 'stateAction');
   var observe = agent.POMDPFunctions.observe;
   
-  assert.ok( isPOMDPState(observedStateAction[0][0]), 'fullstate in trajectory for inferGridWorld');
+  assert.ok( stateHasManifestLatent(observedStateAction[0][0]), 'fullstate in trajectory for inferGridWorld');
 
   return Enumerate(function(){
     var utilityAndPrior = isJointPrior ? sample(jointPrior) : null;

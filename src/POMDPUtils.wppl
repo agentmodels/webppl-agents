@@ -4,8 +4,9 @@ var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
 var isERP = function (x) {return _.has(x,'sample') && _.has(x,'support');};
 
 // TODO for manifest
-var isPOMDPState = function (x) {return _.has(x,'latentState') && _.isFinite(x.manifestState.timeLeft);};
+var stateHasManifestLatent = function (x){return _.has(x,'latentState') && _.isFinite(x.manifestState.timeLeft);};
 var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
+
 
 
 // TODO works for manifest

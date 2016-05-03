@@ -110,8 +110,16 @@ var getPOMDPFunctions = function(params, world){
   };
 
   
-  var useManifestLatent = params.useManifestLatent || _.has(sampleBelief(params.priorBelief),'manifestState');
+  var useManifestLatent = !_.isUndefined(params.useManifestLatent) ?
+      params.useManifestLatent : 
+      stateHasManifestLatent(sampleBelief(params.priorBelief))
 
+  if (useManifestLatent){
+    assert.ok( stateHasManifestLatent(sampleBelief(params.priorBelief)), 
+               'state is not manifestLatent in form')
+  }
+  
+  
   if (useManifestLatent){
     var observe = getFullObserve(world.observe);
     return {
