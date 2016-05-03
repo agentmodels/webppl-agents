@@ -1,15 +1,12 @@
 
 
 var makeBeliefDelayAgent = function (params, world){
-  
-  if (params.myopia.on || params.boundVOI.on){
-    assert.ok( params.noDelays === false && params.sophisticatedOrNaive=== 'naive', 
-    'myopia and boundVOI require Naive agent with delays');
-  }
 
+  // TODO asserts
+ 
   var defaults = {
+    alpha: 1000,
     recurseOnStateOrBelief: 'belief',
-    fastUpdateBelief : true,
     discount: 0,
     sophisticatedOrNaive: 'naive',
     noDelays: true,
@@ -19,6 +16,11 @@ var makeBeliefDelayAgent = function (params, world){
 
   var params = update(defaults, params);
 
+  if (params.myopia.on || params.boundVOI.on){
+    assert.ok( params.noDelays === false && params.sophisticatedOrNaive=== 'naive', 
+    'myopia and boundVOI require Naive agent with delays');
+  }
+  
   assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
                                     'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
              'makeBeliefDelayAgent args  \n'+JSON.stringify(params));

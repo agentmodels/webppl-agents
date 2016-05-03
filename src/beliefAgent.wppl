@@ -1,6 +1,7 @@
 
 // HELPER FUNCTIONS
 
+// TODO these two functions should be moved into getPOMDPFRunctions
 
 // Test whether belief has right form for fastUpdateBelief, i.e. it's not
 // an ERP but an object with 'manifestState' and 'latentStateERP' properties
@@ -98,7 +99,6 @@ var getPOMDPFunctions = function(params, world){
       });
   };
   
-
   
   var useManifestLatent = params.useManifestLatent || _.has(sampleBelief(params.priorBelief),'manifestState');
 
@@ -133,8 +133,13 @@ var makeBeliefAgent = function(params, world) {
   // assert.ok( isPOMDPWorld(world),
   //            'world argument lacks transition, stateToActions, or observe');
 
-  // set defaults 
-  var params = update({ recurseOnStateOrBelief : 'belief', fastUpdateBelief : true}, params);
+  // set defaults
+  var defaults = {
+    recurseOnStateOrBelief: 'belief',
+    alpha: 1000,
+  };
+  
+  var params = update(defaults, params);
 
   var utility = params.utility;
   var transition = world.transition;

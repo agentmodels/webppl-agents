@@ -82,6 +82,9 @@ var testMDPAgents = function(){
 var makePOMDPAgent = makeBeliefAgent;
 var simulatePOMDPAgent = simulateBeliefAgent;
 
+var makePOMDPAgentDelay = makeBeliefDelayAgent;
+var simulatePOMDPAgentDelay = simulateBeliefDelayAgent;
+
 
 var makeLinePOMDP = function(totalTime, treasureAt3){
 
@@ -135,12 +138,13 @@ var runAgent = function(totalTime, delayAgent){
                 priorBelief: agentPriorBelief,            
                };
 
-  var agent = delayAgent ? makePOMDPAgentDelay(params, world) :makePOMDPAgent(params, world);
-  var trajectory = simulatePOMDPAgent(trueStartState, world, agent, 'states');
+  var agent = delayAgent ? makePOMDPAgentDelay(params, world) : makePOMDPAgent(params, world);
+  var trajectory = delayAgent ? simulatePOMDPAgentDelay(trueStartState, world, agent, 'states') :
+      simulatePOMDPAgent(trueStartState, world, agent, 'states');
   return getLocations(trajectory);
 };
 
-var delayAgent = false;
+var delayAgent = true;
 var locations = runAgent(4, delayAgent);
 assert.ok(last(locations)==0, 'test POMDP line');
 var locations = runAgent(5, delayAgent);
