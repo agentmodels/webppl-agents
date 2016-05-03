@@ -1,52 +1,58 @@
-// BELIEF DELAY AGENT
-
-// Test script by running:
-//webppl tests/beliefDelayIRLBandits.wppl --require webppl-timeit --require webppl-dp --require .
-
-
-// Example of well-formed *params* argument for makeBeliefDelayAgent.
-// See more examples in tests/beliefDelayIRLBandits.wppl
-var exampleMakeAgentParams = {
-  alpha: 100,
-  noDelays: false,
-  discount: 2,
-  sophisticatedOrNaive: 'sophisticated',
-  myopia: {on:false, bound:0},
-  priorBelief: {}, // see the examples mentioned above
-  boundVOI: {on:false, bound:0}
-};
-
-// optional arguments are recurseOnStateOrBelief, fastUpdateBelief, and
-// discountFunction.
 
 
 var makeBeliefDelayAgent = function (params, world){
 
-  assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
-                                    'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
-             'makeBeliefDelayAgent args  \n'+JSON.stringify(params));
-  assert.ok( isPOMDPWorld(world), 'makeBeliefDelay world is not world' );
-  assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI must be false");
-  
+  // TODO asserts
+ 
+  var defaults = {
+    alpha: 1000,
+    recurseOnStateOrBelief: 'belief',
+    discount: 0,
+    sophisticatedOrNaive: 'naive',
+    noDelays: true,
+    myopia: {on:false},
+    boundVOI: {on:false}
+  };
+
+  var params = update(defaults, params);
+
   if (params.myopia.on || params.boundVOI.on){
     assert.ok( params.noDelays === false && params.sophisticatedOrNaive=== 'naive', 
     'myopia and boundVOI require Naive agent with delays');
   }
-
-  // Use optimizations that for Gridworld/Bandits for POMDP agents
-  var params = update({recurseOnStateOrBelief: 'belief',
-		       fastUpdateBelief : true}, params);
-
+  
+  assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
+                                    'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
+             'makeBeliefDelayAgent args  \n'+JSON.stringify(params));
+  //  assert.ok( isPOMDPWorld(world), 'makeBeliefDelay world is not world' );
+  assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI must be false");
+  
+  
   // Variables for methods
   var transition = world.transition;
   var utility = params.utility;
-  var manifestStateToActions = world.manifestStateToActions;
 
-  var worldObserve = world.observe;
-  var observe = getFullObserve(worldObserve);
-  var beliefToActions = getBeliefToActions( manifestStateToActions );
-  var recurseOnStateOrBelief = params.recurseOnStateOrBelief;
-  var paramsDiscountFunction = params.discountFunction;
+  var POMDPFunctions = getPOMDPFunctions(params, world);
+  var observe = POMDPFunctions.observe;
+  var beliefToActions = POMDPFunctions.beliefToActions;
+  var sampleBelief = POMDPFunctions.sampleBelief;
+  
+  var _updateBelief = POMDPFunctions.updateBelief;
+  
+  var updateBelief = function (belief, observation, action, delay) {
+    if (params.boundVOI.on && (delay > params.boundVOI.bound)){
+            
+      // update manifestState (assuming no possibility that isNullAction(action))
+      var nextBelief = Enumerate(function(){  
+        var state = sampleBelief(belief);
+        return transition(state,action); 
+      });
+      return POMDPFunctions.useManifestLatent ? toERPOverLatent(nextBelief) : nextBelief;
+      
+    } else {
+      return _updateBelief(belief, observation, action);
+    };
+  };
   
 
   // Update the *delay* parameter in *expectedUtility* for sampling actions and future utilities
@@ -60,12 +66,16 @@ var makeBeliefDelayAgent = function (params, world){
   };
 
   // Define the discount function to be used
-  var discountFunction = paramsDiscountFunction ? paramsDiscountFunction
+  var discountFunction = params.discountFunction ? params.discountFunction
 	: function(delay){return 1.0/(1 + params.discount * delay);};
 
   // Termination condition for *expectedUtility*
   var shouldTerminate = function(state, delay) {
-    if (state.manifestState.terminateAfterAction) {
+    var terminateAfterAction = POMDPFunctions.useManifestLatent ? 
+        state.manifestState.terminateAfterAction :
+        state.terminateAfterAction;
+    
+    if (terminateAfterAction){
       return true;
     }
     if (params.myopia.on) {
@@ -75,24 +85,6 @@ var makeBeliefDelayAgent = function (params, world){
   };
 
   
-  var _updateBelief = params.fastUpdateBelief ? getUpdateBeliefLatent(transition, observe) :
-      getUpdateBeliefSimple(transition, observe);
-
-  
-  var updateBelief = function (belief, observation, action, delay) {
-    if (params.boundVOI.on && (delay > params.boundVOI.bound)){
-            
-      // update manifestState (assuming no possibility that isNullAction(action))
-      var nextBelief = Enumerate(function(){  
-        var state = sampleBelief(belief);
-        return transition(state,action); 
-      });
-      return params.fastUpdateBelief ? toERPOverLatent(nextBelief) : nextBelief;
-      
-    } else {
-      return _updateBelief(belief, observation, action);
-    }
-  };
 
   // RECURSE ON BELIEF (BELLMAN STYLE)
   var act = dp.cache(
@@ -177,12 +169,17 @@ var makeBeliefDelayAgent = function (params, world){
         }));
     });
 
-  var act = recurseOnStateOrBelief === 'belief' ? act : act_recState;
-  var expectedUtility = recurseOnStateOrBelief === 'belief' ? 
+  var act = params.recurseOnStateOrBelief === 'belief' ? act : act_recState;
+  var expectedUtility = params.recurseOnStateOrBelief === 'belief' ? 
 	expectedUtilityBelief : expectedUtilityBelief_recState;
 
-
-  return { act:act, updateBelief:updateBelief, expectedUtility : expectedUtility, params: params};
+  return { 
+    act:act, 
+    updateBelief: updateBelief, 
+    expectedUtility : expectedUtility, 
+    params: params,
+    POMDPFunctions: POMDPFunctions
+  };
 };
 
 

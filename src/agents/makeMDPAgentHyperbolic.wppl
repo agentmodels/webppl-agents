@@ -2,8 +2,7 @@
 // TODO makeHyperbolicAgent rename
 
 var makeHyperbolicDiscounter = function (params, world) {
-
-  assert.ok(hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive'], 'makeDiscounter params'));
+  assert.ok(hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive']), 'makeMDPAgentHyperbolic params');
   
   var stateToActions = world.stateToActions;
   var transition = world.transition;

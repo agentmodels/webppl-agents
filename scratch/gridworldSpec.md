@@ -34,9 +34,9 @@ utility function constructor also.
 **makePOMDPAgent**
 
 - if you have no delays, then it goes to beliefAgent, otherwise beliefDelay.
-- rename as POMDPAgentOptimal, POMDPAgentDelays.
-- gridworld and bandits have a flag: useManifestStates. makeAgent functions checks for this flag in world. if present, then you do fastUpdateBelief (so getBeliefFunctin, getObserve and so on). if not, then you don't use these things. need a unit test to show this.
-
+- rename as POMDPAgent, POMDPAgentDelays.
+- single simulate function
+- general inference function
 
 **naming**:
 
@@ -46,3 +46,7 @@ utility function constructor also.
 - where possible, script should have name of main function
 
 - TODO rename makeHyperbolic function
+
+
+
+

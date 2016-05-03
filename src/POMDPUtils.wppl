@@ -2,10 +2,13 @@
 
 var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
 var isERP = function (x) {return _.has(x,'sample') && _.has(x,'support');};
+
+// TODO for manifest
 var isPOMDPState = function (x) {return _.has(x,'latentState') && _.isFinite(x.manifestState.timeLeft);};
 var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
 
 
+// TODO works for manifest
 var isPOMDPWorld = function(world){ 
   return hasProperties(world, ['transition', 'manifestStateToActions', 'observe']);
 };
@@ -16,6 +19,7 @@ var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
 
 // Helper functions
 
+// TODO works only for manifest
 var buildState = function (manifestState, latentState) {
   return { manifestState:manifestState, latentState:latentState };
 };
@@ -29,6 +33,7 @@ var categoricalERP = function(probs, vals) {
 };
 
 
+// TODO: should not all be global
 
 // From array of POMDP states, extract locations array
 var trajectoryToLocations = function(trajectory){
@@ -96,6 +101,7 @@ var stateActionPairsToFullStates = function(locAction, latentState){
 };
 
 
+// TODO where is this used?
 var _getPriorBelief = function(perceivedTotalTime, startingLocation, latentStateSampler){
   var startManifestState = {timeLeft: perceivedTotalTime, loc: startingLocation, terminateAfterAction: false};
   
@@ -105,6 +111,7 @@ var _getPriorBelief = function(perceivedTotalTime, startingLocation, latentState
   });
 };
 
+// TODO move from here
 var getPriorBeliefGridworld = function(startManifestState, latentStateSampler){
   return Enumerate( function(){
     var latentState = latentStateSampler();
