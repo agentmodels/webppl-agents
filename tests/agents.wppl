@@ -208,7 +208,7 @@ var testPOMDPAgentOptimal = function(){
 
 
   // Speed and correctness test for *manifestLatent* optimization
-  var runAgent = function(totalTime, useManifestLatent){
+  var compareAgent = function(totalTime, useManifestLatent){
     var treasureAt3 = false;
     var line = useManifestLatent ? makeLinePOMDPManifest(totalTime, treasureAt3) : 
         makeLinePOMDP(totalTime, treasureAt3);
@@ -242,11 +242,12 @@ var testPOMDPAgentOptimal = function(){
 
   var out = map( function(useManifestLatent){
     return timeit(function(){
-      return runAgent(4, false, useManifestLatent);
+      return compareAgent(4, useManifestLatent);
     })
   }, [false, true]);
 
-  assert.ok( _.isEqual( out[0].value, out[1].value) );
+  assert.ok( _.isEqual( out[0].value, out[1].value), 'compare POMDP' );
+  assert.ok(  out[0].runtimeInMilliseconds > out[1].runtimeInMilliseconds, 'compare POMDP' );
   console.log('Runtime in ms (simple, manifestLatent optimized) :',
               _.map( out, 'runtimeInMilliseconds' ) );
                  
