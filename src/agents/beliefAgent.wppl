@@ -19,6 +19,9 @@ var toERPOverLatent = function(belief){
 };
 
 
+// Construct functions needed for running the POMDP agent
+// Most of the code is for the the manifest-latent optimization
+
 var getPOMDPFunctions = function(params, world){
 
   // Sample a state from belief: works for general states and manifestLatent states.
@@ -30,7 +33,12 @@ var getPOMDPFunctions = function(params, world){
     };
   };
 
-  // helper functions assuming states with *manifestLatent* form
+  
+  // ----------------------------
+  // Manifest-latent Optimization
+
+  // Helper functions
+  
   var getBeliefToActions = function(manifestStateToActions){
     return function(belief){
       var manifestState = isERPOverLatent(belief) ? belief.manifestState : 
@@ -48,19 +56,6 @@ var getPOMDPFunctions = function(params, world){
   // Agent gets an obervation in starting state without having taken an action
   var isNullAction = function(action){return action=='noAction';};
   
-  // updateBelief function for general POMDPs (no manifest/latent structure)
-  var getUpdateBeliefSimple = function(transition, observe){
-    return dp.cache(
-      function(belief, observation, action){
-        return Enumerate(function(){
-	  var state = sample(belief);
-          var predictedNextState = isNullAction(action) ? state : transition(state, action);
-          var predictedObservation = observe(predictedNextState);
-	  condition(_.isEqual(predictedObservation, observation));
-	  return predictedNextState;
-	});
-      });
-  };
 
   var getUpdateBeliefManifestLatent = function(transition, observe){
     
@@ -99,6 +94,21 @@ var getPOMDPFunctions = function(params, world){
       });
   };
   
+  
+  // updateBelief function for general POMDPs (no manifest/latent structure)
+  var getUpdateBeliefSimple = function(transition, observe){
+    return dp.cache(
+      function(belief, observation, action){
+        return Enumerate(function(){
+	  var state = sample(belief);
+          var predictedNextState = isNullAction(action) ? state : transition(state, action);
+          var predictedObservation = observe(predictedNextState);
+	  condition(_.isEqual(predictedObservation, observation));
+	  return predictedNextState;
+	});
+      });
+  };
+
   
   var useManifestLatent = params.useManifestLatent || _.has(sampleBelief(params.priorBelief),'manifestState');
 
