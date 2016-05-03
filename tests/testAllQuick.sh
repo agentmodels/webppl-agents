@@ -1,5 +1,7 @@
 #! /bin/bash 
 
+webppl tests/agents.wppl --require webppl-dp --require webppl-timeit --require .
+
 
 webppl tests/makeGridworld.wppl --require webppl-dp --require webppl-timeit --require .
 webppl tests/beliefGridworld.wppl --require webppl-dp --require webppl-timeit --require .
