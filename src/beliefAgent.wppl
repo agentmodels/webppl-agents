@@ -103,6 +103,16 @@ var getUpdateBeliefLatent = function(transition, observe){
 };
 
 
+var getManifestLatentFunctions = function(world){
+  var observe = getFullObserve(world.observe);
+  return {
+    observe : observe,
+    beliefToActions : getBeliefToActions(world.manifestStateToActions),
+    updateBelief : getUpdateBeliefLatent(world.transition, observe),
+    shouldTerminate: function(state){return state.manifestState.terminateAfterAction;}
+  };
+};
+
 // MAKE AGENT
 
 var makeBeliefAgent = function(params, world) {
@@ -116,26 +126,38 @@ var makeBeliefAgent = function(params, world) {
 
   var utility = params.utility;
   var transition = world.transition;
-  var worldObserve = world.observe;
   var priorBelief = params.priorBelief
   
   var useManifestLatent = params.useManifestLatent || 
       _.has(sampleBelief(priorBelief),'manifestState');
 
+  var coreFunctions = {
+    observe: world.observe,
+    beliefToActions: world.beliefToActions,
+    updateBelief: getUpdateBeliefSimple(transition, world.observe),
+    shouldTerminate:  function (state) { return state.terminateAfterAction; }
+  };
+  var coreFunctions = useManifestLatent ? getManifestLatentFunctions(world) : coreFunctions;
+
+  var observe = coreFunctions.observe;
+  var beliefToActions = coreFunctions.beliefToActions;
+  var updateBelief = coreFunctions.updateBelief;
+  var shouldTerminate = coreFunctions.shouldTerminate;
+
   // Depending on whether states have *manifestState* property,
   // define *observe*, *beliefToActions*, *shouldTerminate* 
-  var observe = useManifestLatent ? getFullObserve(worldObserve) : worldObserve
+  // var observe = useManifestLatent ? getFullObserve(worldObserve) : worldObserve
   
-  var beliefToActions = useManifestLatent ? 
-      getBeliefToActions(world.manifestStateToActions) :
-      world.beliefToActions;
+  // var beliefToActions = useManifestLatent ? 
+  //     getBeliefToActions(world.manifestStateToActions) :
+  //     world.beliefToActions;
   
-  var updateBelief = useManifestLatent ? getUpdateBeliefLatent(transition, observe) :
-      getUpdateBeliefSimple(transition, observe);
+  // var updateBelief = useManifestLatent ? getUpdateBeliefLatent(transition, observe) :
+  //     getUpdateBeliefSimple(transition, observe);
 
-  var shouldTerminate = useManifestLatent ?
-      function (state) { return state.manifestState.terminateAfterAction;}:
-      function (state) { return state.terminateAfterAction; };
+  // var shouldTerminate = useManifestLatent ?
+  //     function (state) { return state.manifestState.terminateAfterAction;}:
+  //     function (state) { return state.terminateAfterAction; };
 
   
   // RECURSE ON BELIEF (BELLMAN STYLE)
