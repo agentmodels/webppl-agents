@@ -2,30 +2,11 @@
 // HELPER FUNCTIONS
 
 
-// TODO only works when you have a manifestState
-
-// Observe both manifestState and the observation of the latent
-var getFullObserve = function(observeLatent){
-  return function(state){
-    return {manifestState: state.manifestState, observation: observeLatent(state)};
-  };
-};
-
-// requires a manifestState setup. need a different function in general
-var getBeliefToActions = function(manifestStateToActions){
-  return function(belief){
-    var manifestState = ERPOverLatent(belief) ? belief.manifestState : 
-          sample(belief).manifestState;
-    return manifestStateToActions( manifestState );
-  };
-};
 
 // Agent gets an obervation in starting state without having taken an action
 var isNullAction = function(action){return action=='noAction';};
 
 
-// Helper functions for fastUpdateBelief
-var isDeltaERP = function(erp){return erp.support().length===1;};
 
 // Test whether belief has right form for fastUpdateBelief, i.e. it's not
 // an ERP but an object with 'manifestState' and 'latentStateERP' properties
@@ -34,13 +15,10 @@ var ERPOverLatent = function(belief){
     && !_.has(belief,'support') && isERP(belief.latentStateERP);
 };
 
-// Convert to form for fastUpdateBelief
-// NB: only works for deterministic transitions
+// Convert priorBelief from ERP over full states to ERP over latents
 var toERPOverLatent = function(belief){
-
   var manifestState = belief.support()[0].manifestState;
-  var latentStateERP = Enumerate(function(){return sample(belief).latentState;});
- 
+  var latentStateERP = Enumerate(function(){return sample(belief).latentState;})
   return {manifestState: manifestState,
           latentStateERP: latentStateERP};
 };
@@ -68,7 +46,10 @@ var getUpdateBeliefSimple = function(transition, observe){
     });
 };
 
-var getUpdateBeliefLatent = function(transition, observe){
+var getUpdateBeliefManifestLatent = function(transition, observe){
+  
+  var isDeltaERP = function(erp){return erp.support().length===1;};
+  
   return dp.cache(
     function(belief_, observation, action){
 
@@ -103,12 +84,34 @@ var getUpdateBeliefLatent = function(transition, observe){
 };
 
 
+// TODO consider moving int body of getManifestLatentFunctions
+
+// Observe both manifestState and the observation of the latent
+var getFullObserve = function(observeLatent){
+  return function(state){
+    return {manifestState: state.manifestState, observation: observeLatent(state)};
+    };
+};
+
+var getBeliefToActions = function(manifestStateToActions){
+    return function(belief){
+      var manifestState = ERPOverLatent(belief) ? belief.manifestState : 
+          sample(belief).manifestState;
+      return manifestStateToActions( manifestState );
+    };
+  };
+
 var getManifestLatentFunctions = function(world){
+    
+  // requires a manifestState setup. need a different function in general
+  
+
   var observe = getFullObserve(world.observe);
   return {
+    useManifestLatent: true,
     observe : observe,
     beliefToActions : getBeliefToActions(world.manifestStateToActions),
-    updateBelief : getUpdateBeliefLatent(world.transition, observe),
+    updateBelief : getUpdateBeliefManifestLatent(world.transition, observe),
     shouldTerminate: function(state){return state.manifestState.terminateAfterAction;}
   };
 };
@@ -132,6 +135,7 @@ var makeBeliefAgent = function(params, world) {
       _.has(sampleBelief(priorBelief),'manifestState');
 
   var coreFunctions = {
+    useManifestLatent: false,
     observe: world.observe,
     beliefToActions: world.beliefToActions,
     updateBelief: getUpdateBeliefSimple(transition, world.observe),
@@ -143,21 +147,6 @@ var makeBeliefAgent = function(params, world) {
   var beliefToActions = coreFunctions.beliefToActions;
   var updateBelief = coreFunctions.updateBelief;
   var shouldTerminate = coreFunctions.shouldTerminate;
-
-  // Depending on whether states have *manifestState* property,
-  // define *observe*, *beliefToActions*, *shouldTerminate* 
-  // var observe = useManifestLatent ? getFullObserve(worldObserve) : worldObserve
-  
-  // var beliefToActions = useManifestLatent ? 
-  //     getBeliefToActions(world.manifestStateToActions) :
-  //     world.beliefToActions;
-  
-  // var updateBelief = useManifestLatent ? getUpdateBeliefLatent(transition, observe) :
-  //     getUpdateBeliefSimple(transition, observe);
-
-  // var shouldTerminate = useManifestLatent ?
-  //     function (state) { return state.manifestState.terminateAfterAction;}:
-  //     function (state) { return state.terminateAfterAction; };
 
   
   // RECURSE ON BELIEF (BELLMAN STYLE)
@@ -242,7 +231,9 @@ var makeBeliefAgent = function(params, world) {
     act: act,
     expectedUtilityBelief: expectedUtilityBelief,
     params: params,
-    updateBelief: updateBelief};
+    updateBelief: updateBelief,
+    coreFunctions: coreFunctions,
+  };
 };
 
 
@@ -255,8 +246,9 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
 
   var useDelays = beliefOrBeliefDelay=='beliefDelay';
 
+  
   return function (startState, world, agent, outputType) {
-    var useManifestLatent = _.has(startState,'manifestState');
+    var useManifestLatent = agent.coreFunctions.useManifestLatent;
     
     var totalTime = useManifestLatent ? startState.manifestState.timeLeft : startState.timeLeft;
     
@@ -271,13 +263,12 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
               'if totalTime==1, must also terminateAfterAction');
 
     
-    
     var agentAct = agent.act;
     var agentUpdateBelief = agent.updateBelief;
     var priorBelief = agent.params.priorBelief;
     var transition = world.transition;
-    var worldObserve = world.observe;
-    var observe = useManifestLatent ? getFullObserve(worldObserve) : worldObserve;
+    var observe = agent.coreFunctions.observe;
+    var shouldTerminate = agent.coreFunctions.shouldTerminate;
 
     var selectOutput = function(state, observation, action, belief){
       var table =  {states:state, actions:action, stateAction:[state, action], 
@@ -288,15 +279,10 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
       return table[outputType];
     };
 
-    var shouldTerminate = useManifestLatent ?
-        function (state) { return state.manifestState.terminateAfterAction;}:
-        function (state) { return state.terminateAfterAction; };
-
     
     var sampleSequence = function(state, priorBelief, action) {
 
       var observation = observe(state);
-
       var delay = 0;
 
       var belief = useDelays ? agentUpdateBelief(priorBelief, observation,
