@@ -119,7 +119,7 @@ var makeBeliefAgent = function(params, world) {
   var worldObserve = world.observe;
 
   var priorBelief = params.priorBelief;
-  var sampleState = priorBelief.support()[0];
+  var sampleState = sampleBelief(priorBelief);
   var useManifestLatent = _.has(sampleState,'manifestState');
 
   
