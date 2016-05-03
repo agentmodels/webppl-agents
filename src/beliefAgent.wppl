@@ -125,6 +125,10 @@ var getCoreFunctions = function(world){
   };
 };
 
+var shouldUseManifestLatent = function(params){
+  return params.useManifestLatent || _.has(sampleBelief(params.priorBelief),'manifestState');
+};
+
 // MAKE AGENT
 
 var makeBeliefAgent = function(params, world) {
@@ -140,8 +144,7 @@ var makeBeliefAgent = function(params, world) {
   var transition = world.transition;
   var priorBelief = params.priorBelief
   
-  var useManifestLatent = params.useManifestLatent || 
-      _.has(sampleBelief(priorBelief),'manifestState');
+  var useManifestLatent = shouldUseManifestLatent(params);
 
   var coreFunctions = useManifestLatent ? getManifestLatentFunctions(world) : 
       getCoreFunctions(world);

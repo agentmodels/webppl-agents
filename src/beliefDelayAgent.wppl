@@ -29,26 +29,32 @@ var makeBeliefDelayAgent = function (params, world){
   // Variables for methods
   var transition = world.transition;
   var utility = params.utility;
-  
-  
-  var recurseOnStateOrBelief = params.recurseOnStateOrBelief;
-  var paramsDiscountFunction = params.discountFunction;
 
-
-  var useManifestLatent = params.useManifestLatent || 
-      _.has(sampleBelief(params.priorBelief),'manifestState');
+  var useManifestLatent = shouldUseManifestLatent(params);
 
   var coreFunctions = useManifestLatent ? getManifestLatentFunctions(world) : 
       getCoreFunctions(world);
 
   var observe = coreFunctions.observe;
   var beliefToActions = coreFunctions.beliefToActions;
-  var updateBelief = coreFunctions.updateBelief;
-
-
-
-
+  var _updateBelief = coreFunctions.updateBelief;
   
+  var updateBelief = function (belief, observation, action, delay) {
+    if (params.boundVOI.on && (delay > params.boundVOI.bound)){
+            
+      // update manifestState (assuming no possibility that isNullAction(action))
+      var nextBelief = Enumerate(function(){  
+        var state = sampleBelief(belief);
+        return transition(state,action); 
+      });
+      return params.fastUpdateBelief ? toERPOverLatent(nextBelief) : nextBelief;
+      
+    } else {
+      return _updateBelief(belief, observation, action);
+    }
+  };
+  
+
   // Update the *delay* parameter in *expectedUtility* for sampling actions and future utilities
   var transformDelay = function(delay){
     var table = {naive: delay + 1, sophisticated: 0 };
@@ -60,7 +66,7 @@ var makeBeliefDelayAgent = function (params, world){
   };
 
   // Define the discount function to be used
-  var discountFunction = paramsDiscountFunction ? paramsDiscountFunction
+  var discountFunction = params.discountFunction ? params.discountFunction
 	: function(delay){return 1.0/(1 + params.discount * delay);};
 
   // Termination condition for *expectedUtility*
@@ -79,24 +85,6 @@ var makeBeliefDelayAgent = function (params, world){
   };
 
   
-  var _updateBelief = params.fastUpdateBelief ? getUpdateBeliefManifestLatent(transition, observe) :
-      getUpdateBeliefSimple(transition, observe);
-
-  
-  var updateBelief = function (belief, observation, action, delay) {
-    if (params.boundVOI.on && (delay > params.boundVOI.bound)){
-            
-      // update manifestState (assuming no possibility that isNullAction(action))
-      var nextBelief = Enumerate(function(){  
-        var state = sampleBelief(belief);
-        return transition(state,action); 
-      });
-      return params.fastUpdateBelief ? toERPOverLatent(nextBelief) : nextBelief;
-      
-    } else {
-      return _updateBelief(belief, observation, action);
-    }
-  };
 
   // RECURSE ON BELIEF (BELLMAN STYLE)
   var act = dp.cache(
