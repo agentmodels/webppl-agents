@@ -1,0 +1,63 @@
+console.log('Simulating mutual recursion agent in home-club game');
+
+var homeClubGame = makeHomeClubGame();
+
+var optionsHomeClub0 = {
+  game: homeClubGame,
+  playerNumber: 0,
+  level: 2,
+  alpha: 1,
+  utility: homeClubUtility0,
+  oppUtility: homeClubUtility1
+};
+var agentHomeClub0 = mutualRecursionAgent(optionsHomeClub0);
+
+var optionsHomeClub1 = update(optionsHomeClub0, {
+  playerNumber: 1,
+  utility: homeClubUtility1,
+  oppUtility: homeClubUtility0
+});
+var agentHomeClub1 = mutualRecursionAgent(optionsHomeClub1);
+
+var startState = {loc: 'start',
+		  terminateAfterAction: false};
+
+var homeClubTrajectory = simulateGame(startState, homeClubGame, agentHomeClub0,
+				      agentHomeClub1, 'stateActions');
+
+console.log(homeClubTrajectory);
+
+// for alpha = 100, agent reliably goes home even at level 1
+// for alpha = 1, at level 1, agent goes home with probability 0.622.
+// at level 2, agent goes home with probability 0.980
+
+
+console.log('Simulating mutual recursion agent in double-club game');
+
+var doubleClubGame = makeDoubleClubGame();
+
+var optionsDoubleClub0 = {
+  game: doubleClubGame,
+  playerNumber: 0,
+  level: 3,
+  alpha: 100,
+  utility: doubleClubUtility0,
+  oppUtility: doubleClubUtility1
+};
+var agentDoubleClub0 = mutualRecursionAgent(optionsDoubleClub0);
+
+var optionsDoubleClub1 = update(optionsDoubleClub0, {
+  playerNumber: 1,
+  utility: doubleClubUtility1,
+  oppUtility: doubleClubUtility0
+});
+var agentDoubleClub1 = mutualRecursionAgent(optionsDoubleClub1);
+
+var doubleClubTrajectory = simulateGame(startState, doubleClubGame, agentDoubleClub0,
+					agentDoubleClub1, 'stateActions');
+
+console.log(doubleClubTrajectory);
+
+// at alpha = 100, a level 1 agent only goes to cube with probability 0.525
+// a level 2 agent also goes to cube with probability 0.525
+// a level 3 agent goes with probability 1. This is strange.
