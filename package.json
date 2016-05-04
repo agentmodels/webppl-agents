@@ -26,8 +26,8 @@
       "src/environments/gridWorld/restaurantChoiceExample.wppl",
       "src/environments/gridWorld/restaurantChoiceHyperbolicInfer.wppl",
       "src/environments/gridWorld/banditGridworld.wppl",
-      "src/environments/procrastinationMDP.wppl"      
-
+      "src/environments/procrastinationMDP.wppl",
+      "src/environments/coordinationGame.wppl"
     ]
   },
   "repository": {
