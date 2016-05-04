@@ -52,5 +52,6 @@ BIG:
 - write the chapter explaining the library
 - rename REPO
 - DO GREEDY AND MYOPIC (ask AS)
+- gridworld draw should take pomdps and any kind of trajectory. also need a display for POMDPs!
 
 

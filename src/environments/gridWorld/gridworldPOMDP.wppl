@@ -28,6 +28,7 @@ var isGridworld = function(world){return world
 
 
 // TODO Change to GridWorld and access via general makeGridWorld function
+// currently returns a world (makeGridWorld does not)
 var makeGridworldPOMDP = function(options) {
 
   var gridworld = makeGridWorld(options).world;

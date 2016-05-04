@@ -35,7 +35,7 @@ var getRestaurantChoiceOptions = function(updateOptions){
 
 var makeRestaurantChoiceMDP = function(updateOptions){
   var options = getRestaurantChoiceOptions(updateOptions);
-  return makeGridWorld(options)
+  return makeGridWorld(options).world;
 };
 
 // TODO clean this up: should be one makeRestaurantChoice function that takes option POMDP true false
