@@ -5,8 +5,8 @@ var homeClubGame = makeHomeClubGame();
 var optionsHomeClub0 = {
   game: homeClubGame,
   playerNumber: 0,
-  level: 2,
-  alpha: 1,
+  level: 3,
+  alpha: 100,
   utility: homeClubUtility0,
   oppUtility: homeClubUtility1
 };
@@ -32,7 +32,7 @@ console.log(homeClubTrajectory);
 // at level 2, agent goes home with probability 0.980
 
 
-console.log('Simulating mutual recursion agent in double-club game');
+console.log('\nSimulating mutual recursion agent in double-club game');
 
 var doubleClubGame = makeDoubleClubGame();
 
@@ -61,3 +61,57 @@ console.log(doubleClubTrajectory);
 // at alpha = 100, a level 1 agent only goes to cube with probability 0.525
 // a level 2 agent also goes to cube with probability 0.525
 // a level 3 agent goes with probability 1. This is strange.
+
+console.log('\nSimulating mutual recursion agent in Matching Pennies');
+
+var matchingPenniesGame = makeMatchingPenniesGame();
+
+var optionsMatchingPennies0 = {
+  game: matchingPenniesGame,
+  playerNumber: 0,
+  level: 3,
+  alpha: 100,
+  utility: matchingPenniesUtility0,
+  oppUtility: matchingPenniesUtility1
+};
+var agentMatchingPennies0 = mutualRecursionAgent(optionsMatchingPennies0);
+
+var optionsMatchingPennies1 = update(optionsMatchingPennies0, {
+  playerNumber: 1,
+  utility: matchingPenniesUtility1,
+  oppUtility: matchingPenniesUtility0
+});
+var agentMatchingPennies1 = mutualRecursionAgent(optionsMatchingPennies1);
+
+var matchingPenniesTrajectory = simulateGame(startState, matchingPenniesGame,
+					     agentMatchingPennies0,
+					     agentMatchingPennies1,
+					     'stateActions');
+
+console.log(matchingPenniesTrajectory);
+
+console.log('\nSimulating mutual recursion agent in Bach or Stravinsky');
+
+var BoSGame = makeBoSGame();
+
+var optionsBoS0 = {
+  game: BoSGame,
+  playerNumber: 0,
+  level: 3,
+  alpha: 100,
+  utility: BoSUtility0,
+  oppUtility: BoSUtility1
+};
+var agentBoS0 = mutualRecursionAgent(optionsBoS0);
+
+var optionsBoS1 = update(optionsBoS0, {
+  playerNumber: 1,
+  utility: BoSUtility1,
+  oppUtility: BoSUtility0
+});
+var agentBoS1 = mutualRecursionAgent(optionsBoS1);
+
+var BoSTrajectory = simulateGame(startState, BoSGame, agentBoS0, agentBoS1,
+					     'stateActions');
+
+console.log(BoSTrajectory);

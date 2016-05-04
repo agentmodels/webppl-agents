@@ -106,3 +106,99 @@ var doubleClubUtility1 = function(state) {
     return clubUtility + matchingUtility;
   }
 };
+
+// the classic matching pennies game
+
+var makeMatchingPenniesGame = function(){
+
+  var locs = ['start', ['heads', 'tails'], ['tails', 'tails'],
+	      ['heads', 'heads'], ['tails', 'heads']];
+
+  var actions = ['tails', 'heads'];
+
+  var transition = function(state, action0, action1){
+    var loc = state.loc;
+    if (loc !== 'start') {
+      return {loc: loc,
+	      terminateAfterAction: true};
+    } else {
+      return {loc: [action0, action1],
+	      terminateAfterAction: true};
+    }
+  };
+  
+  return {
+    locs: locs,
+    actions0: actions,
+    actions1: actions,
+    transition: transition
+  };
+};
+
+var matchingPenniesUtility0 = function(state) {
+  var loc = state.loc;
+  if (loc === 'start') {
+    return 0;
+  } else {
+    return loc[0] === loc[1] ? 1 : 0;
+  }
+};
+
+var matchingPenniesUtility1 = function(state) {
+  var loc = state.loc;
+  if (loc === 'start') {
+    return 0;
+  } else {
+    return loc[0] === loc[1] ? 0 : 1;
+  }
+};
+
+// bach or stravinsky (commonly known as 'battle of the sexes')
+
+var makeBoSGame = function(){
+
+  var locs = ['start', ['bach', 'stravinsky'], ['stravinsky', 'stravinsky'],
+	      ['bach', 'bach'], ['stravinsky', 'bach']];
+
+  var actions = ['stravinsky', 'bach'];
+
+  var transition = function(state, action0, action1){
+    var loc = state.loc;
+    if (loc !== 'start') {
+      return {loc: loc,
+	      terminateAfterAction: true};
+    } else {
+      return {loc: [action0, action1],
+	      terminateAfterAction: true};
+    }
+  };
+  
+  return {
+    locs: locs,
+    actions0: actions,
+    actions1: actions,
+    transition: transition
+  };
+};
+
+var BoSUtility0 = function(state) {
+  var loc = state.loc;
+  if (loc === 'start' || loc[0] !== loc[1]) {
+    return 0;
+  } else if (loc[0] === 'bach') {
+    return 1;
+  } else {
+    return 5;
+  }
+};
+
+var BoSUtility1 = function(state) {
+  var loc = state.loc;
+  if (loc === 'start' || loc[0] !== loc[1]) {
+    return 0;
+  } else if (loc[0] === 'bach') {
+    return 5;
+  } else {
+    return 1;
+  }
+};
