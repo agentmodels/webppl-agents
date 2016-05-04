@@ -1,7 +1,11 @@
 // Restaurant Choice Constructor and Helpers
 
 
-var makeRestaurantChoiceMDPGridWorld = function(options) {
+var getRestaurantChoiceOptions = function(updateOptions){
+  
+  var defaults = {noReverse:true, maxTimeAtRestaurant:2};
+  var options = update(defaults, updateOptions);
+
   var restaurant = {
     donutN : { name : 'Donut N'},
     donutS : { name : 'Donut S'},
@@ -14,10 +18,7 @@ var makeRestaurantChoiceMDPGridWorld = function(options) {
   var DS = restaurant.donutS;
   var V = restaurant.veg;
   var N = restaurant.noodle;
-
-  var defaults = {noReverse:true, maxTimeAtRestaurant:2};
-  var options = update(defaults, options);
-
+  
   var features = 
     [['#', '#', '#', '#',  V , '#'],
      ['#', '#', '#',  __ ,  __ ,  __ ],  
@@ -28,12 +29,17 @@ var makeRestaurantChoiceMDPGridWorld = function(options) {
      [ __ ,  __ ,  __ ,  __ , '#', '#'],
      [DS , '#', '#',  __ , '#', '#']];
 
-  var options = update(options, {gridFeatures: features});
+  return update(options, {gridFeatures: features});
+};
+
+
+var makeRestaurantChoiceMDPGridWorld = function(updateOptions) {
+  var options = getRestaurantChoiceOptions(updateOptions);
   return makeGridWorld(options);
 };
 
-var makeRestaurantChoiceMDP = function(options){
-  return makeRestaurantChoiceMDPGridWorld(options).world;
+var makeRestaurantChoiceMDP = function(updateOptions){
+  return makeRestaurantChoiceMDPGridWorld(updateOptions).world;
 };
 
 
@@ -123,8 +129,6 @@ var restaurantPathToName = function(path){
 
 
 
-
-
 // POMDP case
 var makeRestaurantChoicePOMDP = function(options){
   var gridworldMDP = makeRestaurantChoiceMDP(options);
@@ -132,6 +136,10 @@ var makeRestaurantChoicePOMDP = function(options){
   return update(makeGridworldPOMDP(gridworldMDP), 
                 {feature: feature, restaurantChoiceMDP: gridworldMDP});
 };
+
+// var makeRestaurantChoiceWorld = function(options){
+//   if (options.POMDP){
+//     return makeGridworldPOMDP(options)
 
 
 var allOpenRestaurantChoiceStart = {

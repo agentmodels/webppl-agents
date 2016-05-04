@@ -249,8 +249,7 @@ var testPOMDPAgentOptimal = function(){
   assert.ok( _.isEqual( out[0].value, out[1].value), 'compare POMDP' );
   assert.ok(  out[0].runtimeInMilliseconds > out[1].runtimeInMilliseconds, 'compare POMDP' );
   console.log('Runtime in ms (simple, manifestLatent optimized) :',
-              _.map( out, 'runtimeInMilliseconds' ) );
-                 
+              _.map( out, 'runtimeInMilliseconds' ) );                 
 };
 
 

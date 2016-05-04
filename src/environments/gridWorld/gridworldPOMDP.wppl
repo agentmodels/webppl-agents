@@ -28,9 +28,10 @@ var isGridworld = function(world){return world
 
 
 // TODO rename gridworld to gridWorldMDPWorld or something
-var makeGridworldPOMDP = function(gridworld) {
-  assert.ok(isGridworld(gridworld), 'makeGridworldPOMDP arg');
-
+var makeGridworldPOMDP = function(options) {
+  //assert.ok(isGridworld(gridworld), 'makeGridworldPOMDP arg');
+  var gridworld = makeGridWorld(options).world;
+  
   var actions = gridworld.actions;
   var feature = gridworld.feature;
 
