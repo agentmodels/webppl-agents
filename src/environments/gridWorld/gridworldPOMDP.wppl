@@ -27,7 +27,7 @@ var isGridworld = function(world){return world
 // adjacent to any restaurants, they get 'noObservation'.
 
 
-
+// TODO Change to GridWorld and access via general makeGridWorld function
 var makeGridworldPOMDP = function(options) {
 
   var gridworld = makeGridWorld(options).world;
@@ -117,6 +117,8 @@ var makeGridworldPOMDP = function(options) {
           feature : feature,
           MDPWorld: gridworld };
 };
+
+
 
 
 
