@@ -33,13 +33,19 @@ var getRestaurantChoiceOptions = function(updateOptions){
 };
 
 
-var makeRestaurantChoiceMDPGridWorld = function(updateOptions) {
+var makeRestaurantChoiceMDP = function(updateOptions){
   var options = getRestaurantChoiceOptions(updateOptions);
-  return makeGridWorld(options);
+  return makeGridWorld(options)
 };
 
-var makeRestaurantChoiceMDP = function(updateOptions){
-  return makeRestaurantChoiceMDPGridWorld(updateOptions).world;
+var makeRestaurantChoiceWorld = function(options){
+  if (options.POMDP){  
+    var restaurantChoiceOptions = getRestaurantChoiceOptions(options);
+    
+    return makeGridworldPOMDP(restaurantChoiceOptions)
+  } else {
+    return makeRestaurantChoiceMDP(restaurant);
+  }
 };
 
 
@@ -130,24 +136,6 @@ var restaurantPathToName = function(path){
 
 
 // POMDP case
-var makeRestaurantChoicePOMDP = function(options){
-  var gridworldMDP = makeRestaurantChoiceMDP(options);
-  var feature = gridworldMDP.feature;
-  return update(makeGridworldPOMDP(gridworldMDP), 
-                {feature: feature, restaurantChoiceMDP: gridworldMDP});
-};
-
-var makeRestaurantChoiceWorld = function(options){
-  
-  var restaurantChoiceOptions = getRestaurantChoiceOptions(options);
-
-  if (options.POMDP){  
-    return makeGridworldPOMDP(restaurantChoiceOptions)
-  } else {
-    return makeRestaurantChoiceMDP(restaurant);
-  }
-};
-
 
 var allOpenRestaurantChoiceStart = {
   manifestState: { loc: [3,1],

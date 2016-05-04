@@ -29,13 +29,13 @@ var isGridworld = function(world){return world
 
 
 var makeGridworldPOMDP = function(options) {
-  //assert.ok(isGridworld(gridworld), 'makeGridworldPOMDP arg');
-  console.log('gridPOMDP options, ', JSON.stringify(options) );
-  
+
   var gridworld = makeGridWorld(options).world;
   
   var actions = gridworld.actions;
   var feature = gridworld.feature;
+
+
 
   // returns an array of restaurants that neighbour a state
   var neighbourRestaurants = function(manifestState) {
@@ -110,6 +110,8 @@ var makeGridworldPOMDP = function(options) {
       return gridworld.actions;
     }
   };
+
+ 
   
   return {manifestStateToActions: manifestStateToActions,
 	  transition: transition,
