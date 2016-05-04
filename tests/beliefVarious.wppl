@@ -135,12 +135,10 @@ var testAgent = function(){
 	   [ _ , '#'],
 	   [ _ , '#'],
 	   [ _ ,  N ]];
-    var myOptions = update(myOptions, {gridFeatures: features});
-    return makeGridWorld(myOptions).world;
+    return update(myOptions, {gridFeatures: features});
   };
 
-  var forkyGridworldMDP = makeForkRoad({noReverse: true});
-  var forkyGridworldPOMDP = makeGridworldPOMDP(forkyGridworldMDP);
+  var forkyGridworldPOMDP = makeGridworldPOMDP( makeForkRoad() );
   
   var startState4 = {manifestState: {loc: [0,0],
 				     terminateAfterAction: false,

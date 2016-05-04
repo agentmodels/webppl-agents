@@ -30,6 +30,8 @@ var isGridworld = function(world){return world
 
 var makeGridworldPOMDP = function(options) {
   //assert.ok(isGridworld(gridworld), 'makeGridworldPOMDP arg');
+  console.log('gridPOMDP options, ', JSON.stringify(options) );
+  
   var gridworld = makeGridWorld(options).world;
   
   var actions = gridworld.actions;

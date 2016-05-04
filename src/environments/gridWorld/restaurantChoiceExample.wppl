@@ -138,11 +138,13 @@ var makeRestaurantChoicePOMDP = function(options){
 };
 
 var makeRestaurantChoiceWorld = function(options){
-  if (options.POMDP){
-    var restaurantChoiceOptions = getRestaurantChoiceOptions(options);
+  
+  var restaurantChoiceOptions = getRestaurantChoiceOptions(options);
+
+  if (options.POMDP){  
     return makeGridworldPOMDP(restaurantChoiceOptions)
   } else {
-    makeRestaurantChoiceMDP(options);
+    return makeRestaurantChoiceMDP(restaurant);
   }
 };
 
