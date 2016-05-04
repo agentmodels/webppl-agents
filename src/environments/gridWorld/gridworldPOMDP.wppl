@@ -35,8 +35,6 @@ var makeGridworldPOMDP = function(options) {
   var actions = gridworld.actions;
   var feature = gridworld.feature;
 
-
-
   // returns an array of restaurants that neighbour a state
   var neighbourRestaurants = function(manifestState) {
     var loc = manifestState.loc;
@@ -116,7 +114,8 @@ var makeGridworldPOMDP = function(options) {
   return {manifestStateToActions: manifestStateToActions,
 	  transition: transition,
 	  observe: observe,
-          feature : feature};
+          feature : feature,
+          MDPWorld: gridworld };
 };
 
 
