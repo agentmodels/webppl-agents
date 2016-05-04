@@ -8,3 +8,4 @@ scratch/agentmodelsCodeBox.wppl
 runHtml/assets/js/webppl.js
 codeboxes
 npm-debug.log
+src/agents/selfModellingAgent.wppl

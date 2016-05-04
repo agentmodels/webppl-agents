@@ -1,4 +1,4 @@
-// coordination game:
+// home-club game:
 // there are two agents. The agents are in general antisocial, and like being
 // home alone, but especially enjoy hanging out with each other. They both
 // separately face a choice of staying home alone or going out to a club. If
@@ -6,45 +6,101 @@
 // and the other agent is there, they get a utility of 10, and otherwise they
 // get a utility of 0.
 
-var makeCoordinationGame = function(){
+var makeHomeClubGame = function(){
 
-  var states = ['start', ['club', 'home'], ['home', 'home'], ['club', 'club'],
-		['home', 'club']];
+  var locs = ['start', ['club', 'home'], ['home', 'home'], ['club', 'club'],
+	      ['home', 'club']];
 
   var actions = ['home', 'club'];
 
-  var transition = function(state, action1, action2){
-    if (state !== 'start') {
-      return state;
+  var transition = function(state, action0, action1){
+    var loc = state.loc;
+    if (loc !== 'start') {
+      return {loc: loc,
+	      terminateAfterAction: true};
     } else {
-      return [action1, action2];
+      return {loc: [action0, action1],
+	      terminateAfterAction: false};
     }
   };
   
   return {
-    states: states,
+    actions0: actions,
     actions1: actions,
-    actions2: actions,
     transition: transition
   };
 };
 
-var coordinationUtility1 = function(state) {
-  if (state === 'start') {
+var homeClubUtility0 = function(state) {
+  var loc = state.loc;
+  if (loc === 'start') {
     return 0;
-  } else if (state[0] === 'home') {
+  } else if (loc[0] === 'home') {
     return 5;
   } else {
-    return state[1] === 'home' ? 0 : 10;
+    return loc[1] === 'home' ? 0 : 10;
   };
 };
 
-var coordinationUtility2 = function(state) {
-  if (state === 'start') {
+var homeClubUtility1 = function(state) {
+  var loc = state.loc;
+  if (loc === 'start') {
     return 0;
-  } else if (state[1] === 'home') {
+  } else if (loc[1] === 'home') {
     return 5;
   } else {
-    return state[0] === 'home' ? 0 : 10;
+    return loc[0] === 'home' ? 0 : 10;
   };
+};
+
+// doubleClub game:
+// each agent has to choose between two clubs. One club is slightly better.
+// Both agents prefer the better club (all else being equal), and they also
+// greatly prefer to be in the same club as the other agent.
+
+var makeDoubleClubGame = function(){
+
+  var locs = ['start', ['mooseheads', 'cube'], ['cube', 'cube'],
+	      ['mooseheads', 'mooseheads'], ['cube', 'mooseheads']];
+
+  var actions = ['cube', 'mooseheads'];
+
+  var transition = function(state, action0, action1){
+    var loc = state.loc;
+    if (loc !== 'start') {
+      return {loc: loc,
+	      terminateAfterAction: true};
+    } else {
+      return {loc: [action0, action1],
+	      terminateAfterAction: false};
+    }
+  };
+  
+  return {
+    actions0: actions,
+    actions1: actions,
+    transition: transition
+  };
+};
+
+var doubleClubUtility0 = function(state) {
+  var loc = state.loc;
+  if (loc === 'start') {
+    return 0;
+  } else {
+    var clubUtility = loc[0] === 'cube' ? 0.001 : 0;
+    var matchingUtility = loc[0] === loc[1] ? 1 : 0;
+    return clubUtility + matchingUtility;
+  }
+};
+
+var doubleClubUtility1 = function(state) {
+  var loc = state.loc;
+  if (loc === 'start') {
+    return 0;
+  } else {
+    var clubUtility = loc[1] === 'cube' ? 0.001 : 0;
+    var matchingUtility = loc[0] === loc[1] ? 1 : 0;
+    return clubUtility + matchingUtility;
+  }
 };

@@ -1,0 +1,62 @@
+// this program makes an agent for a two-player game.
+// the agent at level n assumes that it is playing an agent at level n - 1.
+// the agent at level 0 randomly selects actions.
+
+var exampleOptions = {
+  game: makeCoordinationGame(), // code for the game that the agent is playing
+  playerNumber: 0, // specifying which player the agent is
+  level: 3, // specifying the depth of recursion
+  alpha: 10,
+  utility: null, // agent's utility function
+  oppUtility: null // opponent's utility function
+};
+
+var mutualRecursionAgent = function(options){
+  var game = options.game;
+  var playerNumber = options.playerNumber;
+  var level = options.level;
+  var alpha = options.alpha;
+  var utility = options.utility;
+  var oppUtility = options.oppUtility;
+  var transition = game.transition;
+  var myActions = playerNumber === 0 ? game.actions0 : game.actions1;
+  
+  var oppActions = playerNumber === 0 ? game.actions1 : game.actions0;
+  var oppOptions = update(options, {level: level - 1,
+				    utility: oppUtility,
+				    oppUtility: utility});
+  var oppAct = mutualRecursionAgent(oppOptions).act;
+
+  var act = dp.cache(function(state){
+    return Enumerate(function(){
+      var myAction = uniformDraw(myActions);
+      var oppAction = sample(oppAct(state));
+      var eu = expectedUtility(state, myAction, oppAction);
+      var factorQuantity = level === 0 ? 0 : alpha * eu;
+      return myAction;
+    });
+  });
+
+  var expectedUtility = dp.cache(function(state, myAction, oppAction){
+    var u = utility(state);
+    if (state.terminateAfterAction){
+      return u;
+    } else {
+      return u + expectation(Enumerate(function(){
+	var nextState = playerNumber === 0
+	      ? transition(state, myAction, oppAction)
+	      : transition(state, oppAction, myAction);
+	var myNextAction = sample(act(nextState));
+	var oppNextAction = sample(oppAct(nextState));
+	return expectedUtility(nextState, myNextAction, oppNextAction);
+      }));
+    };
+  });
+  
+  return {
+    options: options,
+    expectedUtility: expectedUtility,
+    act: act
+  };
+  
+};

@@ -1,0 +1,25 @@
+var simulateGame = function(startState, game, agent0, agent1, outputType_){
+  // if outputType_ is undefined, default to states
+  var act0 = agent0.act;
+  var act1 = agent1.act;
+  var transition = game.transition;
+  var outputType = outputType_ ? outputType_ : 'states';
+
+  var selectOutput = function(state, action0, action1) {
+    var table = {states: state,
+		 actions: [action0, action1],
+		 stateActions: [state, action0, action1]};
+    return table[outputType];
+  };
+
+  var sampleSequence = function(state){
+    var action0 = sample(act0(state));
+    var action1 = sample(act1(state));
+    var nextState = transition(state, action0, action1);
+    var out = selectOutput(state, action0, action1);
+    return state.terminateAfterAction ? [out]
+      : [out].concat(sampleSequence(nextState));
+  };
+
+  return sampleSequence(startState);
+};
