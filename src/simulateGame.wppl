@@ -1,4 +1,5 @@
 var simulateGame = function(startState, game, agent0, agent1, outputType_){
+  
   // if outputType_ is undefined, default to states
   var act0 = agent0.act;
   var act1 = agent1.act;
@@ -13,6 +14,9 @@ var simulateGame = function(startState, game, agent0, agent1, outputType_){
   };
 
   var sampleSequence = function(state){
+    // console.log('\n' + JSON.stringify(state));
+    // console.log('\naction 0 erp:\n');
+    // printERP(act0(state));
     var action0 = sample(act0(state));
     var action1 = sample(act1(state));
     var nextState = transition(state, action0, action1);

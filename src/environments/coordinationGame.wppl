@@ -20,7 +20,7 @@ var makeHomeClubGame = function(){
 	      terminateAfterAction: true};
     } else {
       return {loc: [action0, action1],
-	      terminateAfterAction: false};
+	      terminateAfterAction: true};
     }
   };
   
@@ -38,7 +38,7 @@ var homeClubUtility0 = function(state) {
   } else if (loc[0] === 'home') {
     return 5;
   } else {
-    return loc[1] === 'home' ? 0 : 10;
+    return loc[1] === 'home' ? 0 : 9;
   };
 };
 
@@ -49,14 +49,14 @@ var homeClubUtility1 = function(state) {
   } else if (loc[1] === 'home') {
     return 5;
   } else {
-    return loc[0] === 'home' ? 0 : 10;
+    return loc[0] === 'home' ? 0 : 9;
   };
 };
 
 // doubleClub game:
-// each agent has to choose between two clubs. One club is slightly better.
-// Both agents prefer the better club (all else being equal), and they also
-// greatly prefer to be in the same club as the other agent.
+// each agent has to choose between two clubs. One club (cube) is slightly
+// better. Both agents prefer the better club (all else being equal), and they
+// also greatly prefer to be in the same club as the other agent.
 
 var makeDoubleClubGame = function(){
 
@@ -72,7 +72,7 @@ var makeDoubleClubGame = function(){
 	      terminateAfterAction: true};
     } else {
       return {loc: [action0, action1],
-	      terminateAfterAction: false};
+	      terminateAfterAction: true};
     }
   };
   

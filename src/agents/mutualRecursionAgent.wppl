@@ -3,7 +3,7 @@
 // the agent at level 0 randomly selects actions.
 
 var exampleOptions = {
-  game: makeCoordinationGame(), // code for the game that the agent is playing
+  game: null, // code for the game that the agent is playing
   playerNumber: 0, // specifying which player the agent is
   level: 3, // specifying the depth of recursion
   alpha: 10,
@@ -14,35 +14,45 @@ var exampleOptions = {
 var mutualRecursionAgent = function(options){
   var game = options.game;
   var playerNumber = options.playerNumber;
-  var level = options.level;
+  var level = Math.max(options.level, 0);
+  console.log('my level: ' + level);
   var alpha = options.alpha;
   var utility = options.utility;
   var oppUtility = options.oppUtility;
   var transition = game.transition;
   var myActions = playerNumber === 0 ? game.actions0 : game.actions1;
-  
+
   var oppActions = playerNumber === 0 ? game.actions1 : game.actions0;
   var oppOptions = update(options, {level: level - 1,
 				    utility: oppUtility,
 				    oppUtility: utility});
-  var oppAct = mutualRecursionAgent(oppOptions).act;
+
+  var randomActOpp = function(state){
+    return Enumerate(function(){
+      return uniformDraw(oppActions);
+    });
+  };
+  
+  var oppAct = level === 0 ? randomActOpp
+	: mutualRecursionAgent(oppOptions).act;
 
   var act = dp.cache(function(state){
     return Enumerate(function(){
       var myAction = uniformDraw(myActions);
-      var oppAction = sample(oppAct(state));
-      var eu = expectedUtility(state, myAction, oppAction);
+      var eu = expectedUtility(state, myAction);
       var factorQuantity = level === 0 ? 0 : alpha * eu;
+      factor(factorQuantity);
       return myAction;
     });
   });
 
-  var expectedUtility = dp.cache(function(state, myAction, oppAction){
+  var expectedUtility = dp.cache(function(state, myAction){
     var u = utility(state);
     if (state.terminateAfterAction){
       return u;
     } else {
       return u + expectation(Enumerate(function(){
+	var oppAction = sample(oppAct(state));
 	var nextState = playerNumber === 0
 	      ? transition(state, myAction, oppAction)
 	      : transition(state, oppAction, myAction);
@@ -52,7 +62,7 @@ var mutualRecursionAgent = function(options){
       }));
     };
   });
-  
+
   return {
     options: options,
     expectedUtility: expectedUtility,
