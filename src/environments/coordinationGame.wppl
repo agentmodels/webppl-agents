@@ -1,0 +1,50 @@
+// coordination game:
+// there are two agents. The agents are in general antisocial, and like being
+// home alone, but especially enjoy hanging out with each other. They both
+// separately face a choice of staying home alone or going out to a club. If
+// an agent stays at home, they get a utility of 5. If they go to the club,
+// and the other agent is there, they get a utility of 10, and otherwise they
+// get a utility of 0.
+
+var makeCoordinationGame = function(){
+
+  var states = ['start', ['club', 'home'], ['home', 'home'], ['club', 'club'],
+		['home', 'club']];
+
+  var actions = ['home', 'club'];
+
+  var transition = function(state, action1, action2){
+    if (state !== 'start') {
+      return state;
+    } else {
+      return [action1, action2];
+    }
+  };
+  
+  return {
+    states: states,
+    actions1: actions,
+    actions2: actions,
+    transition: transition
+  };
+};
+
+var coordinationUtility1 = function(state) {
+  if (state === 'start') {
+    return 0;
+  } else if (state[0] === 'home') {
+    return 5;
+  } else {
+    return state[1] === 'home' ? 0 : 10;
+  };
+};
+
+var coordinationUtility2 = function(state) {
+  if (state === 'start') {
+    return 0;
+  } else if (state[1] === 'home') {
+    return 5;
+  } else {
+    return state[0] === 'home' ? 0 : 10;
+  };
+};
