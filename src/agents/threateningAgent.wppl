@@ -1,0 +1,93 @@
+// this agent picks actions on the assumption that it can credibly threaten to
+// pick those actions, and the opponent will maximise their utility under those
+// constraints.
+
+// this is super slow, since it involves a prior over all possible stochastic
+// policies, and chooses the best one of those (rather than doing this sort of
+// inference per-action)
+
+var threateningAgent = function(options){
+  var game = options.game;
+  var startState = options.startState;
+  var locs = game.locs;
+  var transition = game.transition;
+  var playerNumber = options.playerNumber;
+  var alpha = options.alpha;
+  var utility = options.utility;
+  var oppUtility = options.oppUtility;
+  var myActions = playerNumber === 0 ? game.actions0 : game.actions1;
+  var oppActions = playerNumber === 0 ? game.actions1 : game.actions0;
+
+  var dAlpha = map(constF(1),myActions);
+  // parameter of dirichlet prior
+
+  var states = _.flatten(map(function(loc){
+    return [{loc: loc, terminateAfterAction: true},
+	    {loc: loc, terminateAfterAction: false}];
+  }, locs));
+
+  var policyDistribution = MCMC(function(){
+    
+    var addActionDistribution = function(state) {
+      var actionDistribution = dirichlet(dAlpha);
+      return [state, actionDistribution];
+    };
+    var policy = map(addActionDistribution, states);
+
+    var myAct = function(state) {
+      var firstIsState = function(x){
+	return _.isEqual(first(x), state);
+      };
+      var actionProbs = second(filter(firstIsState, policy));
+      return categoricalERP(actionProbs, myActions);
+    };
+
+    var oppAct = dp.cache(function(state){
+      return Enumerate(function(){
+	var oppAction = uniformDraw(oppActions);
+	var eu = oppExpectedUtility(state, oppAction);
+	factor(alpha * eu);
+	return oppAction;
+      });
+    });
+
+    var oppExpectedUtility = dp.cache(function(state, oppAction){
+      var u = oppUtility(state);
+      if (state.terminateAfterAction){
+	return u;
+      } else {
+	return u + expectation(Enumerate(function(){
+	  var myAction = sample(myAct(state));
+	  var nextState = playerNumber === 0
+		? transition(state, myAction, oppAction)
+		: transition(state, oppAction, myAction);
+	  var oppNextAction = sample(oppAct(nextState));
+	  return oppExpectedUtility(nextState, oppNextAction);
+	}));
+      }
+    });
+
+    var agent0 = playerNumber === 0 ? {act: myAct} : {act: oppAct};
+    var agent1 = playerNumber === 1 ? {act: myAct} : {act: oppAct};
+    
+    var trajectory = simulateGame(startState, game, agent0, agent1, 'states');
+
+    var totalUtility = sum(map(utility, trajectory));
+
+    factor(alpha * totalUtility);
+
+    return policy;
+  }, {kernel: {HMC: {steps: 5, stepSize: 0.01}}});
+
+  var policy = MAP(policyDistribution).val;
+
+  var act = function(state) {
+    var firstIsState = function(x){
+      return _.isEqual(first(x), state);
+    };
+    var actionProbs = second(filter(firstIsState, policy));
+    return categoricalERP(actionProbs, myActions);
+  };
+
+  return {act: act};
+};

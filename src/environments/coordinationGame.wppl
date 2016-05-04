@@ -25,6 +25,7 @@ var makeHomeClubGame = function(){
   };
   
   return {
+    locs: locs,
     actions0: actions,
     actions1: actions,
     transition: transition
@@ -77,6 +78,7 @@ var makeDoubleClubGame = function(){
   };
   
   return {
+    locs: locs,
     actions0: actions,
     actions1: actions,
     transition: transition
