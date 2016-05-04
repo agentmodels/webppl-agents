@@ -27,7 +27,7 @@ var isGridworld = function(world){return world
 // adjacent to any restaurants, they get 'noObservation'.
 
 
-// TODO rename gridworld to gridWorldMDPWorld or something
+
 var makeGridworldPOMDP = function(options) {
   //assert.ok(isGridworld(gridworld), 'makeGridworldPOMDP arg');
   var gridworld = makeGridWorld(options).world;
@@ -114,7 +114,6 @@ var makeGridworldPOMDP = function(options) {
 	  observe: observe,
           feature : feature};
 };
-
 
 
 

@@ -12,7 +12,7 @@ var getActualSupport = function(erp) {
     return erp.score([], x) > -100;
   };
   return filter(hasNonNegligibleProbability, erp.support());
-};
+};t
 
 var checkEqualDeltaErps = function(erpArray) {
   assert.ok(isERP(erpArray[0]) && isERP(erpArray[1]),
