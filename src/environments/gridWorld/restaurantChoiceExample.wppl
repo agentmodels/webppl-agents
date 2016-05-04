@@ -49,10 +49,6 @@ var makeRestaurantChoiceWorld = function(options){
   }
 };
 
-var makeRestaurantChoicePOMDP = function(options){
-  return makeRestaurantChoiceWorld({POMDP:true});
-};
-
 
 
 var makeRestaurantUtilityFunction = function (world, utilityTable) {
