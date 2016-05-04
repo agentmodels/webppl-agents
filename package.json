@@ -20,6 +20,7 @@
       "src/agents/beliefAgent.wppl",
       "src/agents/beliefDelayAgent.wppl",
       "src/agents/mutualRecursionAgent.wppl",
+      "src/agents/threateningAgent.wppl",
       "src/simulateGame.wppl",
       "src/environments/bandits/makeBandit.wppl",
       "src/environments/gridWorld/makeGridWorld.wppl",

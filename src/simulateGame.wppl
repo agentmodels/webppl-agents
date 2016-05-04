@@ -1,5 +1,5 @@
-var simulateGame = function(startState, game, agent0, agent1, outputType_){
-  
+var simulateGame = function(startState, game, agent0, agent1, outputType_,
+			    displayActionERPs){
   // if outputType_ is undefined, default to states
   var act0 = agent0.act;
   var act1 = agent1.act;
@@ -14,8 +14,7 @@ var simulateGame = function(startState, game, agent0, agent1, outputType_){
   };
 
   var sampleSequence = function(state){
-    if (state.loc === 'start'){
-      console.log('\n' + JSON.stringify(state));
+    if (state.loc === 'start' && displayActionERPs){
       console.log('\naction 0 erp:\n');
       printERP(act0(state));
       console.log('\naction 1 erp:\n');

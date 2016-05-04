@@ -23,34 +23,36 @@ var makeHomeClubGame = function(){
 	      terminateAfterAction: true};
     }
   };
+
+  var homeClubUtility0 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else if (loc[0] === 'home') {
+      return 5;
+    } else {
+      return loc[1] === 'home' ? 0 : 9;
+    };
+  };
+
+  var homeClubUtility1 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else if (loc[1] === 'home') {
+      return 5;
+    } else {
+      return loc[0] === 'home' ? 0 : 9;
+    };
+  };
   
   return {
     locs: locs,
     actions0: actions,
     actions1: actions,
+    utility0: homeClubUtility0,
+    utility1: homeClubUtility1,
     transition: transition
-  };
-};
-
-var homeClubUtility0 = function(state) {
-  var loc = state.loc;
-  if (loc === 'start') {
-    return 0;
-  } else if (loc[0] === 'home') {
-    return 5;
-  } else {
-    return loc[1] === 'home' ? 0 : 9;
-  };
-};
-
-var homeClubUtility1 = function(state) {
-  var loc = state.loc;
-  if (loc === 'start') {
-    return 0;
-  } else if (loc[1] === 'home') {
-    return 5;
-  } else {
-    return loc[0] === 'home' ? 0 : 9;
   };
 };
 
@@ -76,35 +78,38 @@ var makeDoubleClubGame = function(){
 	      terminateAfterAction: true};
     }
   };
+
+  
+  var doubleClubUtility0 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else {
+      var clubUtility = loc[0] === 'cube' ? 0.001 : 0;
+      var matchingUtility = loc[0] === loc[1] ? 1 : 0;
+      return clubUtility + matchingUtility;
+    }
+  };
+
+  var doubleClubUtility1 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else {
+      var clubUtility = loc[1] === 'cube' ? 0.001 : 0;
+      var matchingUtility = loc[0] === loc[1] ? 1 : 0;
+      return clubUtility + matchingUtility;
+    }
+  };
   
   return {
     locs: locs,
     actions0: actions,
     actions1: actions,
+    utility0: doubleClubUtility0,
+    utility1: doubleClubUtility1,
     transition: transition
   };
-};
-
-var doubleClubUtility0 = function(state) {
-  var loc = state.loc;
-  if (loc === 'start') {
-    return 0;
-  } else {
-    var clubUtility = loc[0] === 'cube' ? 0.001 : 0;
-    var matchingUtility = loc[0] === loc[1] ? 1 : 0;
-    return clubUtility + matchingUtility;
-  }
-};
-
-var doubleClubUtility1 = function(state) {
-  var loc = state.loc;
-  if (loc === 'start') {
-    return 0;
-  } else {
-    var clubUtility = loc[1] === 'cube' ? 0.001 : 0;
-    var matchingUtility = loc[0] === loc[1] ? 1 : 0;
-    return clubUtility + matchingUtility;
-  }
 };
 
 // the classic matching pennies game
@@ -126,31 +131,33 @@ var makeMatchingPenniesGame = function(){
 	      terminateAfterAction: true};
     }
   };
+
+  var matchingPenniesUtility0 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else {
+      return loc[0] === loc[1] ? 1 : 0;
+    }
+  };
+
+  var matchingPenniesUtility1 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else {
+      return loc[0] === loc[1] ? 0 : 1;
+    }
+  };
   
   return {
     locs: locs,
     actions0: actions,
     actions1: actions,
+    utility0: matchingPenniesUtility0,
+    utility1: matchingPenniesUtility1,
     transition: transition
   };
-};
-
-var matchingPenniesUtility0 = function(state) {
-  var loc = state.loc;
-  if (loc === 'start') {
-    return 0;
-  } else {
-    return loc[0] === loc[1] ? 1 : 0;
-  }
-};
-
-var matchingPenniesUtility1 = function(state) {
-  var loc = state.loc;
-  if (loc === 'start') {
-    return 0;
-  } else {
-    return loc[0] === loc[1] ? 0 : 1;
-  }
 };
 
 // bach or stravinsky (commonly known as 'battle of the sexes')
@@ -172,33 +179,36 @@ var makeBoSGame = function(){
 	      terminateAfterAction: true};
     }
   };
+
+  var BoSUtility0 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start' || loc[0] !== loc[1]) {
+      return 0;
+    } else if (loc[0] === 'bach') {
+      return 1;
+    } else {
+      return 5;
+    }
+  };
+
+  var BoSUtility1 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start' || loc[0] !== loc[1]) {
+      return 0;
+    } else if (loc[0] === 'bach') {
+      return 5;
+    } else {
+      return 1;
+    }
+  };
+
   
   return {
     locs: locs,
     actions0: actions,
     actions1: actions,
+    utility0: BoSUtility0,
+    utility1: BoSUtility1,
     transition: transition
   };
-};
-
-var BoSUtility0 = function(state) {
-  var loc = state.loc;
-  if (loc === 'start' || loc[0] !== loc[1]) {
-    return 0;
-  } else if (loc[0] === 'bach') {
-    return 1;
-  } else {
-    return 5;
-  }
-};
-
-var BoSUtility1 = function(state) {
-  var loc = state.loc;
-  if (loc === 'start' || loc[0] !== loc[1]) {
-    return 0;
-  } else if (loc[0] === 'bach') {
-    return 5;
-  } else {
-    return 1;
-  }
 };

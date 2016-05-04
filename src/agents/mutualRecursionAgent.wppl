@@ -16,8 +16,8 @@ var mutualRecursionAgent = function(options){
   var playerNumber = options.playerNumber;
   var level = Math.max(options.level, 0);
   var alpha = options.alpha;
-  var utility = options.utility;
-  var oppUtility = options.oppUtility;
+  var utility = playerNumber === 0 ? game.utility0 : game.utility1;
+  var oppUtility = playerNumber === 0 ? game.utility1 : game.utility0;
   var transition = game.transition;
   var myActions = playerNumber === 0 ? game.actions0 : game.actions1;
 
