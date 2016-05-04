@@ -1,6 +1,11 @@
 // test agents on simple MDPs and POMDPs
 
-var getLocations = function(trajectory){return map(function(state){return state.loc;}, trajectory)};
+var getLocations = function(trajectory){
+  if (_.has(trajectory[0],'manifestState')){
+    return map(function(state){return state.manifestState.loc;}, trajectory);
+  }
+  return map(function(state){return state.loc;}, trajectory)
+};
 
 var advanceStateTime = function(state){
   var newTimeLeft = state.timeLeft - 1;
@@ -120,24 +125,69 @@ var makeLinePOMDP = function(totalTime, treasureAt3){
 };
 
 
+var makeLinePOMDPManifest = function(totalTime, treasureAt3){
+  var manifestStateToActions = function(manifestState){return [-1, 0, 1];};
+  
+  var transition = function(state, action){
+    var newLoc = state.manifestState.loc + action;
+    var manifestStateNewLoc = update(state.manifestState,{loc: newLoc});
+    var newManifestState = advanceStateTime(manifestStateNewLoc);
+    return {manifestState: newManifestState, latentState: state.latentState};
+  };
+  
+  var observe = function(state){
+    if (state.manifestState.loc == 3){
+      return state.latentState.treasureAt3 ? 'treasure' : 'no treasure';
+    }
+    return 'noObservation';
+  };
+
+  var world = {manifestStateToActions:manifestStateToActions, transition:transition, observe:observe};
+    
+  var startState = {manifestState: {timeLeft: totalTime, 
+                                    terminateAfterAction: false, 
+                                    loc: 0},
+                    latentState: {treasureAt3: treasureAt3}
+                   };
+                    
+  var utility = function(state, action){    
+    if (state.manifestState.loc==3 && state.latentState.treasureAt3){return 5;}
+    if (state.manifestState.loc==0){return 1;}
+    return 0;
+  };
+
+  return {world:world, startState:startState, utility:utility};
+};
+
+
 
 
 var testPOMDPAgentOptimal = function(){
-  // OPTIMAL AGENT
-  var runAgent = function(totalTime, delayAgent){
+
+  var getAlternateStartState = function(trueStartState, useManifestLatent){
+    var newLatentState =  {latentState: {treasureAt3: true}};
+    return useManifestLatent ? update(trueStartState, newLatentState) :
+      update(trueStartState, {treasureAt3: true})
+  };
+  
+  
+  // RUN OPTIMAL AGENT (without manifestLatent state representation)
+  var runAgent = function(totalTime, delayAgent, useManifestLatent){
     var treasureAt3 = false;
-    var line = makeLinePOMDP(totalTime, treasureAt3);
+    var line = useManifestLatent ? makeLinePOMDPManifest(totalTime, treasureAt3) : 
+        makeLinePOMDP(totalTime, treasureAt3);
     var world = line.world;
     var utility = line.utility;
     var trueStartState = line.startState;
 
     // POMDP agent (optimal)
-    var alternateStartState = update(trueStartState, {treasureAt3: true});
+    var alternateStartState = getAlternateStartState(trueStartState, useManifestLatent);
+
     var agentPriorBelief = categoricalERP( [.5, .5],
                                            [trueStartState, alternateStartState]);
     var params = {alpha:1000,              
                   utility:utility, 
-                  priorBelief: agentPriorBelief,            
+                  priorBelief: agentPriorBelief           
                  };
 
     var agent = delayAgent ? makePOMDPAgentDelay(params, world) : makePOMDPAgent(params, world);
@@ -145,7 +195,8 @@ var testPOMDPAgentOptimal = function(){
         simulatePOMDPAgent(trueStartState, world, agent, 'states');
     return getLocations(trajectory);
   };
-  
+
+  // test the pure POMDP agent vs. POMDP agent with delays (although delays play no role here)n
   map( function(delayAgent){
     var locations = runAgent(4, delayAgent);
     assert.ok(last(locations)==0, 'test POMDP line');
@@ -154,7 +205,53 @@ var testPOMDPAgentOptimal = function(){
     var locations = runAgent(7, delayAgent);
     assert.ok(last(locations)==0, 'test POMDP line');
   }, [true, false] );
+
+
+  // Speed and correctness test for *manifestLatent* optimization
+  var compareAgent = function(totalTime, useManifestLatent){
+    var treasureAt3 = false;
+    var line = useManifestLatent ? makeLinePOMDPManifest(totalTime, treasureAt3) : 
+        makeLinePOMDP(totalTime, treasureAt3);
+    var world = line.world;
+    var utility = line.utility;
+    var trueStartState = line.startState;
+    
+    var agentPriorBeliefManifest = Enumerate( function(){
+      var latentState = {treasureAt3: flip(),
+                         dummy: uniformDraw(range(20))};
+      return update(trueStartState, {latentState:latentState});
+    });
+
+    var agentPriorBelief = Enumerate( function(){
+      return update(trueStartState,
+                    {treasureAt3: flip(),
+                     dummy: uniformDraw(range(20))});
+    });
+
+    var agentPriorBelief = useManifestLatent ? agentPriorBeliefManifest : agentPriorBelief;
+        
+    var params = {alpha:1000,              
+                  utility:utility, 
+                  priorBelief: agentPriorBelief           
+                 };
+
+    var agent =  makePOMDPAgent(params, world);
+    var trajectory = simulatePOMDPAgent(trueStartState, world, agent, 'states');
+    return getLocations(trajectory);
+  };
+
+  var out = map( function(useManifestLatent){
+    return timeit(function(){
+      return compareAgent(4, useManifestLatent);
+    })
+  }, [false, true]);
+
+  assert.ok( _.isEqual( out[0].value, out[1].value), 'compare POMDP' );
+  assert.ok(  out[0].runtimeInMilliseconds > out[1].runtimeInMilliseconds, 'compare POMDP' );
+  console.log('Runtime in ms (simple, manifestLatent optimized) :',
+              _.map( out, 'runtimeInMilliseconds' ) );                 
 };
+
 
 
 
@@ -198,6 +295,11 @@ var testPOMDPAgentDelay = function(){
   var locations = runAgent(paramsBoundVOI);
   assert.ok(locations[3]==3, 'test POMDP line');
 };
+
+
+
+
+
 
 
 testMDPAgents();

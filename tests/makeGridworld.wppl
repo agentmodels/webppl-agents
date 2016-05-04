@@ -109,8 +109,68 @@ var testHike = function(){
   var actions = simulateMDP(startState, world, agent, 'actions');
   assert.ok( actions[0]==='r' && actions[1]==='r' && actions[2]==='r' );
 };
+
+var testPOMDP = function(){
+  var features = [[ '' ,  {name:'cafe'} ],
+	          [ '' , '#'],
+                  ['', {name: 'pub'}]];
+
+  var options = {noReverse: false,
+                 gridFeatures: features,
+                 totalTime: 8,
+                 startingLocation: [0,0]};
   
-var tests = [testSimple(), testNamed(), testStochastic(), testHike()];
+  var world = makeGridworldPOMDP(options)
+  
+  var makeUtility = tableToUtilityFunction;
+  var utilityTable = {cafe:10, pub:5, timeCost:-.01};
+  var utility = makeUtility(utilityTable, world);
+  
+  var startState = {
+    manifestState: {loc: [0,0],
+                    terminateAfterAction: false,
+                    timeLeft: options.totalTime},
+                    
+    latentState: {cafe: false, pub:true}
+  };
+
+  var priorBelief = deltaERP(startState);
+  
+  var params = {priorBelief: priorBelief,
+                utility: utility};
+  
+  var agent = makeBeliefAgent(params, world);
+  var actions = simulateBeliefAgent(startState, world, agent, 'actions');
+  assert.ok( actions.length == 2 && actions[0]==='r');
+
+  
+  // Agent is uncertain
+  var alternateStartState = update(startState, 
+                                   {latentState: {cafe:true, pub:true}});
+  var priorBelief = categoricalERP( [.5, .5], 
+                                    [startState, alternateStartState]);
+                                               
+  var params = {priorBelief: priorBelief,
+                utility: utility};
+  
+  var agent = makeBeliefAgent(params, world);
+  var actions = simulateBeliefAgent(startState, world, agent, 'actions');
+
+  assert.ok( actions.length == 6 && actions[0]==='u' && actions[1]==='u' &&
+             actions[2]==='d');
+   
+}; 
+
+
+var tests = [testSimple(), testNamed(), testStochastic(), testHike(), testPOMDP()];
 console.log('passed all tests in makeGridworld.wppl')
+
+
+
+
+
+
+
+
 
 

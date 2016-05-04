@@ -2,7 +2,8 @@
 
 var makeBeliefDelayAgent = function (params, world){
 
-  // TODO asserts
+  assert.ok( hasUtilityPriorBelief(params) && hasTransitionObserve(world), 'makePOMDPAgent params and world');
+
  
   var defaults = {
     alpha: 1000,

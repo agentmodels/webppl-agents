@@ -11,12 +11,14 @@
 // manifestStateToActions (since we don't need to worry about transitioning
 // into restaurants that are closed)
 
-var makeBanditGridworld = function(gridworld) {
-  var gridworldPOMDP = makeGridworldPOMDP(gridworld);
-
+var makeBanditGridWorld = function(options) {
+  
+  var gridworldPOMDP = makeGridworldPOMDP(options);
+  var gridworld = gridworldPOMDP.MDPWorld;
+  
   var mdpTransition = gridworld.transition;
   var transition = function(state, action) {
-    assert.ok(isPOMDPState(state), 'transition state arg');
+    assert.ok(stateHasManifestLatent(state), 'transition state arg');
     // transition the manifest state as it would be transitioned in the gridworld
     // mdp, leave the latent state alone
     var newManifestState = mdpTransition(state.manifestState, action);
@@ -31,7 +33,7 @@ var makeBanditGridworld = function(gridworld) {
 
 };
 
-var makeBanditGridworldUtility = function(feature, timeCost) {
+var makeBanditGridWorldUtility = function(feature, timeCost) {
   return function(state, action) {
     var stateFeatureName = feature(state.manifestState).name;
     if (stateFeatureName) {
@@ -44,9 +46,7 @@ var makeBanditGridworldUtility = function(feature, timeCost) {
 
 
 
-
-
-var makeRestaurantSearchMDP = function(options_) { 
+var makeRestaurantSearchMDPOptions = function(options_) { 
   var A = {name: 'A'};
   var B = {name: 'B'};
   var C = {name: 'C'};
@@ -65,8 +65,7 @@ var makeRestaurantSearchMDP = function(options_) {
 	 ['#', ' ', ' ', ' '],
 	 ['#', '#', '#',  E ]];
 
-  var options = update(options, {gridFeatures: features});
-  return makeGridWorld(options).world;
+  return update(options, {gridFeatures: features, noReverse:true});
 };
 
 // start state for restaurant search pomdp
@@ -78,15 +77,15 @@ var restaurantSearchStartState =
 
 
 var makeRestaurantSearchPOMDP = function(){
-  var gridworld = makeRestaurantSearchMDP({noReverse: true});
-  var world = makeBanditGridworld(gridworld);
+  var options = makeRestaurantSearchMDPOptions()
+  var world = makeBanditGridWorld(options);
   var startState = restaurantSearchStartState;
 
   var feature = world.feature;
   var makeUtility = function(timeCost){
-    return makeBanditGridworldUtility(feature, timeCost);
+    return makeBanditGridWorldUtility(feature, timeCost);
   };
                                        
-  return {mdp:gridworld, world:world, startState:startState, makeUtility: makeUtility};
+  return {mdp:world.MDPWorld, world:world, startState:startState, makeUtility: makeUtility};
 };
 

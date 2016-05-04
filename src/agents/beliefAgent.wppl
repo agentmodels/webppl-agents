@@ -20,7 +20,7 @@ var toERPOverLatent = function(belief){
 
 
 // Construct functions needed for running the POMDP agent
-// Most of the code is for the the manifest-latent optimization
+// Most of the code is for the manifest-latent optimization
 
 var getPOMDPFunctions = function(params, world){
 
@@ -110,8 +110,16 @@ var getPOMDPFunctions = function(params, world){
   };
 
   
-  var useManifestLatent = params.useManifestLatent || _.has(sampleBelief(params.priorBelief),'manifestState');
+  var useManifestLatent = !_.isUndefined(params.useManifestLatent) ?
+      params.useManifestLatent : 
+      stateHasManifestLatent(sampleBelief(params.priorBelief))
 
+  if (useManifestLatent){
+    assert.ok( stateHasManifestLatent(sampleBelief(params.priorBelief)), 
+               'state is not manifestLatent in form')
+  }
+  
+  
   if (useManifestLatent){
     var observe = getFullObserve(world.observe);
     return {
@@ -138,11 +146,8 @@ var getPOMDPFunctions = function(params, world){
 // MAKE AGENT
 
 var makeBeliefAgent = function(params, world) {
-  map(function(s){assert.ok(params.hasOwnProperty(s),'makeBeliefAgent args');}, 
-      ['utility','alpha', 'priorBelief']);
-  // assert.ok( isPOMDPWorld(world),
-  //            'world argument lacks transition, stateToActions, or observe');
-
+  assert.ok( hasUtilityPriorBelief(params) && hasTransitionObserve(world), 'makePOMDPAgent params and world');
+  
   // set defaults
   var defaults = {
     recurseOnStateOrBelief: 'belief',
@@ -253,6 +258,8 @@ var makeBeliefAgent = function(params, world) {
 
 var getSimulateFunction = function(beliefOrBeliefDelay){
 
+  //TODO add test that agent's prior contains the true startState
+
   assert.ok( _.includes(['belief','beliefDelay'], beliefOrBeliefDelay), 
              'getSimulateFunction invalid input: '+ beliefOrBeliefDelay);
 
@@ -279,6 +286,7 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
     var agentAct = agent.act;
     var agentUpdateBelief = agent.updateBelief;
     var priorBelief = agent.params.priorBelief;
+
 
     // world methods
     var transition = world.transition;

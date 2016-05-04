@@ -4,13 +4,33 @@ var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
 var isERP = function (x) {return _.has(x,'sample') && _.has(x,'support');};
 
 // TODO for manifest
-var isPOMDPState = function (x) {return _.has(x,'latentState') && _.isFinite(x.manifestState.timeLeft);};
+var stateHasManifestLatent = function (x){return _.has(x,'latentState') && _.isFinite(x.manifestState.timeLeft);};
 var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
+
 
 
 // TODO works for manifest
 var isPOMDPWorld = function(world){ 
   return hasProperties(world, ['transition', 'manifestStateToActions', 'observe']);
+};
+
+
+var hasUtilityPriorBelief = function(agentParams){
+if ( _.has(agentParams,'utility') && _.has(agentParams, 'priorBelief') ){
+  var utility = agentParams.utility;
+  var priorBelief = agentParams.priorBelief;
+  return _.isFunction(utility);
+  }
+  return false;
+};
+
+var hasTransitionObserve = function(world){
+  if ( _.has(world,'transition') && _.has(world,'observe') ){
+    var transition = world.transition;
+    var observe = world.observe;
+    return _.isFunction(transition) && _.isFunction(observe);
+  }
+  return false;
 };
 
 
@@ -37,7 +57,7 @@ var categoricalERP = function(probs, vals) {
 
 // From array of POMDP states, extract locations array
 var trajectoryToLocations = function(trajectory){
-  assert.ok(_.isArray(trajectory) && isPOMDPState(trajectory[0]), 'trajectory to locations args');
+  assert.ok(_.isArray(trajectory));
   return _.map(_.map(trajectory,'manifestState'),'loc');
 };
 
