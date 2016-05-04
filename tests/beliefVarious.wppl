@@ -7,8 +7,8 @@
 var testAgent = function(){
   
   // gridworld tests
-  var options = {maxTimeAtRestaurant: 1};
-  var gridworldPOMDP = makeRestaurantChoicePOMDP(options);
+  var options = {maxTimeAtRestaurant: 1, POMDP:true};
+  var gridworldPOMDP = makeRestaurantChoiceWorld(options);
 
   var makePriorGridworld = function(manifestState, latentStateERP) {
     return Enumerate(function(){
