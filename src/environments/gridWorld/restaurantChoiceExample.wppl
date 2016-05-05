@@ -1,7 +1,11 @@
 // Restaurant Choice Constructor and Helpers
 
 
-var makeRestaurantChoiceMDPGridWorld = function(options) {
+var getRestaurantChoiceOptions = function(updateOptions){
+  
+  var defaults = {noReverse:true, maxTimeAtRestaurant:2};
+  var options = update(defaults, updateOptions);
+
   var restaurant = {
     donutN : { name : 'Donut N'},
     donutS : { name : 'Donut S'},
@@ -14,10 +18,7 @@ var makeRestaurantChoiceMDPGridWorld = function(options) {
   var DS = restaurant.donutS;
   var V = restaurant.veg;
   var N = restaurant.noodle;
-
-  var defaults = {noReverse:true, maxTimeAtRestaurant:2};
-  var options = update(defaults, options);
-
+  
   var features = 
     [['#', '#', '#', '#',  V , '#'],
      ['#', '#', '#',  __ ,  __ ,  __ ],  
@@ -28,12 +29,24 @@ var makeRestaurantChoiceMDPGridWorld = function(options) {
      [ __ ,  __ ,  __ ,  __ , '#', '#'],
      [DS , '#', '#',  __ , '#', '#']];
 
-  var options = update(options, {gridFeatures: features});
-  return makeGridWorld(options);
+  return update(options, {gridFeatures: features});
 };
 
-var makeRestaurantChoiceMDP = function(options){
-  return makeRestaurantChoiceMDPGridWorld(options).world;
+
+var makeRestaurantChoiceMDP = function(updateOptions){
+  var options = getRestaurantChoiceOptions(updateOptions);
+  return makeGridWorld(options).world;
+};
+
+// TODO clean this up: should be one makeRestaurantChoice function that takes option POMDP true false
+var makeRestaurantChoiceWorld = function(options){
+  if (options.POMDP){  
+    var restaurantChoiceOptions = getRestaurantChoiceOptions(options);
+    
+    return makeGridworldPOMDP(restaurantChoiceOptions)
+  } else {
+    return makeRestaurantChoiceMDP(restaurant);
+  }
 };
 
 
@@ -123,16 +136,7 @@ var restaurantPathToName = function(path){
 
 
 
-
-
 // POMDP case
-var makeRestaurantChoicePOMDP = function(options){
-  var gridworldMDP = makeRestaurantChoiceMDP(options);
-  var feature = gridworldMDP.feature;
-  return update(makeGridworldPOMDP(gridworldMDP), 
-                {feature: feature, restaurantChoiceMDP: gridworldMDP});
-};
-
 
 var allOpenRestaurantChoiceStart = {
   manifestState: { loc: [3,1],

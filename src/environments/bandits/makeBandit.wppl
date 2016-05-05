@@ -194,14 +194,14 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
   var priorMyopia = prior.priorMyopia || false;
 
 
-  assert.ok(isPOMDPWorld(world) && isPOMDPState(startState)
+  assert.ok(isPOMDPWorld(world) && stateHasManifestLatent(startState)
 	    && isERP(priorAgentPrior),
 	    'inferBandit args: \n\n startState ' + startState
 	    + ' \n\n priorAgentPrior' + priorAgentPrior );
   assert.ok(trajectoryOrOffPolicy === 'trajectory'
 	    || trajectoryOrOffPolicy === 'offPolicy',
 	    'inferBandit args: trajectoryOrOffPolicy bad');
-  assert.ok( isPOMDPState(observedStateAction[0][0]),
+  assert.ok( stateHasManifestLatent(observedStateAction[0][0]),
 	     'inferBandit args: observedStateAction first entry of first entry not a POMDP state');
 
   if (priorPrizeToUtility) {
