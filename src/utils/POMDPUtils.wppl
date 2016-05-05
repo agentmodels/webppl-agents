@@ -84,12 +84,3 @@ var getPriorBeliefGridworld = function(startManifestState, latentStateSampler){
     return buildState(startManifestState, latentState);
   });
 };
-
-
-// Convenient distributions
-var categoricalERP = function(probs, vals) {
-  return Enumerate(function(){
-    return categorical(probs, vals);
-  });
-};
-

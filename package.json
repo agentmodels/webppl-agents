@@ -13,9 +13,9 @@
   },
   "webppl": {
     "wppl": [
-      "src/generalUtils.wppl",
+      "src/utils/generalUtils.wppl",
       "src/agents/makeMDPAgent.wppl",
-      "src/POMDPUtils.wppl",
+      "src/utils/POMDPUtils.wppl",
       "src/agents/makePOMDPAgent.wppl",
       "src/agents/simulate.wppl",
       "src/environments/bandits/makeBandit.wppl",
