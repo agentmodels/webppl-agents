@@ -7,7 +7,7 @@
 // an ERP but an object with 'manifestState' and 'latentStateERP' properties
 var isERPOverLatent = function(belief){
   return _.has(belief, 'manifestState') && _.has(belief, 'latentStateERP')
-    && !_.has(belief,'support') && isERP(belief.latentStateERP);
+    && !_.has(belief,'support') && hasSample(belief.latentStateERP);
 };
 
 // Convert priorBelief from ERP over full states to ERP over latents
@@ -142,10 +142,10 @@ var getPOMDPFunctions = function(params, world){
   };
 };
 
+//-----------------------------
+// OPTIMAL AGENT
 
-// MAKE AGENT
-
-var makeBeliefAgent = function(params, world) {
+var makePOMDPAgentOptimal = function(params, world) {
   assert.ok( hasUtilityPriorBelief(params) && hasTransitionObserve(world), 'makePOMDPAgent params and world');
   
   // set defaults
@@ -255,6 +255,217 @@ var makeBeliefAgent = function(params, world) {
 };
 
 
+//-----------------------------
+// SUBOPTIMAL AGENT
+
+
+var makePOMDPAgentDelay = function (params, world){
+
+  assert.ok( hasUtilityPriorBelief(params) && hasTransitionObserve(world), 'makePOMDPAgent params and world');
+ 
+  var defaults = {
+    alpha: 1000,
+    recurseOnStateOrBelief: 'belief',
+    discount: 0,
+    sophisticatedOrNaive: 'naive',
+    noDelays: true,
+    myopia: {on:false},
+    boundVOI: {on:false}
+  };
+
+  var params = update(defaults, params);
+
+  if (params.myopia.on || params.boundVOI.on){
+    assert.ok( params.noDelays === false && params.sophisticatedOrNaive=== 'naive', 
+    'myopia and boundVOI require Naive agent with delays');
+  }
+  
+  assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI must be false");
+  
+  
+  // Variables for methods
+  var transition = world.transition;
+  var utility = params.utility;
+
+  var POMDPFunctions = getPOMDPFunctions(params, world);
+  var observe = POMDPFunctions.observe;
+  var beliefToActions = POMDPFunctions.beliefToActions;
+  var sampleBelief = POMDPFunctions.sampleBelief;
+  
+  var _updateBelief = POMDPFunctions.updateBelief;
+  
+  var updateBelief = function (belief, observation, action, delay) {
+    if (params.boundVOI.on && (delay > params.boundVOI.bound)){
+            
+      // update manifestState (assuming no possibility that isNullAction(action))
+      var nextBelief = Enumerate(function(){  
+        var state = sampleBelief(belief);
+        return transition(state,action); 
+      });
+      return POMDPFunctions.useManifestLatent ? toERPOverLatent(nextBelief) : nextBelief;
+      
+    } else {
+      return _updateBelief(belief, observation, action);
+    };
+  };
+  
+
+  // Update the *delay* parameter in *expectedUtility* for sampling actions and future utilities
+  var transformDelay = function(delay){
+    var table = {naive: delay + 1, sophisticated: 0 };
+    return params.noDelays ? 0 : table[params.sophisticatedOrNaive];
+  };
+  
+  var incrementDelay = function(delay){
+    return params.noDelays ? 0 : delay + 1;
+  };
+
+  // Define the discount function to be used
+  var discountFunction = params.discountFunction ? params.discountFunction
+	: function(delay){return 1.0/(1 + params.discount * delay);};
+
+  // Termination condition for *expectedUtility*
+  var shouldTerminate = function(state, delay) {
+    var terminateAfterAction = POMDPFunctions.useManifestLatent ? 
+        state.manifestState.terminateAfterAction :
+        state.terminateAfterAction;
+    
+    if (terminateAfterAction){return true;}
+    if (params.myopia.on) {return delay >= params.myopia.bound;}
+    return false;
+  };
+  
+
+  // RECURSE ON BELIEF (BELLMAN STYLE)
+  var act = dp.cache(
+    function (belief, delay) {
+      assert.ok( _.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
+      return Enumerate(function () {
+        var action = uniformDraw(beliefToActions(belief));
+        var eu = expectedUtilityBelief(belief, action, delay);
+        factor(params.alpha * eu);
+        return action;
+      });
+    });
+
+  var expectedUtilityBelief = dp.cache(
+    function (belief, action, delay) {
+      return expectation(
+        Enumerate(function () {
+          var state = sampleBelief(belief);
+	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
+		    + JSON.stringify(state));
+          var u = discountFunction(delay) * utility(state, action);
+
+          if (shouldTerminate(state, delay)){
+            return u;
+          } else {
+            var nextState = transition(state, action);
+
+	    var nextObservation = observe(nextState);
+            var transformedDelay = transformDelay(delay);
+
+	    var nextBelief = updateBelief(belief, nextObservation, action, transformedDelay); 
+	    var nextAction = sample(act(nextBelief, transformedDelay));
+            
+	    var futureU = expectedUtilityBelief(nextBelief, nextAction, incrementDelay(delay));
+	    return u + futureU;
+          }
+        }));
+    });
+
+  // RECURSE ON STATE (FIXES THE LATENT STATE)
+  var act_recState = dp.cache(
+    function(belief, delay) {
+      assert.ok( _.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
+      return Enumerate(function(){
+	var action = uniformDraw(beliefToActions(belief));
+	var eu = expectedUtilityBelief_recState(belief, action, delay);
+	factor(params.alpha * eu);
+	return action;
+      });
+    });
+
+  var expectedUtilityBelief_recState = dp.cache(
+    function(belief, action, delay){
+      return expectation(
+        Enumerate( function(){
+          var state = sampleBelief(belief);
+          return expectedUtilityState_recState(belief,state, action, delay);
+        }));
+    });
+  
+  var expectedUtilityState_recState = dp.cache(
+    function(belief, state, action, delay){
+      return expectation(  // need this for caching
+        Enumerate( function(){
+	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
+		    + JSON.stringify(state));
+          var u = discountFunction(delay) * utility(state, action);
+          if (shouldTerminate(state, delay)) {
+	    return u;
+          } else {
+	    var nextState = transition(state, action);
+	    var nextObservation = observe(nextState);
+	    var transformedDelay = transformDelay(delay);
+	    var nextBelief = updateBelief(belief, nextObservation, action,
+					  transformedDelay);
+	    var nextAction = sample(act_recState(nextBelief, transformedDelay));
+            var futureU = expectedUtilityState_recState(nextBelief, nextState,
+							nextAction,
+							incrementDelay(delay));
+	    return u + futureU; 
+          }
+        }));
+    });
+
+  var act = params.recurseOnStateOrBelief === 'belief' ? act : act_recState;
+  var expectedUtility = params.recurseOnStateOrBelief === 'belief' ? 
+	expectedUtilityBelief : expectedUtilityBelief_recState;
+
+  return { 
+    act:act, 
+    updateBelief: updateBelief, 
+    expectedUtility : expectedUtility, 
+    params: params,
+    POMDPFunctions: POMDPFunctions
+  };
+};
+
+
+
+// GENERAL POMDPAGENT FUNCTION
+var isOptimalPOMDPAgent = function(agentParams){
+
+  var optimalProperties = function(){
+    return !(_.has(agentParams, 'noDelays') || _.has(agentParams, 'discount') || 
+             _.has(agentParams,'myopic-observations'));
+  }
+  return _.isUndefined(agentParams.optimal) ? optimalProperties() : agentParams.optimal;
+};
+
+
+var makePOMDPAgent = function(params, world){
+  return isOptimalPOMDPAgent(params) ? makePOMDPAgentOptimal(params, world) : 
+    makePOMDPAgentDelay(params, world)
+};
+
+
+// TODO remove this
+var getMakeAgentFunction = function(beliefOrBeliefDelay){
+  assert.ok( _.includes(['belief','beliefDelay'], beliefOrBeliefDelay),
+             'getMakeAgentFunction invalid input:   ' + beliefOrBeliefDelay);
+
+  if ( beliefOrBeliefDelay == 'beliefDelay'){
+    return makePOMDPAgentDelay;
+  } else {
+    return makePOMDPAgentOptimal;
+  }
+};
+
+
+
+
 
 var getSimulateFunction = function(beliefOrBeliefDelay){
 
@@ -331,6 +542,7 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
   };
 };
 
-var simulateBeliefAgent = getSimulateFunction('belief');
+var simulatePOMDPAgent = getSimulateFunction('belief');
+var simulatePOMDPAgentDelay = getSimulateFunction('beliefDelay');
 
 

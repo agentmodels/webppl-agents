@@ -13,12 +13,11 @@
   },
   "webppl": {
     "wppl": [
-      "src/generalUtils.wppl",
+      "src/utils/generalUtils.wppl",
       "src/agents/makeMDPAgent.wppl",
-      "src/agents/makeMDPAgentHyperbolic.wppl",
-      "src/POMDPUtils.wppl",
-      "src/agents/beliefAgent.wppl",
-      "src/agents/beliefDelayAgent.wppl",
+      "src/utils/POMDPUtils.wppl",
+      "src/agents/makePOMDPAgent.wppl",
+      "src/agents/simulate.wppl",
       "src/environments/bandits/makeBandit.wppl",
       "src/environments/gridWorld/makeGridWorld.wppl",
       "src/environments/gridWorld/gridworldPOMDP.wppl",

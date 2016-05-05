@@ -125,21 +125,6 @@ var makeGridworldPOMDP = function(options) {
 
 
 
-// TODO should rename this
-var tableToUtilityFunction = function(table, world) {
-  assert.ok(isPOMDPWorld(world), 'second arg of tableToUtilityFunction should be world, not feature');
-  return function(state, action) {
-    var feature = world.feature;
-    var stateFeatureName = feature(state.manifestState).name;
-    if (stateFeatureName) {
-      return table[stateFeatureName];
-    } else {
-      return table.timeCost;
-    }
-  };
-};
-
-
 var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParams, prior, agentTypeAndFunctions,
                                    trajectoryOrOffPolicy, numRejectionSamples){
   
@@ -156,16 +141,16 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   var priorAgentPrior = isJointPrior ? undefined : prior.priorAgentPrior;
 
   if (isJointPrior) {
-    assert.ok(stateHasManifestLatent(startState) && isERP(jointPrior),
+    assert.ok(stateHasManifestLatent(startState) && hasSample(jointPrior),
 	      'inferGridworld args');
   } else {
-    assert.ok(stateHasManifestLatent(startState) && isERP(priorUtilityTable) && isERP(priorAgentPrior), 'inferGridworld args');
+    assert.ok(stateHasManifestLatent(startState) && hasSample(priorUtilityTable) && hasSample(priorAgentPrior), 'inferGridworld args');
   }
   
   assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 
             'trajectoryOrOffPolicy is not valid');
   
-  assert.ok(_.isNumber(numRejectionSamples) && isPOMDPWorld(world), 'inferGridWorld args' );
+  assert.ok(_.isNumber(numRejectionSamples) && isPOMDPWithManifestLatent(world), 'inferGridWorld args' );
   
   // get observations using trueAgentParams
   var agent = makeAgent(trueAgentParams, world);
@@ -179,7 +164,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
 
     var utilityTable = isJointPrior ? utilityAndPrior.utilityTable
 	  : sample(priorUtilityTable);
-    var utility = tableToUtilityFunction(utilityTable, world);
+    var utility = makeRestaurantUtilityFunction(world, utilityTable);
 
     var  priorBelief = isJointPrior ? utilityAndPrior.priorBelief
 	  : sample(priorAgentPrior);

@@ -7,8 +7,6 @@ var getPriorBelief = function(numberOfTrials, armToPrizeERPThunk){
 
 var speedTestBandits = function(beliefOrBeliefDelay){
   console.log('\nSpeedtest on bandits for agent: ', beliefOrBeliefDelay);
-  
-  var simulate = getSimulateFunction(beliefOrBeliefDelay);
 
   var getBandit = function(numberOfTrials){
     var armToPrizeERP = {
@@ -87,7 +85,6 @@ var runSpeedTests = function(){
 
 var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
   console.log('\Run IRL Bandit Generative for agent: ', beliefOrBeliefDelay);
-  var simulate = getSimulateFunction(beliefOrBeliefDelay);
 
   // Prizes are [a,b] and agent prefers c > a > b
 
@@ -247,7 +244,7 @@ var banditGenerativeDelay = function(){
   var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 			      prizeToUtility);;
   var thunk = function(){
-    return simulateBeliefDelayAgent(startState, world, agent, 'actions');
+    return simulate(startState, world, agent, 'actions');
   };
   var out = timeit(thunk);
   var actions = out.value.slice(0,3);
@@ -262,7 +259,7 @@ var banditGenerativeDelay = function(){
   var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 			      prizeToUtility);;
   var thunk = function(){
-    return simulateBeliefDelayAgent(startState, world, agent, 'actions');
+    return simulate(startState, world, agent, 'actions');
   };
   var out = timeit(thunk);
   var actions = out.value.slice(0,3);
@@ -283,7 +280,7 @@ var banditGenerativeDelay = function(){
     var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 				prizeToUtility);
     var thunk = function(){
-      return simulateBeliefDelayAgent(startState, world, agent, 'actions');
+      return simulate(startState, world, agent, 'actions');
     };
     var out = timeit(thunk);
     var actions = out.value.slice(0,3);
@@ -313,7 +310,7 @@ var banditGenerativeDelay = function(){
     var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 				prizeToUtility);
     var thunk = function(){
-      return simulateBeliefDelayAgent(startState, world, agent, 'actions');
+      return simulate(startState, world, agent, 'actions');
     };
     var out = timeit(thunk);
     var actions = out.value.slice(0,3);
