@@ -28,11 +28,7 @@ var isPOMDPWithManifestLatent = function(world){
   return hasTransitionObserve(world) && _.has(world,'manifestStateToActions');
 };
 
-
-var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
-                   
-
-// Helper functions
+               
 
 // TODO works only for manifest
 var buildState = function (manifestState, latentState) {

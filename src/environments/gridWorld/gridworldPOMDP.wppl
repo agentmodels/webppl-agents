@@ -125,21 +125,6 @@ var makeGridworldPOMDP = function(options) {
 
 
 
-// TODO should rename this
-var tableToUtilityFunction = function(table, world) {
-  assert.ok(isPOMDPWithManifestLatent(world), 'second arg of tableToUtilityFunction should be world, not feature');
-  return function(state, action) {
-    var getFeature = world.feature;
-    var stateFeatureName = getFeature(state.manifestState).name;
-    if (stateFeatureName) {
-      return table[stateFeatureName];
-    } else {
-      return table.timeCost;
-    }
-  };
-};
-
-
 var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParams, prior, agentTypeAndFunctions,
                                    trajectoryOrOffPolicy, numRejectionSamples){
   
@@ -179,7 +164,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
 
     var utilityTable = isJointPrior ? utilityAndPrior.utilityTable
 	  : sample(priorUtilityTable);
-    var utility = tableToUtilityFunction(utilityTable, world);
+    var utility = makeRestaurantUtilityFunction(world, utilityTable);
 
     var  priorBelief = isJointPrior ? utilityAndPrior.priorBelief
 	  : sample(priorAgentPrior);

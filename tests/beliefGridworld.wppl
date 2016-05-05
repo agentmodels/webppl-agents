@@ -1,6 +1,3 @@
-// note: currently, most tests are focussing on the inference via enumeration,
-// since that's deterministic and easier to write tests for.
-
 
 var myInSupport = function(x, erp){return erp.score([], x) > -100; };
 

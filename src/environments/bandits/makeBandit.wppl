@@ -4,8 +4,13 @@
 // The latent state stores each arm's ERP over prizes, and the manifest state
 // location contains the reward gained after the previous arm pull.
 
-// main constructor function is makeBandit
 
+
+// helper function
+var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
+
+
+// main constructor function is makeBandit
 var makeBanditWorld = function(numberOfArms) {
   var actions = range(numberOfArms);
 
