@@ -1,4 +1,19 @@
 
+var tableToUtilityFunction = function(world, utilityTable) {
+
+  var getFeatureName = function(state){
+    var getFeature = world.feature;
+    return isPOMDPWithManifestLatent(world) ? getFeature(state.manifestState).name :
+      getFeature(state).name;
+  };
+  
+  return function(state, action) {
+    var name = getFeatureName(state);
+    return name ? utilityTable[name] : utilityTable.timeCost;
+  };
+};
+
+
 // simple grid with no named features
 
 var testSimple = function(){
@@ -122,9 +137,9 @@ var testPOMDP = function(){
   
   var world = makeGridworldPOMDP(options)
   
-  var makeUtility = tableToUtilityFunction;
+
   var utilityTable = {cafe:10, pub:5, timeCost:-.01};
-  var utility = makeUtility(utilityTable, world);
+  var utility = tableToUtilityFunction(world, utilityTable);
   
   var startState = {
     manifestState: {loc: [0,0],
