@@ -1,6 +1,7 @@
 
 
-
+// Work out what kind of agent/world has been input
+// and select appropriate simulate function
 
 var simulate = function(startState, world, agent, outputType){
   
