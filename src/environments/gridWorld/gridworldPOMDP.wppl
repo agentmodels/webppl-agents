@@ -156,10 +156,10 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   var priorAgentPrior = isJointPrior ? undefined : prior.priorAgentPrior;
 
   if (isJointPrior) {
-    assert.ok(stateHasManifestLatent(startState) && isERP(jointPrior),
+    assert.ok(stateHasManifestLatent(startState) && hasSample(jointPrior),
 	      'inferGridworld args');
   } else {
-    assert.ok(stateHasManifestLatent(startState) && isERP(priorUtilityTable) && isERP(priorAgentPrior), 'inferGridworld args');
+    assert.ok(stateHasManifestLatent(startState) && hasSample(priorUtilityTable) && hasSample(priorAgentPrior), 'inferGridworld args');
   }
   
   assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 

@@ -7,7 +7,7 @@
 // an ERP but an object with 'manifestState' and 'latentStateERP' properties
 var isERPOverLatent = function(belief){
   return _.has(belief, 'manifestState') && _.has(belief, 'latentStateERP')
-    && !_.has(belief,'support') && isERP(belief.latentStateERP);
+    && !_.has(belief,'support') && hasSample(belief.latentStateERP);
 };
 
 // Convert priorBelief from ERP over full states to ERP over latents

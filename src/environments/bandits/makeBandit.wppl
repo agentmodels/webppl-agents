@@ -20,7 +20,7 @@ var makeBanditWorld = function(numberOfArms) {
 
   var transition = function(state, action){
     
-    assert.ok(isERP(state.latentState[action]), 'bandit transition: latent state has no ERP for given action');
+    assert.ok(hasSample(state.latentState[action]), 'bandit transition: latent state has no ERP for given action');
     // figure out what the prize is
     var prize = sample(state.latentState[action]);
 
@@ -78,7 +78,7 @@ var makeBandit = function(options) {
   
   // ensure that armToPrizeERP has an ERP for every arm
   mapN(function(arm){
-    assert.ok(isERP(armToPrizeERP[arm.toString()]),
+    assert.ok(hasSample(armToPrizeERP[arm.toString()]),
 	      'makeBandit: arm ' + arm + ' has no ERP in armToPrizeERP');
   }, numberOfArms);
 
@@ -164,7 +164,7 @@ var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
 			bandit.startState.manifestState),
 	      'makeBanditAgent: priorBelief has wrong start manifestState');
   } else {
-    assert.ok(isERP(priorBelief), 'makeBanditAgent: priorBelief is neither an ERP nor an object containing a manifest state and a latentStateERP');
+    assert.ok(hasSample(priorBelief), 'makeBanditAgent: priorBelief is neither an ERP nor an object containing a manifest state and a latentStateERP');
     assert.ok(_.isEqual(sample(priorBelief).manifestState,
 			bandit.startState.manifestState),
 	      'makeBanditAgent: priorBelief has wrong start manifestState');
@@ -195,7 +195,7 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
 
 
   assert.ok(isPOMDPWorld(world) && stateHasManifestLatent(startState)
-	    && isERP(priorAgentPrior),
+	    && hasSample(priorAgentPrior),
 	    'inferBandit args: \n\n startState ' + startState
 	    + ' \n\n priorAgentPrior' + priorAgentPrior );
   assert.ok(trajectoryOrOffPolicy === 'trajectory'
@@ -205,11 +205,11 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
 	     'inferBandit args: observedStateAction first entry of first entry not a POMDP state');
 
   if (priorPrizeToUtility) {
-    assert.ok(isERP(priorPrizeToUtility), 'inferBandit args: priorPrizeToUtility defined but not an ERP');
+    assert.ok(hasSample(priorPrizeToUtility), 'inferBandit args: priorPrizeToUtility defined but not an ERP');
   }
 
   if (priorMyopia) {
-    assert.ok(isERP(priorMyopia), 'inferBandit args: priorMyopia defined but not an ERP');
+    assert.ok(hasSample(priorMyopia), 'inferBandit args: priorMyopia defined but not an ERP');
   }
 
   

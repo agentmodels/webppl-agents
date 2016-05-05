@@ -1,7 +1,7 @@
 // Helper functions for testing argument types (warning: heuristics only)
 
-var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
-var isERP = function (x) {return _.has(x,'sample') && _.has(x,'support');};
+
+var hasSample = function (x) {return _.has(x,'sample')};
 
 // TODO for manifest
 var stateHasManifestLatent = function (x){return _.has(x,'latentState') && _.isFinite(x.manifestState.timeLeft);};
