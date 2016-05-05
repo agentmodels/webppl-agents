@@ -6,16 +6,14 @@ var exampleOptions = {
   game: null, // code for the game that the agent is playing
   playerNumber: 0, // specifying which player the agent is
   level: 3, // specifying the depth of recursion
-  alpha: 10,
-  utility: null, // agent's utility function
-  oppUtility: null // opponent's utility function
+  alpha: 10
 };
 
 var mutualRecursionAgent = function(options){
   var game = options.game;
   var playerNumber = options.playerNumber;
   var level = Math.max(options.level, 0);
-  var alpha = options.alpha;
+  var alpha = level === 0 ? 0 : options.alpha;
   var utility = playerNumber === 0 ? game.utility0 : game.utility1;
   var oppUtility = playerNumber === 0 ? game.utility1 : game.utility0;
   var transition = game.transition;
@@ -25,7 +23,7 @@ var mutualRecursionAgent = function(options){
   var oppOptions = update(options, {level: level - 1,
 				    utility: oppUtility,
 				    oppUtility: utility});
-
+  // redefine to use CDT agent
   var randomActOpp = function(state){
     return Enumerate(function(){
       return uniformDraw(oppActions);
@@ -35,36 +33,6 @@ var mutualRecursionAgent = function(options){
   var oppAct = level === 0 ? randomActOpp
 	: mutualRecursionAgent(oppOptions).act;
 
-  var act = dp.cache(function(state){
-    return Enumerate(function(){
-      var myAction = uniformDraw(myActions);
-      var eu = expectedUtility(state, myAction);
-      var factorQuantity = level === 0 ? 0 : alpha * eu;
-      factor(factorQuantity);
-      return myAction;
-    });
-  });
-
-  var expectedUtility = dp.cache(function(state, myAction){
-    var u = utility(state);
-    if (state.terminateAfterAction){
-      return u;
-    } else {
-      return u + expectation(Enumerate(function(){
-	var oppAction = sample(oppAct(state));
-	var nextState = playerNumber === 0
-	      ? transition(state, myAction, oppAction)
-	      : transition(state, oppAction, myAction);
-	var myNextAction = sample(act(nextState));
-	return expectedUtility(nextState, myNextAction);
-      }));
-    };
-  });
-
-  return {
-    options: options,
-    expectedUtility: expectedUtility,
-    act: act
-  };
-  
+  return makeCDTAgent(update(options, {alpha: alpha, oppAct: oppAct}));
+ 
 };
