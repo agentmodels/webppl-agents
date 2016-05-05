@@ -127,10 +127,10 @@ var makeGridworldPOMDP = function(options) {
 
 // TODO should rename this
 var tableToUtilityFunction = function(table, world) {
-  assert.ok(isPOMDPWorld(world), 'second arg of tableToUtilityFunction should be world, not feature');
+  assert.ok(isPOMDPWithManifestLatent(world), 'second arg of tableToUtilityFunction should be world, not feature');
   return function(state, action) {
-    var feature = world.feature;
-    var stateFeatureName = feature(state.manifestState).name;
+    var getFeature = world.feature;
+    var stateFeatureName = getFeature(state.manifestState).name;
     if (stateFeatureName) {
       return table[stateFeatureName];
     } else {
@@ -165,7 +165,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   assert.ok(trajectoryOrOffPolicy == 'trajectory' || trajectoryOrOffPolicy=='offPolicy', 
             'trajectoryOrOffPolicy is not valid');
   
-  assert.ok(_.isNumber(numRejectionSamples) && isPOMDPWorld(world), 'inferGridWorld args' );
+  assert.ok(_.isNumber(numRejectionSamples) && isPOMDPWithManifestLatent(world), 'inferGridWorld args' );
   
   // get observations using trueAgentParams
   var agent = makeAgent(trueAgentParams, world);

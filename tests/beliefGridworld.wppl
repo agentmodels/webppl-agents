@@ -73,7 +73,7 @@ var test1 = function() {
 
   var trueAgentParams = update(baseParamsNoDiscount, 
                                {priorBelief: truePriorBelief,
-				utility: tableToUtilityFunction(donutUtilityTable, world)});
+				utility: makeRestaurantUtilityFunction(world, donutUtilityTable)});
 
 
 
@@ -200,8 +200,8 @@ var test2 = function() {
 
   var trueAgentParams1 = update(baseParamsNoDiscount, 
 				{priorBelief: truePriorBelief1,
-				 utility: tableToUtilityFunction(noodleUtilityTable,
-								 world)});
+				 utility: makeRestaurantUtilityFunction(world,
+								 noodleUtilityTable)});
   // PRIOR FOR INFERENCE PARAMS
 
   var beliefOrBeliefDelay = 'belief';
@@ -313,8 +313,8 @@ var test2 = function() {
 
   var trueAgentParams2 = update(baseParamsNoDiscount, 
 				{priorBelief: truePriorBelief2,
-				 utility: tableToUtilityFunction(noodleUtilityTable,
-								 world)});
+				 utility: makeRestaurantUtilityFunction(world,
+								        noodleUtilityTable)});
 
 
   var erps2 = map( function(trajectoryOrOffPolicy){
@@ -419,8 +419,8 @@ var test3 = function() {
 
   var trueAgentParams = update(baseParamsNoDiscount, 
 			       {priorBelief: truePriorBelief,
-				utility: tableToUtilityFunction(noodleUtilityTable,
-								world)});
+				utility: makeRestaurantUtilityFunction(world,
+								noodleUtilityTable)});
   // PRIOR FOR INFERENCE PARAMS
 
   var beliefOrBeliefDelay = 'belief';

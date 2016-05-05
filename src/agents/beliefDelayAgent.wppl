@@ -25,7 +25,7 @@ var makeBeliefDelayAgent = function (params, world){
   assert.ok( hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive', 
                                     'priorBelief', 'noDelays', 'myopia', 'boundVOI']), 
              'makeBeliefDelayAgent args  \n'+JSON.stringify(params));
-  //  assert.ok( isPOMDPWorld(world), 'makeBeliefDelay world is not world' );
+
   assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI must be false");
   
   

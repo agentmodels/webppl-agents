@@ -194,7 +194,7 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
   var priorMyopia = prior.priorMyopia || false;
 
 
-  assert.ok(isPOMDPWorld(world) && stateHasManifestLatent(startState)
+  assert.ok(isPOMDPWithManifestLatent(world) && stateHasManifestLatent(startState)
 	    && hasSample(priorAgentPrior),
 	    'inferBandit args: \n\n startState ' + startState
 	    + ' \n\n priorAgentPrior' + priorAgentPrior );

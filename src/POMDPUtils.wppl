@@ -3,23 +3,14 @@
 
 var hasSample = function (x) {return _.has(x,'sample')};
 
-// TODO for manifest
 var stateHasManifestLatent = function (x){return _.has(x,'latentState') && _.isFinite(x.manifestState.timeLeft);};
-var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
-
-
-
-// TODO works for manifest
-var isPOMDPWorld = function(world){ 
-  return hasProperties(world, ['transition', 'manifestStateToActions', 'observe']);
-};
 
 
 var hasUtilityPriorBelief = function(agentParams){
-if ( _.has(agentParams,'utility') && _.has(agentParams, 'priorBelief') ){
-  var utility = agentParams.utility;
-  var priorBelief = agentParams.priorBelief;
-  return _.isFunction(utility);
+  if ( _.has(agentParams,'utility') && _.has(agentParams, 'priorBelief') ){
+    var utility = agentParams.utility;
+    var priorBelief = agentParams.priorBelief;
+    return _.isFunction(utility);
   }
   return false;
 };
@@ -31,6 +22,10 @@ var hasTransitionObserve = function(world){
     return _.isFunction(transition) && _.isFunction(observe);
   }
   return false;
+};
+
+var isPOMDPWithManifestLatent = function(world){
+  return hasTransitionObserve(world) && _.has(world,'manifestStateToActions');
 };
 
 
