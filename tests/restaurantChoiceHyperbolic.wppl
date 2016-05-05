@@ -14,7 +14,7 @@ var utility = makeRestaurantUtilityFunction(world, {
   'timeCost' : -.01
 });
 
-var agent = makeHyperbolicDiscounter(
+var agent = makeMDPAgent(
     { utility : utility,
       alpha : 500, 
       discount : 1, 
@@ -27,7 +27,7 @@ var states = map(first, simulateHyperbolic(start, world, agent) );
 assert.ok(_.isEqual(last(states).loc, [4, 7]), "sophisticated didn't end up in 4,7");
 assert.ok(states[5].loc[0] == 5, "sophisticated didn't take right side");
 
-var agent2 = makeHyperbolicDiscounter(
+var agent2 = makeMDPAgent(
     { utility : utility,
       alpha : 500, 
       discount : 1, 
