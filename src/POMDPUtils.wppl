@@ -44,7 +44,6 @@ var categoricalERP = function(probs, vals) {
 };
 
 
-// TODO: should not all be global
 
 // From array of POMDP states, extract locations array
 var trajectoryToLocations = function(trajectory){
@@ -52,57 +51,20 @@ var trajectoryToLocations = function(trajectory){
   return _.map(_.map(trajectory,'manifestState'),'loc');
 };
 
-// From array of locs, add *timeLeft* and *terminateAfterAction*
-var locationsToManifestStates = function(locs){
-  return map( function(locTime){ 
-    var terminateAfterAction = locTime[1]==1;
-    return {loc: locTime[0], timeLeft:locTime[1], terminateAfterAction: terminateAfterAction};
-  }, zip( locs, downToOne(locs.length) ) );
-};
-
-// As above, but outputting a [[state, action]] array, such that the actions
-// transition to the correct states
-var locationsToStateActions = function(locs){
-  var locActions = locationsToLocActions(locs);
-  var stateActions = stateActionPairsToMDPStates(locActions);
-  return stateActions;
-};
-
-var locationsToLocActions = function(locs) {
-  var addAction = function(index) {
-    if (index === locs.length - 1) {
-      return [locs[index], 'l'];
-    } else {
-      var firstLoc = locs[index];
-      var secondLoc = locs[index + 1];
-      if (secondLoc[0] > firstLoc[0]) {
-	return [firstLoc, 'r'];
-      } else if (secondLoc[0] < firstLoc[0]) {
-	return [firstLoc, 'l'];
-      } else if (secondLoc[1] > firstLoc[1]) {
-	return [firstLoc, 'u'];
-      } else {
-	return [firstLoc, 'd'];
-      }
-    }
-  };
-
-  return map(addAction, range(locs.length));
-};
-
-// From array of form [ [loc, action] ], output array of form:
-// [  [{loc:, timeLeft:, terminateAfterAction:}, action ]  ]
-var stateActionPairsToMDPStates = function(locAction){
-  var locs = map(first,locAction);
-  var manifestStates = locationsToManifestStates(locs);
-  return zip( manifestStates, map(second,locAction) );
-};
-
 
 // From array of form [ [loc, action] ], output array of form:
 // [  [{manifestState:{loc:, timeLeft:, terminateAfterAction:}, latentState:latentState}, action ]  ]
 var stateActionPairsToFullStates = function(locAction, latentState){
-  var locs = map(first,locAction);
+
+  // From array of locs, add *timeLeft* and *terminateAfterAction*
+  var locationsToManifestStates = function(locs){
+    return map( function(locTime){ 
+      var terminateAfterAction = locTime[1]==1;
+      return {loc: locTime[0], timeLeft:locTime[1], terminateAfterAction: terminateAfterAction};
+  }, zip( locs, downToOne(locs.length) ) );
+  };
+
+  var locs = map(first,locAction);  
   var manifestStates = locationsToManifestStates(locs);
   var fullStates = map( function(manifest){
     return buildState(manifest,latentState);
