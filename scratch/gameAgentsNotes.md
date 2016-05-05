@@ -15,7 +15,10 @@ The third game is matching pennies: each player makes their penny show heads or 
 The fourth game is Bach or Stravinsky, commonly known as "Battle of the Sexes". The agents have to go to a concert, which they will only enjoy at all if they go together, one prefers Bach, and the other prefers Stravinsky.
 
 ## Prisoner's dilemma
-Finally, the fifth game is a prisoner's dilemma, and the sixth game is a prisoner's dilemma where the agent only remembers it's last move and the opponent's last move (in order to reduce the size of the state space).
+The fifth game is a prisoner's dilemma, and the sixth game is a prisoner's dilemma where the agent only remembers it's last move and the opponent's last move (in order to reduce the size of the state space).
+
+## Newcomb's problem
+The seventh game is Newcomb's problem: an agent must choose whether to just take a single opaque box (known as "one-boxing") or to also take a transparent box filled with $1 (known as "two-boxing"), under the knowledge that the opaque box was filled with $100 just if it is predicted that the agent will one-box. We make this a game by having player 0 be the one who chooses between boxes, and player 1 decide how much money to put into the opaque box, being rewarded for putting in $100 if the agent one-boxes and $0 if the agent two-boxes.
 
 # Summary of agents
 
@@ -33,3 +36,5 @@ The second agent is a mutual recursion agent, parametrised by a level of recursi
 The third agent is a threatening agent: it acts as if it could precommit to (or threaten) some policy, and models its opponent as a CDT agent with knowledge of that policy. It then decides which policy would be best to have, given such an opponent. This leads to interesting behavior. For instance, this agent will go to the club in home-club, since if it could precommit to that policy, the other player would go to the club as well, and therefore the players would get the cooperation bonus. In Bach or Stravinsky, this player goes to whichever concert it prefers, reasoning that given a precommitment to do so, the other player would go to that concert.
 
 Somewhat more interesting is the case of the one-shot and repeated prisoner's dilemma. In the one-shot dilemma, this player defects, since for any policy, a CDT opponent will always defect as well. However, it displays more interesting behaviour in the iterated prisoner's dilemma. For the two-round case, it defects on the first round, and on the second round, cooperates with 40% probability if the opponent cooperated before, and defects otherwise. This probability of cooperation is high enough that the CDT agent will cooperate on the first round, but low enough to minimise the chance that the agent is 'played for a sucker'. A similar strategy is employed for the three-round IPD, but with higher probabilities of cooperation (unfortunately, inference in this case is much more difficult due to the larger number of states).
+
+Finally, in Newcomb's problem, this agent one-boxes with slightly above 50% probability. This is because having a probability of one-boxing above 50% means that the predictor's best strategy is to predict one-boxing, and will therefore fill the opaque box with $100. The probability of one-boxing is only slightly above 50% to maximise the chance that the agent gets to take the additional box as well.

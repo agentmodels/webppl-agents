@@ -354,3 +354,63 @@ var makeIPDRememberOneGame = function(n){
     transition: transition
   };
 };
+
+// newcomb's problem. agent 1 has to choose between one-boxing and two-boxing,
+// agent 2 predicts agent 1 and is rewarded for predicting correctly.
+
+// opaque box has 100 or nothing, transparent box has 1
+
+var makeNewcombGame = function(){
+
+  var locs = ['start', ['one-box', 100], ['one-box', 0],
+	      ['two-box', 100], ['two-box', 0]];
+
+  var nonTerminalLocs = ['start'];
+
+  var actions0 = ['one-box', 'two-box'];
+  var actions1 = [0, 100];
+
+  var transition = function(state, action0, action1){
+    var loc = state.loc;
+    if (loc !== 'start') {
+      return {loc: loc,
+	      terminateAfterAction: true};
+    } else {
+      return {loc: [action0, action1],
+	      terminateAfterAction: true};
+    }
+  };
+
+  var newcombUtility0 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else if (loc[0] === 'one-box') {
+      return loc[1];
+    } else {
+      return loc[1] + 1;
+    }
+  };
+
+  var newcombUtility1 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else if (loc[0] === 'one-box' && loc[1] === 100) {
+      return 1;
+    } else if (loc[0] === 'two-box' && loc[1] === 0){
+      return 1;
+    } else {
+      return 0;
+    }
+  };
+  
+  return {
+    nonTerminalLocs: nonTerminalLocs,
+    actions0: actions0,
+    actions1: actions1,
+    utility0: newcombUtility0,
+    utility1: newcombUtility1,
+    transition: transition
+  };
+};

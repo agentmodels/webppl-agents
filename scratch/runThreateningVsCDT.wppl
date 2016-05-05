@@ -67,3 +67,9 @@ console.log("\nSimulating threatening agent in three-round Iterated Prisoner's D
 var ipd3 = makeIPDRememberOneGame(3);
 
 displayThreateningGame(ipd3);
+
+console.log("\nSimulating threatening agent in Newcomb's problem");
+
+var newcomb = makeNewcombGame();
+
+displayThreateningGame(newcomb);
