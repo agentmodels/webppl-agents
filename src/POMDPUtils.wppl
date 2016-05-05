@@ -1,10 +1,7 @@
-// Helper functions for testing argument types (warning: heuristics only)
 
+// General POMDP utils
 
 var hasSample = function (x) {return _.has(x,'sample')};
-
-var stateHasManifestLatent = function (x){return _.has(x,'latentState') && _.isFinite(x.manifestState.timeLeft);};
-
 
 var hasUtilityPriorBelief = function(agentParams){
   if ( _.has(agentParams,'utility') && _.has(agentParams, 'priorBelief') ){
@@ -23,29 +20,25 @@ var hasTransitionObserve = function(world){
   }
   return false;
 };
+              
+
+
+//-----------------------
+// Utils for Manifest-latent Optimization
 
 var isPOMDPWithManifestLatent = function(world){
   return hasTransitionObserve(world) && _.has(world,'manifestStateToActions');
-};
+}
 
-               
+var stateHasManifestLatent = function (x){return _.has(x,'latentState') && _.isFinite(x.manifestState.timeLeft);};
 
-// TODO works only for manifest
+
 var buildState = function (manifestState, latentState) {
   return { manifestState:manifestState, latentState:latentState };
 };
 
 
-// Convenient distributions
-var categoricalERP = function(probs, vals) {
-  return Enumerate(function(){
-    return categorical(probs, vals);
-  });
-};
-
-
-
-// From array of POMDP states, extract locations array
+// From array of POMDP manifest-latent states, extract locations array
 var trajectoryToLocations = function(trajectory){
   assert.ok(_.isArray(trajectory));
   return _.map(_.map(trajectory,'manifestState'),'loc');
@@ -74,7 +67,7 @@ var stateActionPairsToFullStates = function(locAction, latentState){
 };
 
 
-// TODO where is this used?
+// TODO remove this and just define locally
 var _getPriorBelief = function(perceivedTotalTime, startingLocation, latentStateSampler){
   var startManifestState = {timeLeft: perceivedTotalTime, loc: startingLocation, terminateAfterAction: false};
   
@@ -84,7 +77,7 @@ var _getPriorBelief = function(perceivedTotalTime, startingLocation, latentState
   });
 };
 
-// TODO move from here
+// TODO remove and define locally
 var getPriorBeliefGridworld = function(startManifestState, latentStateSampler){
   return Enumerate( function(){
     var latentState = latentStateSampler();
@@ -92,4 +85,11 @@ var getPriorBeliefGridworld = function(startManifestState, latentStateSampler){
   });
 };
 
+
+// Convenient distributions
+var categoricalERP = function(probs, vals) {
+  return Enumerate(function(){
+    return categorical(probs, vals);
+  });
+};
 
