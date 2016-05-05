@@ -43,24 +43,24 @@ var test1 = function() {
     discountFunction: exponentialDiscount
   };
 
-  var naiveAgent = makeHyperbolicDiscounter( 
+  var naiveAgent = makeMDPAgent( 
     update(baseAgentParams, {sophisticatedOrNaive: 'naive'}), 
     world
   );
 
-  var sophisticatedAgent = makeHyperbolicDiscounter( 
+  var sophisticatedAgent = makeMDPAgent( 
     update(baseAgentParams, {sophisticatedOrNaive: 'sophisticated'}), 
     world
   );
 
   var naiveTrajectoryDistribution = Enumerate(function(){
-    return simulateHyperbolic(startState, world, naiveAgent, 'states');
+    return simulate(startState, world, naiveAgent, 'states');
   });
 
   var mostLikelyNaiveTrajectory = MAP(naiveTrajectoryDistribution).val;
   
   var sophisticatedTrajectoryDistribution = Enumerate(function(){
-    return simulateHyperbolic(startState, world, sophisticatedAgent, 'states');
+    return simulate(startState, world, sophisticatedAgent, 'states');
   });
 
   var mostLikelySophisticatedTrajectory = MAP(sophisticatedTrajectoryDistribution).val;
@@ -78,7 +78,7 @@ var test1 = function() {
 // trajectories of naive and sophisticated agent should be identical. this test
 // is also probabilistic in the same sense as the previous test.
 
-var simulateHyperbolicUntilManyLikelyActions = function(startState, world, agent) {
+var simulateUntilManyLikelyActions = function(startState, world, agent) {
   var act = agent.act;
   var expectedUtility = agent.expectedUtility;
   var transition = world.transition;
@@ -145,20 +145,20 @@ var test2 = function() {
     discountFunction: exponentialDiscount
   };
 
-  var naiveAgent = makeHyperbolicDiscounter( 
+  var naiveAgent = makeMDPAgent( 
     update(baseAgentParams, {sophisticatedOrNaive: 'naive'}), 
     world
   );
 
-  var sophisticatedAgent = makeHyperbolicDiscounter( 
+  var sophisticatedAgent = makeMDPAgent( 
     update(baseAgentParams, {sophisticatedOrNaive: 'sophisticated'}), 
     world
   );
 
-  var naiveTrajectory = simulateHyperbolicUntilManyLikelyActions(startState, world, naiveAgent,
+  var naiveTrajectory = simulateUntilManyLikelyActions(startState, world, naiveAgent,
 					   'states');
   
-  var sophisticatedTrajectory = simulateHyperbolicUntilManyLikelyActions(startState, world,
+  var sophisticatedTrajectory = simulateUntilManyLikelyActions(startState, world,
 						   sophisticatedAgent,
 						   'states');
 
@@ -212,9 +212,9 @@ var test3 = function(){
   var lightDiscounter = makeBanditAgent(lightDiscounterParams, bandit,
 					'beliefDelay');
   
-  var lightDiscounterTrajectory = simulateBeliefDelayAgent(startState, world,
-							   lightDiscounter,
-							   'actions');
+  var lightDiscounterTrajectory = simulate(startState, world,
+					   lightDiscounter,
+					   'actions');
 
   assert.ok(lightDiscounterTrajectory[0] === 1, 'discounting agent with large discount factor should explore but does not, test 3 fails');
 
@@ -237,9 +237,9 @@ var test3 = function(){
   var heavyDiscounter = makeBanditAgent(heavyDiscounterParams, bandit,
 					'beliefDelay');
   
-  var heavyDiscounterTrajectory = simulateBeliefDelayAgent(startState, world,
-							   heavyDiscounter,
-							   'actions');
+  var heavyDiscounterTrajectory = simulate(startState, world,
+					   heavyDiscounter,
+					   'actions');
 
   assert.ok(heavyDiscounterTrajectory[0] === 0, 'discounting agent with small discount factor should not explore but does, test 3 fails');
   

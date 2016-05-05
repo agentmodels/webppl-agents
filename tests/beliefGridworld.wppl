@@ -78,7 +78,7 @@ var test1 = function() {
 
   var beliefOrBeliefDelay = 'belief';
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
-  var simulate = getSimulateFunction(beliefOrBeliefDelay);
+  
   var agentTypeAndFunctions = {type: beliefOrBeliefDelay, makeAgent:makeAgent, simulate: simulate};
 
   var alternativePriorBelief = getPriorBeliefGridworld( startState.manifestState, function(){return trueLatentState;});
@@ -203,7 +203,6 @@ var test2 = function() {
 
   var beliefOrBeliefDelay = 'belief';
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
-  var simulate = getSimulateFunction(beliefOrBeliefDelay);
   var agentTypeAndFunctions = {type: beliefOrBeliefDelay,
 			       makeAgent:makeAgent,
 			       simulate: simulate};
@@ -422,7 +421,6 @@ var test3 = function() {
 
   var beliefOrBeliefDelay = 'belief';
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
-  var simulate = getSimulateFunction(beliefOrBeliefDelay);
   var agentTypeAndFunctions = {type: beliefOrBeliefDelay,
 			       makeAgent:makeAgent,
 			       simulate: simulate};

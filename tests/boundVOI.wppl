@@ -98,7 +98,7 @@ var testBoundVOI = function(){
     
     var params = update(baseAgentParams, paramsUpdate);
     var agent = makeThreePathsAgent(utilityTable, params, worldAndStart);
-    return simulateBeliefDelayAgent(worldAndStart.startState, worldAndStart.world, agent, 'states');
+    return simulate(worldAndStart.startState, worldAndStart.world, agent, 'states');
   };
 
   // TESTS

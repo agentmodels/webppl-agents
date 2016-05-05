@@ -34,7 +34,7 @@ var testSimple = function(){
 
   var startState = {loc:[0,0], terminateAfterAction: false, timeLeft: 4};
   var agent = makeMDPAgent({alpha:100, utility:utility}, world);
-  var actions = simulateMDP(startState, world, agent, 'actions');
+  var actions = simulate(startState, world, agent, 'actions');
   assert.ok( actions[0]==='u' && actions[1]==='r' && actions[2]==='l');
 };
 
@@ -67,7 +67,7 @@ var testNamed = function(){
                     timeLeft: options.totalTime};
   
   var agent = makeMDPAgent({alpha:100, utility:utility}, world);
-  var actions = simulateMDP(startState, world, agent, 'actions');
+  var actions = simulate(startState, world, agent, 'actions');
   assert.ok( actions.length == 3 && actions[0]==='u' && actions[1]==='r' && actions[2]==='l');
 
   
@@ -77,7 +77,7 @@ var testNamed = function(){
   var startState = gridWorld.startState;
 
   var agent = makeMDPAgent({alpha:100, utility:utility}, world);
-  var actions = simulateMDP(startState, world, agent, 'actions');
+  var actions = simulate(startState, world, agent, 'actions');
   assert.ok( actions.length == 3 && actions[0]==='u' && actions[1]==='r' && actions[2]==='l');  
 };
 
@@ -104,7 +104,7 @@ var testStochastic = function(){
 
   var startState = {loc:[0,0], terminateAfterAction: false, timeLeft: 15};
   var agent = makeMDPAgent({alpha:100, utility:utility}, world);
-  var actions = simulateMDP(startState, world, agent, 'actions');
+  var actions = simulate(startState, world, agent, 'actions');
   assert.ok( !( actions[0]==='r' && actions[1]==='r' && actions[2]==='r' ) );
 };
 
@@ -121,7 +121,7 @@ var testHike = function(){
   var utilityTable = {East: 10, West: 1, Hill: -10, timeCost: -.1};
   var utility = makeHikeUtilityFunction(world, utilityTable);
   var agent = makeMDPAgent({utility: utility, alpha: 1000}, world);
-  var actions = simulateMDP(startState, world, agent, 'actions');
+  var actions = simulate(startState, world, agent, 'actions');
   assert.ok( actions[0]==='r' && actions[1]==='r' && actions[2]==='r' );
 };
 
@@ -155,7 +155,7 @@ var testPOMDP = function(){
                 utility: utility};
   
   var agent = makeBeliefAgent(params, world);
-  var actions = simulateBeliefAgent(startState, world, agent, 'actions');
+  var actions = simulate(startState, world, agent, 'actions');
   assert.ok( actions.length == 2 && actions[0]==='r');
 
   
@@ -169,7 +169,7 @@ var testPOMDP = function(){
                 utility: utility};
   
   var agent = makeBeliefAgent(params, world);
-  var actions = simulateBeliefAgent(startState, world, agent, 'actions');
+  var actions = simulate(startState, world, agent, 'actions');
 
   assert.ok( actions.length == 6 && actions[0]==='u' && actions[1]==='u' &&
              actions[2]==='d');
