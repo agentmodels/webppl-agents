@@ -154,7 +154,7 @@ var testPOMDP = function(){
   var params = {priorBelief: priorBelief,
                 utility: utility};
   
-  var agent = makeBeliefAgent(params, world);
+  var agent = makePOMDPAgent(params, world);
   var actions = simulate(startState, world, agent, 'actions');
   assert.ok( actions.length == 2 && actions[0]==='r');
 
@@ -168,7 +168,7 @@ var testPOMDP = function(){
   var params = {priorBelief: priorBelief,
                 utility: utility};
   
-  var agent = makeBeliefAgent(params, world);
+  var agent = makePOMDPAgent(params, world);
   var actions = simulate(startState, world, agent, 'actions');
 
   assert.ok( actions.length == 6 && actions[0]==='u' && actions[1]==='u' &&

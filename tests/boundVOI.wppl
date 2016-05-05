@@ -73,7 +73,7 @@ var testBoundVOI = function(){
       assert.ok( _.isFinite(utility(state,'blah')), 'bad utility');
     }, _.keys(transitionTable) );
     
-    return makeBeliefDelayAgent(update(baseAgentParams,{utility:utility}), worldAndStart.world);
+    return makePOMDPAgent(update(baseAgentParams,{utility:utility}), worldAndStart.world);
   };
 
                              

@@ -211,14 +211,24 @@ var plannedTrajectories = function(trajectory, world, agent) {
 }
 
 
-var makeMDPAgent = function(params, world){
-  if (_.has(params, 'discount') || _.has(params, 'discountFunction') ||
-      _.has(params, 'sophisticatedOrNaive') || params.useHyperbolic ){
-    return makeMDPAgentHyperbolic(params, world)
-  } else {
-    return makeMDPAgentOptimal(params, world)
-  }
+
+var isOptimalMDPAgent = function(agentParams){
+
+  var optimalProperties = function(){
+    return ! (_.has(agentParams, 'discount') || _.has(agentParams, 'discountFunction') ||
+              _.has(agentParams, 'sophisticatedOrNaive') );
+  };
+
+  return _.isUndefined(agentParams.optimal) ? optimalProperties() : agentParams.optimal;
 };
+
+
+
+var makeMDPAgent = function(params, world){
+  return isOptimalMDPAgent(params) ? makeMDPAgentOptimal(params, world) : 
+    makeMDPAgentHyperbolic(params, world)
+};
+
 
 
 

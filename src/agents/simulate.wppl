@@ -1,37 +1,23 @@
 
 
+
+
 var simulate = function(startState, world, agent, outputType){
-
-  var checkOptimalPOMDP = function(params){
-    return !(_.has(agent.params, 'noDelays') || _.has(agent.params, 'discount') || _.has(agent.params,'myopic-observations'))
-  };
-
-  var checkOptimalMDP = function(params){
-    return !(_.has(agent.params, 'discount') || _.has(agent.params, 'discountFunction') ||
-             _.has(agent.params, 'sophisticatedOrNaive') );
-  };
   
   var params = agent.params;
 
   if (params.POMDP || _.has(params,'priorBelief')){
-    var useOptimal = _.isUndefined(params.optimal) ? checkOptimalPOMDP(params) : params.optimal;
     
-    if (useOptimal){
-      console.log('sim beliefA');
-      return simulateBeliefAgent(startState, world, agent, outputType)
+    if (isOptimalPOMDPAgent(params)){
+      return simulatePOMDPAgent(startState, world, agent, outputType)
     } else {
-      console.log('sim beliefDelay');
-      return simulateBeliefDelayAgent(startState, world, agent, outputType);
+      return simulatePOMDPAgentDelay(startState, world, agent, outputType);
     }
-  }
-      
-  var useOptimal = _.isUndefined(params.optimal) ? checkOptimalMDP(params) : params.optimal;
+  }     
   
-  if (useOptimal){
-    console.log('using sim mdp')
+  if (isOptimalMDPAgent(params)){
     return simulateMDPAgentOptimal(startState, world, agent, outputType)  
   } else {
-    console.log('using sim hyperbolic')
     return simulateMDPAgentHyperbolic(startState, world, agent, outputType)
   }
 };

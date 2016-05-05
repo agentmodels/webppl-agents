@@ -145,7 +145,7 @@ var getPOMDPFunctions = function(params, world){
 
 // MAKE AGENT
 
-var makeBeliefAgent = function(params, world) {
+var makePOMDPAgentOptimal = function(params, world) {
   assert.ok( hasUtilityPriorBelief(params) && hasTransitionObserve(world), 'makePOMDPAgent params and world');
   
   // set defaults
@@ -331,6 +331,6 @@ var getSimulateFunction = function(beliefOrBeliefDelay){
   };
 };
 
-var simulateBeliefAgent = getSimulateFunction('belief');
+var simulatePOMDPAgent = getSimulateFunction('belief');
 
 

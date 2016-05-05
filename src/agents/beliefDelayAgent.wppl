@@ -1,6 +1,6 @@
 
 
-var makeBeliefDelayAgent = function (params, world){
+var makePOMDPAgentDelay = function (params, world){
 
   assert.ok( hasUtilityPriorBelief(params) && hasTransitionObserve(world), 'makePOMDPAgent params and world');
 
@@ -184,7 +184,28 @@ var makeBeliefDelayAgent = function (params, world){
 };
 
 
-var simulateBeliefDelayAgent = getSimulateFunction('beliefDelay');
+
+
+var isOptimalPOMDPAgent = function(agentParams){
+
+  var optimalProperties = function(){
+    return !(_.has(agentParams, 'noDelays') || _.has(agentParams, 'discount') || 
+             _.has(agentParams,'myopic-observations'));
+  }
+  return _.isUndefined(agentParams.optimal) ? optimalProperties() : agentParams.optimal;
+};
+
+
+var makePOMDPAgent = function(params, world){
+  return isOptimalPOMDPAgent(params) ? makePOMDPAgentOptimal(params, world) : 
+    makePOMDPAgentDelay(params, world)
+};
+
+
+
+
+var simulatePOMDPAgentDelay = getSimulateFunction('beliefDelay');
+
 
 
 var getMakeAgentFunction = function(beliefOrBeliefDelay){
@@ -192,9 +213,9 @@ var getMakeAgentFunction = function(beliefOrBeliefDelay){
              'getMakeAgentFunction invalid input:   ' + beliefOrBeliefDelay);
 
   if ( beliefOrBeliefDelay == 'beliefDelay'){
-    return makeBeliefDelayAgent;
+    return makePOMDPAgentDelay;
   } else {
-    return makeBeliefAgent;
+    return makePOMDPAgentOptimal;
   }
 };
 

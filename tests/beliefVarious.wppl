@@ -34,7 +34,7 @@ var testAgent = function(){
   		       timeCost: -0.1};
   var latentPrior1 = deltaERP(startState1.latentState);
   var prior1 = makePriorGridworld(startState1.manifestState, latentPrior1);
-  var agent1 = makeBeliefAgent({
+  var agent1 = makePOMDPAgent({
     utility: makeRestaurantUtilityFunction(gridworldPOMDP, utilityTable1),
     alpha: 100,
     priorBelief: prior1
@@ -64,7 +64,7 @@ var testAgent = function(){
   				    startState1.latentState]);
   });
   var prior2 = makePriorGridworld(startState2.manifestState, latentPrior2);
-  var agent2 = makeBeliefAgent({
+  var agent2 = makePOMDPAgent({
     utility: makeRestaurantUtilityFunction(gridworldPOMDP, utilityTable2),
     alpha: 200,
     priorBelief: prior2
@@ -98,7 +98,7 @@ var testAgent = function(){
     return uniformDraw([startState1.latentState, startState3.latentState]);
   });
   var prior3 = makePriorGridworld(startState3.manifestState, latentPrior3);
-  var agent3 = makeBeliefAgent({utility: makeRestaurantUtilityFunction(gridworldPOMDP, utilityTable3),
+  var agent3 = makePOMDPAgent({utility: makeRestaurantUtilityFunction(gridworldPOMDP, utilityTable3),
 				alpha: 300,
 				priorBelief: prior3}, gridworldPOMDP);
   var gridLocs3 = trajectoryToLocations(simulate(startState3, gridworldPOMDP,
@@ -152,7 +152,7 @@ var testAgent = function(){
                        Veg: 0};
   var latentPrior4 = deltaERP(startState4.latentState);
   var prior4 = makePriorGridworld(startState4.manifestState, latentPrior4);
-  var agent4 = makeBeliefAgent({utility: makeRestaurantUtilityFunction(forkyGridworldPOMDP, utilityTable4),
+  var agent4 = makePOMDPAgent({utility: makeRestaurantUtilityFunction(forkyGridworldPOMDP, utilityTable4),
 				alpha: 100,
 				priorBelief: prior4}, forkyGridworldPOMDP);
   var gridLocs4 = trajectoryToLocations(simulate(startState4, forkyGridworldPOMDP,
@@ -175,7 +175,7 @@ var testAgent = function(){
                        Veg:0};
   var latentPrior5 = deltaERP(startState5.latentState);
   var prior5 = makePriorGridworld(startState5.manifestState, latentPrior5);
-  var agent5 = makeBeliefAgent({utility: makeRestaurantUtilityFunction(forkyGridworldPOMDP, utilityTable5),
+  var agent5 = makePOMDPAgent({utility: makeRestaurantUtilityFunction(forkyGridworldPOMDP, utilityTable5),
 				alpha: 100,
 				priorBelief: prior5}, forkyGridworldPOMDP);
   var gridLocs5 = trajectoryToLocations(simulate(startState5, forkyGridworldPOMDP,

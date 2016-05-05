@@ -15,13 +15,13 @@ var getRestaurantHyperbolicInfer = function(){
     var discount = pathName=='vegDirect' ? 0 : 1;
     var sophisticatedOrNaive = pathName=='naive' ? 'naive' : 'sophisticated';
     
-    var agent = makeHyperbolicDiscounter(
+    var agent = makeMDPAgent(
       { utility : temptationUtility,
         alpha : 500, 
         discount : discount, 
         sophisticatedOrNaive  : sophisticatedOrNaive
       }, world);
-    var observedStateAction = simulateHyperbolic(start, world, agent);
+    var observedStateAction = simulate(start, world, agent);
     var observedLocs = map( function(x){return x[0].loc;}, observedStateAction);   
     // assert.ok( _.isEqual( observedLocs, restaurantNameToPath[pathName]), 'generated locs: ' + observedLocs + ' \n stored locs: 
 // ' + restaurantNameToPath[pathName]);
@@ -49,7 +49,7 @@ var getRestaurantHyperbolicInfer = function(){
       var discounting = priorDiscounting();
       var alpha = priorAlpha();
       
-      var agent = makeHyperbolicDiscounter(
+      var agent = makeMDPAgent(
         { utility   : makeRestaurantUtilityFunction(world, utilityTable),
           alpha     : alpha, 
           discount  : discounting.discount, 
