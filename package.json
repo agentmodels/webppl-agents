@@ -15,10 +15,8 @@
     "wppl": [
       "src/generalUtils.wppl",
       "src/agents/makeMDPAgent.wppl",
-      "src/agents/makeMDPAgentHyperbolic.wppl",
       "src/POMDPUtils.wppl",
-      "src/agents/beliefAgent.wppl",
-      "src/agents/beliefDelayAgent.wppl",
+      "src/agents/makePOMDPAgent.wppl",
       "src/agents/simulate.wppl",
       "src/environments/bandits/makeBandit.wppl",
       "src/environments/gridWorld/makeGridWorld.wppl",
