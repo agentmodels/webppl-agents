@@ -19,9 +19,6 @@
       "src/POMDPUtils.wppl",
       "src/agents/beliefAgent.wppl",
       "src/agents/beliefDelayAgent.wppl",
-      "src/agents/mutualRecursionAgent.wppl",
-      "src/agents/threateningAgent.wppl",
-      "src/simulateGame.wppl",
       "src/environments/bandits/makeBandit.wppl",
       "src/environments/gridWorld/makeGridWorld.wppl",
       "src/environments/gridWorld/gridworldPOMDP.wppl",
@@ -30,7 +27,11 @@
       "src/environments/gridWorld/restaurantChoiceHyperbolicInfer.wppl",
       "src/environments/gridWorld/banditGridworld.wppl",
       "src/environments/procrastinationMDP.wppl",
-      "src/environments/coordinationGame.wppl"
+      "src/games/coordinationGame.wppl",
+      "src/games/simulateGame.wppl",
+      "src/games/cdtAgent.wppl",
+      "src/games/mutualRecursionAgent.wppl",
+      "src/games/threateningAgent.wppl"
     ]
   },
   "repository": {

@@ -1,0 +1,37 @@
+var makeCDTAgent = function(options){
+  var game = options.game;
+  var transition = game.transition;
+  var playerNumber = options.playerNumber;
+  var alpha = options.alpha;
+  var utility = playerNumber === 0 ? game.utility0 : game.utility1;
+  var myActions = playerNumber === 0 ? game.actions0 : game.actions1;
+  var oppAct = options.oppAct;
+
+  var act = dp.cache(function(state){
+    return Enumerate(function(){
+      var action = uniformDraw(myActions);
+      var eu = expectedUtility(state, action);
+      factor(alpha * eu);
+      return action;
+    });
+  });
+
+  var expectedUtility = dp.cache(function(state, action){
+    var u = utility(state);
+    if (state.terminateAfterAction) {
+      return u;
+    } else {
+      return u + expectation(Enumerate(function(){
+	var oppAction = sample(oppAct(state));
+	var nextState = playerNumber === 0
+	      ? transition(state, action, oppAction)
+	      : transition(state, oppAction, action);
+	var nextAction = sample(act(nextState));
+	return expectedUtility(nextState, nextAction);
+      }));
+    }
+  });
+
+  return {act: act,
+	  expectedUtility: expectedUtility};
+};

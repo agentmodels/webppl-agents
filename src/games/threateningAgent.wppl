@@ -13,7 +13,6 @@ var threateningAgent = function(options){
   var nonTerminalLocs = game.nonTerminalLocs;
   var transition = game.transition;
   var playerNumber = options.playerNumber;
-  console.log('player number: ' + playerNumber);
   var alpha = options.alpha;
   var utility = playerNumber === 0 ? game.utility0 : game.utility1;
   var oppUtility = playerNumber === 0 ? game.utility1 : game.utility0;
@@ -46,46 +45,32 @@ var threateningAgent = function(options){
       }
     };
 
-    var oppAct = dp.cache(function(state){
-      return Enumerate(function(){
-	var oppAction = uniformDraw(oppActions);
-	var eu = oppExpectedUtility(state, oppAction);
-	factor(alpha * eu);
-	return oppAction;
-      });
-    });
-
-    var oppExpectedUtility = dp.cache(function(state, oppAction){
-      var u = oppUtility(state);
-      if (state.terminateAfterAction){
-	return u;
-      } else {
-	return u + expectation(Enumerate(function(){
-	  var myAction = sample(myAct(state));
-	  var nextState = playerNumber === 0
-		? transition(state, myAction, oppAction)
-		: transition(state, oppAction, myAction);
-	  var oppNextAction = sample(oppAct(nextState));
-	  return oppExpectedUtility(nextState, oppNextAction);
-	}));
-      }
-    });
-
+    var oppOptions = {
+      game: game,
+      alpha: alpha,
+      oppAct: myAct,
+      playerNumber: 1 - playerNumber
+    };
+    var opp = makeCDTAgent(oppOptions);
+    var oppAct = opp.act;
+    
     var agent0 = playerNumber === 0 ? {act: myAct} : {act: oppAct};
     var agent1 = playerNumber === 1 ? {act: myAct} : {act: oppAct};
 
-    var trajectory = simulateGame(startState, game, agent0, agent1, 'states');
+    var eu = expectation(Enumerate(function(){
+      var trajectory = simulateGame(startState, game, agent0, agent1, 'states');
 
-    var totalUtility = sum(map(utility, trajectory));
+      return sum(map(utility, trajectory));
+    }));
 
-    factor(alpha * totalUtility);
+    factor(alpha * eu);
 
     return policy;
     
-  }, {particles: 1000, rejuvKernel: {HMC: {steps: 5, stepSize: 0.01}}});
+  }, {particles: 3000, rejuvKernel: {HMC: {steps: 5, stepSize: 0.01}}});
 
   var policy = MAP(policyDistribution).val;
-  console.log('policy: ' + JSON.stringify(policy));
+  // console.log('policy: ' + JSON.stringify(policy));
 
   var act = dp.cache(function(state) {
     var firstIsState = function(x){

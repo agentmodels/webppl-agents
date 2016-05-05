@@ -1,0 +1,59 @@
+var displayThreateningGame = function(game){
+  var startState = {loc: 'start',
+		    terminateAfterAction: false};
+
+  var options0 = {
+    game: game,
+    startState: startState,
+    playerNumber: 0,
+    alpha: 100
+  };
+  var agent0 = threateningAgent(options0);
+
+  var options1 = update(options0, {
+    playerNumber: 1
+  });
+  var agent1 = threateningAgent(options1);
+
+  var trajectory = simulateGame(startState, game, agent0, agent1,
+				'stateActions', true);
+
+  console.log(trajectory);
+
+};
+
+// console.log('Simulating threatening agent in home-club game');
+
+// var homeClubGame = makeHomeClubGame();
+
+// displayThreateningGame(homeClubGame);
+
+// console.log('\nSimulating threatening agent in double-club game');
+
+// var doubleClubGame = makeDoubleClubGame();
+
+// displayThreateningGame(doubleClubGame);
+
+// console.log('\nSimulating threatening agent in Matching Pennies');
+
+// var matchingPenniesGame = makeMatchingPenniesGame();
+
+// displayThreateningGame(matchingPenniesGame);
+
+// console.log('\nSimulating threatening agent in Bach or Stravinsky');
+
+// var BoSGame = makeBoSGame();
+
+// displayThreateningGame(BoSGame);
+
+// console.log("\nSimulating threatening agent in one-shot Prisoner's Dilemma");
+
+// var PDGame = makePDGame();
+
+// displayThreateningGame(PDGame);
+
+console.log("\nSimulating threatening agent in two-shot Prisoner's Dilemma");
+
+var ipd = makeIPDRememberOneGame(2);
+
+displayThreateningGame(ipd);
