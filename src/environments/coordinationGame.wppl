@@ -11,6 +11,8 @@ var makeHomeClubGame = function(){
   var locs = ['start', ['club', 'home'], ['home', 'home'], ['club', 'club'],
 	      ['home', 'club']];
 
+  var nonTerminalLocs = ['start'];
+
   var actions = ['home', 'club'];
 
   var transition = function(state, action0, action1){
@@ -47,7 +49,7 @@ var makeHomeClubGame = function(){
   };
   
   return {
-    locs: locs,
+    nonTerminalLocs: nonTerminalLocs,
     actions0: actions,
     actions1: actions,
     utility0: homeClubUtility0,
@@ -65,6 +67,8 @@ var makeDoubleClubGame = function(){
 
   var locs = ['start', ['mooseheads', 'cube'], ['cube', 'cube'],
 	      ['mooseheads', 'mooseheads'], ['cube', 'mooseheads']];
+
+  var nonTerminalLocs = ['start'];
 
   var actions = ['cube', 'mooseheads'];
 
@@ -103,7 +107,7 @@ var makeDoubleClubGame = function(){
   };
   
   return {
-    locs: locs,
+    nonTerminalLocs: nonTerminalLocs,
     actions0: actions,
     actions1: actions,
     utility0: doubleClubUtility0,
@@ -118,6 +122,8 @@ var makeMatchingPenniesGame = function(){
 
   var locs = ['start', ['heads', 'tails'], ['tails', 'tails'],
 	      ['heads', 'heads'], ['tails', 'heads']];
+
+  var nonTerminalLocs = ['start'];
 
   var actions = ['tails', 'heads'];
 
@@ -151,7 +157,7 @@ var makeMatchingPenniesGame = function(){
   };
   
   return {
-    locs: locs,
+    nonTerminalLocs: nonTerminalLocs,
     actions0: actions,
     actions1: actions,
     utility0: matchingPenniesUtility0,
@@ -166,6 +172,8 @@ var makeBoSGame = function(){
 
   var locs = ['start', ['bach', 'stravinsky'], ['stravinsky', 'stravinsky'],
 	      ['bach', 'bach'], ['stravinsky', 'bach']];
+
+  var nonTerminalLocs = ['start'];
 
   var actions = ['stravinsky', 'bach'];
 
@@ -201,14 +209,148 @@ var makeBoSGame = function(){
       return 1;
     }
   };
-
   
   return {
-    locs: locs,
+    nonTerminalLocs: nonTerminalLocs,
     actions0: actions,
     actions1: actions,
     utility0: BoSUtility0,
     utility1: BoSUtility1,
+    transition: transition
+  };
+};
+
+// single-shot prisoner's dilemma
+
+var makePDGame = function(){
+
+  var locs = ['start', ['C', 'D'], ['D', 'D'],
+	      ['C', 'C'], ['D', 'C']];
+
+  var nonTerminalLocs = ['start'];
+
+  var actions = ['D', 'C'];
+
+  var transition = function(state, action0, action1){
+    var loc = state.loc;
+    if (loc !== 'start') {
+      return {loc: loc,
+	      terminateAfterAction: true};
+    } else {
+      return {loc: [action0, action1],
+	      terminateAfterAction: true};
+    }
+  };
+
+  var PDUtility0 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else if (_.isEqual(loc, ['C', 'C'])) {
+      return 3;
+    } else if (_.isEqual(loc, ['C', 'D'])) {
+      return 0;
+    } else if (_.isEqual(loc, ['D', 'C'])) {
+      return 5;
+    } else {
+      return 1;
+    }
+  };
+
+  var PDUtility1 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else if (_.isEqual(loc, ['C', 'C'])) {
+      return 3;
+    } else if (_.isEqual(loc, ['D', 'C'])) {
+      return 0;
+    } else if (_.isEqual(loc, ['C', 'D'])) {
+      return 5;
+    } else {
+      return 1;
+    }
+  };
+  
+  return {
+    nonTerminalLocs: nonTerminalLocs,
+    actions0: actions,
+    actions1: actions,
+    utility0: PDUtility0,
+    utility1: PDUtility1,
+    transition: transition
+  };
+};
+
+// n-round iterated prisoner's dilemma
+
+// choice: states could either store previous action, previous two actions, or
+// whole history (or previous 3 actions, or...).
+
+// to balance desire for a small state space with a desire to let the agent
+// know what's going on, we let the location store one previous pair of actions,
+// as well as the number of future rounds.
+
+var makeIPDRememberOneGame = function(n){
+
+  var actions = ['D', 'C'];
+
+  var actionPairs = [['C', 'C'], ['C', 'D'], ['D', 'C'], ['D', 'D']];
+
+  var locsAtTimeI = function(i){
+    return map(function(x){return [i, x];}, actionPairs);
+  };
+
+  var nonStartLocs = map(locsAtTimeI, range(n).slice(1));
+
+  var nonTerminalLocs = _.flatten(cons('start', nonStartLocs), true);
+
+  var transition = function(state, action0, action1){
+    var loc = state.loc;
+    var time = loc === 'start' ? n : loc[0];
+    var nextTime = time - 1;
+    var nextLoc = [nextTime, [action0, action1]];
+    // console.log(nextLoc);
+    return {loc: nextLoc,
+	    terminateAfterAction: nextTime === 0};
+  };
+
+  var IPDUtility0 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else if (_.isEqual(loc[1], ['C', 'C'])) {
+      return 3;
+    } else if (_.isEqual(loc[1], ['C', 'D'])) {
+      return 0;
+    } else if (_.isEqual(loc[1], ['D', 'C'])) {
+      return 5;
+    } else {
+      return 1;
+    }
+  };
+
+  var IPDUtility1 = function(state) {
+    var loc = state.loc;
+    if (loc === 'start') {
+      return 0;
+    } else if (_.isEqual(loc[1], ['C', 'C'])) {
+      return 3;
+    } else if (_.isEqual(loc[1], ['D', 'C'])) {
+      return 0;
+    } else if (_.isEqual(loc[1], ['C', 'D'])) {
+      return 5;
+    } else {
+      return 1;
+    }
+  };
+  
+  return {
+    nonTerminalLocs: nonTerminalLocs,
+    actions0: actions,
+    actions1: actions,
+    utility0: IPDUtility0,
+    utility1: IPDUtility1,
     transition: transition
   };
 };

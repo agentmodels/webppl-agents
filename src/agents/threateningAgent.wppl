@@ -7,11 +7,13 @@
 // inference per-action)
 
 var threateningAgent = function(options){
+
   var game = options.game;
   var startState = options.startState;
-  var locs = game.locs;
+  var nonTerminalLocs = game.nonTerminalLocs;
   var transition = game.transition;
   var playerNumber = options.playerNumber;
+  console.log('player number: ' + playerNumber);
   var alpha = options.alpha;
   var utility = playerNumber === 0 ? game.utility0 : game.utility1;
   var oppUtility = playerNumber === 0 ? game.utility1 : game.utility0;
@@ -21,10 +23,9 @@ var threateningAgent = function(options){
   var dAlpha = map(constF(1),myActions);
   // parameter of dirichlet prior
 
-  var states = _.flatten(map(function(loc){
-    return [{loc: loc, terminateAfterAction: true},
-	    {loc: loc, terminateAfterAction: false}];
-  }, locs));
+  var states = map(function(loc){
+    return {loc: loc, terminateAfterAction: false};
+  }, nonTerminalLocs);
 
   var policyDistribution = SMC(function(){
     var addActionDistribution = function(state) {
@@ -37,8 +38,12 @@ var threateningAgent = function(options){
       var firstIsState = function(x){
 	return _.isEqual(first(x), state);
       };
-      var actionProbs = second(first(filter(firstIsState, policy)));
-      return categoricalERP(actionProbs, myActions);
+      if (state.terminateAfterAction) {
+	return Enumerate(function(){return uniformDraw(myActions);});
+      } else {
+	var actionProbs = second(first(filter(firstIsState, policy)));
+	return categoricalERP(actionProbs, myActions);
+      }
     };
 
     var oppAct = dp.cache(function(state){
@@ -80,13 +85,18 @@ var threateningAgent = function(options){
   }, {particles: 1000, rejuvKernel: {HMC: {steps: 5, stepSize: 0.01}}});
 
   var policy = MAP(policyDistribution).val;
+  console.log('policy: ' + JSON.stringify(policy));
 
   var act = dp.cache(function(state) {
     var firstIsState = function(x){
       return _.isEqual(first(x), state);
     };
-    var actionProbs = second(first(filter(firstIsState, policy)));
-    return categoricalERP(actionProbs, myActions);
+    if (state.terminateAfterAction) {
+      return Enumerate(function(){return uniformDraw(myActions);});
+    } else {
+      var actionProbs = second(first(filter(firstIsState, policy)));
+      return categoricalERP(actionProbs, myActions);
+    }
   });
 
   return {act: act};

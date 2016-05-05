@@ -5,7 +5,6 @@ var simulateGame = function(startState, game, agent0, agent1, outputType_,
   var act1 = agent1.act;
   var transition = game.transition;
   var outputType = outputType_ ? outputType_ : 'states';
-
   var selectOutput = function(state, action0, action1) {
     var table = {states: state,
 		 actions: [action0, action1],
@@ -14,7 +13,8 @@ var simulateGame = function(startState, game, agent0, agent1, outputType_,
   };
 
   var sampleSequence = function(state){
-    if (state.loc === 'start' && displayActionERPs){
+    if (!(state.terminateAfterAction) && displayActionERPs){
+      console.log('\nlocation: ' + JSON.stringify(state.loc));
       console.log('\naction 0 erp:\n');
       printERP(act0(state));
       console.log('\naction 1 erp:\n');

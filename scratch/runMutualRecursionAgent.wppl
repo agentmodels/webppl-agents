@@ -24,33 +24,45 @@ var displayMutualRecursionGame = function(game){
 
 };
 
-console.log('Simulating mutual recursion agent in home-club game');
+// console.log('Simulating mutual recursion agent in home-club game');
 
-var homeClubGame = makeHomeClubGame();
+// var homeClubGame = makeHomeClubGame();
 
-displayMutualRecursionGame(homeClubGame);
-// for alpha = 100, agent reliably goes home even at level 1
-// for alpha = 1, at level 1, agent goes home with probability 0.622.
-// at level 2, agent goes home with probability 0.980
+// displayMutualRecursionGame(homeClubGame);
+// // for alpha = 100, agent reliably goes home even at level 1
+// // for alpha = 1, at level 1, agent goes home with probability 0.622.
+// // at level 2, agent goes home with probability 0.980
 
 
-console.log('\nSimulating mutual recursion agent in double-club game');
+// console.log('\nSimulating mutual recursion agent in double-club game');
 
-var doubleClubGame = makeDoubleClubGame();
+// var doubleClubGame = makeDoubleClubGame();
 
-displayMutualRecursionGame(doubleClubGame);
-// at alpha = 100, a level 1 agent only goes to cube with probability 0.525
-// a level 2 agent also goes to cube with probability 0.525
-// a level 3 agent goes with probability 1. This is strange.
+// displayMutualRecursionGame(doubleClubGame);
+// // at alpha = 100, a level 1 agent only goes to cube with probability 0.525
+// // a level 2 agent also goes to cube with probability 0.525
+// // a level 3 agent goes with probability 1. This is strange.
 
-console.log('\nSimulating mutual recursion agent in Matching Pennies');
+// console.log('\nSimulating mutual recursion agent in Matching Pennies');
 
-var matchingPenniesGame = makeMatchingPenniesGame();
+// var matchingPenniesGame = makeMatchingPenniesGame();
 
-displayMutualRecursionGame(matchingPenniesGame);
+// displayMutualRecursionGame(matchingPenniesGame);
 
-console.log('\nSimulating mutual recursion agent in Bach or Stravinsky');
+// console.log('\nSimulating mutual recursion agent in Bach or Stravinsky');
 
-var BoSGame = makeBoSGame();
+// var BoSGame = makeBoSGame();
 
-displayMutualRecursionGame(BoSGame);
+// displayMutualRecursionGame(BoSGame);
+
+// console.log("\nSimulating mutual recursion agent in one-shot Prisoner's Dilemma");
+
+// var PDGame = makePDGame();
+
+// displayMutualRecursionGame(PDGame);
+
+console.log("\nSimulating ten-round iterated Prisoner's dilemma");
+
+var ipd = makeIPDRememberOneGame(10);
+
+displayMutualRecursionGame(ipd);
