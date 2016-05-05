@@ -192,7 +192,7 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
   var startState = bandit.startState;
   var numericPrizes = bandit.numericPrizes;
 
-  var simulate = getSimulateFunction(beliefOrBeliefDelay);
+  //var simulate = getSimulateFunction(beliefOrBeliefDelay);
 
   var priorPrizeToUtility = prior.priorPrizeToUtility || false;
   var priorAgentPrior = prior.priorAgentPrior;
