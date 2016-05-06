@@ -187,7 +187,7 @@ var stochasticTest1 = function() {
 
   // agent's behaviour
 
-  var trajectory = simulateBeliefAgent(startState, world, agent, 'actions');
+  var trajectory = simulate(startState, world, agent, 'actions');
 
   // check the agent is choosing the highest-utility arm
 
@@ -256,7 +256,7 @@ var stochasticTest2 = function() {
 
   var riskyShortAgent = makeBanditAgent(riskyShortAgentParams, shortRiskBandit,
 					'belief');
-  var riskyShortTrajectory = simulateBeliefAgent(shortRiskBandit.startState,
+  var riskyShortTrajectory = simulate(shortRiskBandit.startState,
 						 shortRiskBandit.world,
 						 riskyShortAgent, 'actions');
 
@@ -269,7 +269,7 @@ var stochasticTest2 = function() {
 
   var riskyLongAgent = makeBanditAgent(riskyLongAgentParams, longRiskBandit,
 				       'belief');
-  var riskyLongTrajectory = simulateBeliefAgent(longRiskBandit.startState,
+  var riskyLongTrajectory = simulate(longRiskBandit.startState,
 						longRiskBandit.world,
   						riskyLongAgent, 'actions');
 
@@ -282,7 +282,7 @@ var stochasticTest2 = function() {
 
   var safeShortAgent = makeBanditAgent(safeShortAgentParams, shortSafeBandit,
 				       'belief');
-  var safeShortTrajectory = simulateBeliefAgent(shortSafeBandit.startState,
+  var safeShortTrajectory = simulate(shortSafeBandit.startState,
 						shortSafeBandit.world,
   						safeShortAgent, 'actions');
 
@@ -295,7 +295,7 @@ var stochasticTest2 = function() {
 
   var safeLongAgent = makeBanditAgent(safeLongAgentParams, longSafeBandit,
 				      'belief');
-  var safeLongTrajectory = simulateBeliefAgent(longSafeBandit.startState,
+  var safeLongTrajectory = simulate(longSafeBandit.startState,
 					       longSafeBandit.world,
   					       safeLongAgent, 'actions');
 
@@ -364,7 +364,7 @@ var stochasticTest3 = function(){
 
   var agentShort = makeBanditAgent(agentParamsShort, shortBandit, 'belief');
 
-  var trajectoryShort = simulateBeliefAgent(shortBandit.startState,
+  var trajectoryShort = simulate(shortBandit.startState,
 					    shortBandit.world, agentShort,
 					    'actions');
 
@@ -377,7 +377,7 @@ var stochasticTest3 = function(){
 
   var agentLong = makeBanditAgent(agentParamsLong, longLuckyBandit, 'belief');
 
-  var trajectoryLongLucky = simulateBeliefAgent(longLuckyBandit.startState,
+  var trajectoryLongLucky = simulate(longLuckyBandit.startState,
 						longLuckyBandit.world,
 						agentLong, 'stateAction');
 
@@ -387,7 +387,7 @@ var stochasticTest3 = function(){
     assert.ok(trajectoryLongLucky[1][1] === 1, 'agent should follow up luck');
   }
 
-  var trajectoryLongUnlucky = simulateBeliefAgent(longUnluckyBandit.startState,
+  var trajectoryLongUnlucky = simulate(longUnluckyBandit.startState,
 						  longUnluckyBandit.world,
 						  agentLong, 'stateAction');
   
@@ -425,7 +425,7 @@ var deterministicTest1 = function() {
   var agent = makeBanditAgent(agentParams, bandit, 'belief');
 
   
-  var trajectory = simulateBeliefAgent(bandit.startState, bandit.world, agent,
+  var trajectory = simulate(bandit.startState, bandit.world, agent,
 				       'actions');
 
   map( function(index){assert.ok( trajectory[index] === 0,
@@ -463,7 +463,7 @@ var deterministicTest2 = function() {
   var agent = makeBanditAgent(agentParams, bandit, 'belief');
 
   
-  var trajectory = simulateBeliefAgent(bandit.startState, bandit.world, agent,
+  var trajectory = simulate(bandit.startState, bandit.world, agent,
 				       'actions');
 
   assert.ok(trajectory[0] === 1, 'deterministic numerical bandit test 2 fails');
@@ -505,7 +505,7 @@ var deterministicTest3 = function(){
   var agent = makeBanditAgent(agentParams, bandit, 'belief');
 
   
-  var trajectory = simulateBeliefAgent(bandit.startState, bandit.world, agent,
+  var trajectory = simulate(bandit.startState, bandit.world, agent,
 				       'actions');
 
   map(function(index){assert.ok(trajectory[index] === 1,
@@ -549,7 +549,7 @@ var deterministicTest4 = function(){
   };
   var agent = makeBanditAgent(agentParams, bandit, 'belief');
   // something is wrong with trajectory
-  var trajectory = simulateBeliefAgent(bandit.startState, bandit.world, agent,
+  var trajectory = simulate(bandit.startState, bandit.world, agent,
 				       'actions');
 
   assert.ok(_.isEqual([1,2,0], trajectory.slice(0,3)),
@@ -592,7 +592,7 @@ var deterministicTest5 = function(){
   };
   var agent = makeBanditAgent(agentParams, bandit, 'belief');
   // something is wrong with trajectory
-  var trajectory = simulateBeliefAgent(bandit.startState, bandit.world, agent,
+  var trajectory = simulate(bandit.startState, bandit.world, agent,
 				       'actions');
 
   assert.ok(_.isEqual([1,2,2], trajectory.slice(0,3)),

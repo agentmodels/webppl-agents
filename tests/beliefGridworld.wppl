@@ -1,11 +1,8 @@
-// note: currently, most tests are focussing on the inference via enumeration,
-// since that's deterministic and easier to write tests for.
-
 
 var myInSupport = function(x, erp){return erp.score([], x) > -100; };
 
 var getActualSupport = function(erp) {
-  assert.ok(isERP(erp), 'tried to get the support of something other than an ERP');
+  assert.ok(hasSample(erp), 'tried to get the support of something other than an ERP');
   var hasNonNegligibleProbability = function(x) {
     return erp.score([], x) > -100;
   };
@@ -13,7 +10,7 @@ var getActualSupport = function(erp) {
 };
 
 var checkEqualDeltaErps = function(erpArray) {
-  assert.ok(isERP(erpArray[0]) && isERP(erpArray[1]),
+  assert.ok(hasSample(erpArray[0]) && hasSample(erpArray[1]),
 	    'checkEqualDeltaErps applied to something other than an array of erps');
   var sample2 = function() {
     assert.ok(_.isEqual(sample(erpArray[0]), sample(erpArray[1])),
@@ -73,7 +70,7 @@ var test1 = function() {
 
   var trueAgentParams = update(baseParamsNoDiscount, 
                                {priorBelief: truePriorBelief,
-				utility: tableToUtilityFunction(donutUtilityTable, world)});
+				utility: makeRestaurantUtilityFunction(world, donutUtilityTable)});
 
 
 
@@ -81,7 +78,7 @@ var test1 = function() {
 
   var beliefOrBeliefDelay = 'belief';
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
-  var simulate = getSimulateFunction(beliefOrBeliefDelay);
+  
   var agentTypeAndFunctions = {type: beliefOrBeliefDelay, makeAgent:makeAgent, simulate: simulate};
 
   var alternativePriorBelief = getPriorBeliefGridworld( startState.manifestState, function(){return trueLatentState;});
@@ -200,13 +197,12 @@ var test2 = function() {
 
   var trueAgentParams1 = update(baseParamsNoDiscount, 
 				{priorBelief: truePriorBelief1,
-				 utility: tableToUtilityFunction(noodleUtilityTable,
-								 world)});
+				 utility: makeRestaurantUtilityFunction(world,
+								 noodleUtilityTable)});
   // PRIOR FOR INFERENCE PARAMS
 
   var beliefOrBeliefDelay = 'belief';
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
-  var simulate = getSimulateFunction(beliefOrBeliefDelay);
   var agentTypeAndFunctions = {type: beliefOrBeliefDelay,
 			       makeAgent:makeAgent,
 			       simulate: simulate};
@@ -313,8 +309,8 @@ var test2 = function() {
 
   var trueAgentParams2 = update(baseParamsNoDiscount, 
 				{priorBelief: truePriorBelief2,
-				 utility: tableToUtilityFunction(noodleUtilityTable,
-								 world)});
+				 utility: makeRestaurantUtilityFunction(world,
+								        noodleUtilityTable)});
 
 
   var erps2 = map( function(trajectoryOrOffPolicy){
@@ -419,13 +415,12 @@ var test3 = function() {
 
   var trueAgentParams = update(baseParamsNoDiscount, 
 			       {priorBelief: truePriorBelief,
-				utility: tableToUtilityFunction(noodleUtilityTable,
-								world)});
+				utility: makeRestaurantUtilityFunction(world,
+								noodleUtilityTable)});
   // PRIOR FOR INFERENCE PARAMS
 
   var beliefOrBeliefDelay = 'belief';
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
-  var simulate = getSimulateFunction(beliefOrBeliefDelay);
   var agentTypeAndFunctions = {type: beliefOrBeliefDelay,
 			       makeAgent:makeAgent,
 			       simulate: simulate};

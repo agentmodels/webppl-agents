@@ -52,7 +52,7 @@ var testMDPAgents = function(){
   // MDPAgent
   var params = {alpha:1000, utility:utility};
   var agent = makeMDPAgent(params, world);
-  var trajectory = simulateMDP(line.startState, world, agent, 'states');
+  var trajectory = simulate(line.startState, world, agent, 'states');
   var locations = getLocations(trajectory);
   assert.ok( last(locations)==3, 'MDPAgent test');
 
@@ -65,7 +65,7 @@ var testMDPAgents = function(){
     return {act:act, params:params};
   };
   var agent = makeMDPAgentRandom(params, world);
-  var trajectory = simulateMDP(line.startState, world, agent, 'states');
+  var trajectory = simulate(line.startState, world, agent, 'states');
   var locations = getLocations(trajectory);
   
 
@@ -74,21 +74,14 @@ var testMDPAgents = function(){
                 utility:utility,
                 discount:2,
                 sophisticatedOrNaive: 'naive'};
-  var agent = makeHyperbolicDiscounter(params, world);
-  var trajectory = simulateHyperbolic(line.startState, world, agent, 'states');
+  var agent = makeMDPAgent(params, world);
+  var trajectory = simulate(line.startState, world, agent, 'states');
   var locations = getLocations(trajectory);
   assert.ok( last(locations)==0, 'MDPAgentHyperbolic test');
   
 };
 
 
-
-
-var makePOMDPAgent = makeBeliefAgent;
-var simulatePOMDPAgent = simulateBeliefAgent;
-
-var makePOMDPAgentDelay = makeBeliefDelayAgent;
-var simulatePOMDPAgentDelay = simulateBeliefDelayAgent;
 
 
 var makeLinePOMDP = function(totalTime, treasureAt3){
@@ -190,9 +183,11 @@ var testPOMDPAgentOptimal = function(){
                   priorBelief: agentPriorBelief           
                  };
 
-    var agent = delayAgent ? makePOMDPAgentDelay(params, world) : makePOMDPAgent(params, world);
-    var trajectory = delayAgent ? simulatePOMDPAgentDelay(trueStartState, world, agent, 'states') :
-        simulatePOMDPAgent(trueStartState, world, agent, 'states');
+    var params = delayAgent ? update(params,{optimal:false}) : update(params,{optimal:true});
+
+    var agent = makePOMDPAgent(params, world);
+  
+    var trajectory = simulate(trueStartState, world, agent, 'states');
     return getLocations(trajectory);
   };
 
@@ -272,8 +267,8 @@ var testPOMDPAgentDelay = function(){
                                            [trueStartState, alternateStartState]);
 
     var params = update(paramsBase, {utility: utility, priorBelief: agentPriorBelief});
-    var agent =  makePOMDPAgentDelay(params, world);
-    var trajectory = simulatePOMDPAgentDelay(trueStartState, world, agent, 'states');
+    var agent =  makePOMDPAgent(params, world);
+    var trajectory = simulate(trueStartState, world, agent, 'states');
     return getLocations(trajectory);
   };
   
@@ -295,9 +290,6 @@ var testPOMDPAgentDelay = function(){
   var locations = runAgent(paramsBoundVOI);
   assert.ok(locations[3]==3, 'test POMDP line');
 };
-
-
-
 
 
 

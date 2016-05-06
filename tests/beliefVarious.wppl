@@ -34,12 +34,12 @@ var testAgent = function(){
   		       timeCost: -0.1};
   var latentPrior1 = deltaERP(startState1.latentState);
   var prior1 = makePriorGridworld(startState1.manifestState, latentPrior1);
-  var agent1 = makeBeliefAgent({
-    utility: tableToUtilityFunction(utilityTable1, gridworldPOMDP),
+  var agent1 = makePOMDPAgent({
+    utility: makeRestaurantUtilityFunction(gridworldPOMDP, utilityTable1),
     alpha: 100,
     priorBelief: prior1
   }, gridworldPOMDP);
-  var gridLocs1 = trajectoryToLocations(simulateBeliefAgent(startState1, gridworldPOMDP,
+  var gridLocs1 = trajectoryToLocations(simulate(startState1, gridworldPOMDP,
   							    agent1, 'states'));
   assert.ok(_.isEqual(gridLocs1[1],[2,1]), 'gridTest1');
 
@@ -64,12 +64,12 @@ var testAgent = function(){
   				    startState1.latentState]);
   });
   var prior2 = makePriorGridworld(startState2.manifestState, latentPrior2);
-  var agent2 = makeBeliefAgent({
-    utility: tableToUtilityFunction(utilityTable2, gridworldPOMDP),
+  var agent2 = makePOMDPAgent({
+    utility: makeRestaurantUtilityFunction(gridworldPOMDP, utilityTable2),
     alpha: 200,
     priorBelief: prior2
   }, gridworldPOMDP);
-  var gridLocs2 = trajectoryToLocations(simulateBeliefAgent(startState2, gridworldPOMDP,
+  var gridLocs2 = trajectoryToLocations(simulate(startState2, gridworldPOMDP,
   							    agent2, 'states'));
   assert.ok(_.isEqual(gridLocs2[3], [0,1]) && _.isEqual(gridLocs2[9], [4,3]),
   	    'gridTest2');
@@ -98,10 +98,10 @@ var testAgent = function(){
     return uniformDraw([startState1.latentState, startState3.latentState]);
   });
   var prior3 = makePriorGridworld(startState3.manifestState, latentPrior3);
-  var agent3 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable3, gridworldPOMDP),
+  var agent3 = makePOMDPAgent({utility: makeRestaurantUtilityFunction(gridworldPOMDP, utilityTable3),
 				alpha: 300,
 				priorBelief: prior3}, gridworldPOMDP);
-  var gridLocs3 = trajectoryToLocations(simulateBeliefAgent(startState3, gridworldPOMDP,
+  var gridLocs3 = trajectoryToLocations(simulate(startState3, gridworldPOMDP,
   							    agent3, 'states'));
 
   assert.ok(_.isEqual(gridLocs3[1], [3,5]) && _.isEqual(gridLocs3[3], [4,6]),
@@ -148,13 +148,14 @@ var testAgent = function(){
 				   Noodle: true}};
   var utilityTable4 = {Noodle: 4,
 		       Donut: 4.6,
-		       timeCost: -0.1};
+		       timeCost: -0.1,
+                       Veg: 0};
   var latentPrior4 = deltaERP(startState4.latentState);
   var prior4 = makePriorGridworld(startState4.manifestState, latentPrior4);
-  var agent4 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable4, forkyGridworldPOMDP),
+  var agent4 = makePOMDPAgent({utility: makeRestaurantUtilityFunction(forkyGridworldPOMDP, utilityTable4),
 				alpha: 100,
 				priorBelief: prior4}, forkyGridworldPOMDP);
-  var gridLocs4 = trajectoryToLocations(simulateBeliefAgent(startState4, forkyGridworldPOMDP,
+  var gridLocs4 = trajectoryToLocations(simulate(startState4, forkyGridworldPOMDP,
 							    agent4,'states'));
 
   assert.ok(_.isEqual(gridLocs4[1], [1,0]), 'gridTest4');
@@ -170,13 +171,14 @@ var testAgent = function(){
 				   Noodle: true}};
   var utilityTable5 = {Noodle: 4,
 		       Donut: 50,
-		       timeCost: -0.1};
+		       timeCost: -0.1, 
+                       Veg:0};
   var latentPrior5 = deltaERP(startState5.latentState);
   var prior5 = makePriorGridworld(startState5.manifestState, latentPrior5);
-  var agent5 = makeBeliefAgent({utility: tableToUtilityFunction(utilityTable5, forkyGridworldPOMDP),
+  var agent5 = makePOMDPAgent({utility: makeRestaurantUtilityFunction(forkyGridworldPOMDP, utilityTable5),
 				alpha: 100,
 				priorBelief: prior5}, forkyGridworldPOMDP);
-  var gridLocs5 = trajectoryToLocations(simulateBeliefAgent(startState5, forkyGridworldPOMDP,
+  var gridLocs5 = trajectoryToLocations(simulate(startState5, forkyGridworldPOMDP,
 							    agent5, 'states'));
 
   assert.ok(_.isEqual(gridLocs5[1], [1,0]), 'gridTest5');

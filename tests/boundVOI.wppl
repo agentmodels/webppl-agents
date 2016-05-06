@@ -73,7 +73,7 @@ var testBoundVOI = function(){
       assert.ok( _.isFinite(utility(state,'blah')), 'bad utility');
     }, _.keys(transitionTable) );
     
-    return makeBeliefDelayAgent(update(baseAgentParams,{utility:utility}), worldAndStart.world);
+    return makePOMDPAgent(update(baseAgentParams,{utility:utility}), worldAndStart.world);
   };
 
                              
@@ -98,7 +98,7 @@ var testBoundVOI = function(){
     
     var params = update(baseAgentParams, paramsUpdate);
     var agent = makeThreePathsAgent(utilityTable, params, worldAndStart);
-    return simulateBeliefDelayAgent(worldAndStart.startState, worldAndStart.world, agent, 'states');
+    return simulate(worldAndStart.startState, worldAndStart.world, agent, 'states');
   };
 
   // TESTS

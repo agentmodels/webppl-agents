@@ -54,11 +54,17 @@ var makeRestaurantChoiceWorld = function(options){
 var makeRestaurantUtilityFunction = function (world, utilityTable) {
   assert.ok(_.has(utilityTable,'Veg') && _.has(utilityTable,'timeCost'), 
             'makeRestaurantUtilityFunction: Veg or timeCost is missing');
+
+  var getFeatureName = function(state){
+    var getFeature = world.feature;
+    return isPOMDPWithManifestLatent(world) ? getFeature(state.manifestState).name :
+      getFeature(state).name;
+  };
+
+  var defaultTimeCost = -.01;
   
   return function(state, action) {
-    var getFeature = world.feature;
-    var feature = getFeature(state);
-    var name = feature.name;
+    var name = getFeatureName(state);
 
     // compute whether there are "double utilities" (for hyperbolic discounting case)
     var pairs = utilityTable['Veg'].length == 2;
@@ -66,7 +72,7 @@ var makeRestaurantUtilityFunction = function (world, utilityTable) {
     if (name){ 
       return pairs ? utilityTable[name][state.timeAtRestaurant] : utilityTable[name];
     }
-    return utilityTable.timeCost || -.01;
+    return utilityTable.timeCost || defaultTimeCost;
   };
 };
 
