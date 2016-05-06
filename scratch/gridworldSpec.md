@@ -32,26 +32,21 @@ utility function constructor also.
 ### Redo beliefAgent
 
 ** general **
-- two simple inference functions for general use (not gridworld or bandits specific)
+- two simple inference functions for general use (not gridworld or bandits specific).
 
 **makePOMDPAgent**
 - better asserts. check that startState is in support of prior
-- clean up POMDP utils
-
-
-**naming**:
-- agents/makeMDPAgent, makePOMDPAgent, makePOMDPAgentDelay, makeMDPAgentHyperbolic
-- one *simulate* function that dispatches based on agent type?
-- individual simulate functions: simulateMDPAgent, simulatePOMDPAgent, etc.
-- one makeMDPAgent function and same for POMDP. Could put things in same script. 
-
-- TODO rename makeHyperbolic function
-
+- could clean up getSimulate a bit. 
 
 BIG:
 - write the chapter explaining the library
 - rename REPO
-- DO GREEDY AND MYOPIC (ask AS)
+- remove examples
 - gridworld draw should take pomdps and any kind of trajectory. also need a display for POMDPs!
 
 
+Names:
+
+myopicUpdate, myopicReward
+
+myopic-update agent, myopic-reward agent. 
