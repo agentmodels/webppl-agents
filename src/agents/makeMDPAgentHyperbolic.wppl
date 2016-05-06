@@ -36,7 +36,7 @@ var makeHyperbolicDiscounter = function (params, world) {
       var u = discountFunction(delay) * utility(state, action);
       assert.ok(!_.isUndefined(u),
                 "utility undefined" + JSON.stringify([state, action, delay, utility(state, action)]));
-      
+      assert.ok(!_.isNaN(u), "discounted utility not a number" + JSON.stringify([state, action, delay, utility(state, action)]));
       if (state.terminateAfterAction){
         return u; 
       } else {                     

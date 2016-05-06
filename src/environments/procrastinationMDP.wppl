@@ -23,8 +23,7 @@ var makeProcrastinationMDP = function(deadlineTime) {
       return advanceTime(state);
     } else if (action === "wait") {
       var waitSteps = state.waitSteps + 1;
-      return update(advanceTime(state), {waitSteps:
-					 waitSteps});
+      return update(advanceTime(state), {waitSteps: waitSteps});
     } else {
       var newState = update(state, {loc: "reward_state"});
       return advanceTime(newState);

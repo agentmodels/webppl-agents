@@ -43,7 +43,7 @@ var makeMDPAgent = function(params, world) {
 };
 
 var simulateMDPAgent = function(startState, world, agent, outputType) {
-  // if outputType is undefined, default to stateAction
+  // if outputType is undefined, default to states
   var act = agent.act;
   var transition = world.transition;
   var outputType = outputType ? outputType : 'states';
