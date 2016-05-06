@@ -45,19 +45,16 @@ BIG:
 - gridworld draw should take pomdps and any kind of trajectory. also need a display for POMDPs!
 
 
-Names:
-
-myopicUpdate, myopicReward
-
-myopic-update agent, myopic-reward agent. 
-
-probably best one is
-updateMyopic, rewardMyopic.
-
-since the first word being diferent makes it easier to see the difference.
-{updateMyopic: {on: true, bound:2}}
-
 ### Gridworld viz:
+The `Draw` function should take POMDP gridworlds. They now have a property `MDPWorld` and so this should be straightforward.
 
+Draw function should take trajectories of any form. The simulate functions always have the `state` as the first element (if the output is state-action pairs). Gridworld states will always have either `state.loc` or `state.manifestState.loc`. So this should also be straightforward. 
+
+POMDPs: it would be nice to display whether a restaurant is open or closed. 
+
+Finally, it'd be good to write the documentation for `draw`, including custom labeling of states and plotting expected values. (I expect this to be quite short). 
+
+##
+- I like myopicUpdate/myopicReward better than updateMyopic/rewardMyopic. You're right that the difference is quicker to see in the latter case, but it feels more difficult to parse and doesn't lend itself well to being an adjective ("the myopic-update agent" vs "the update-myopic agent").
 
 
