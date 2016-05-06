@@ -20,10 +20,10 @@
       "src/agents/simulate.wppl",
       "src/environments/bandits/makeBandit.wppl",
       "src/environments/gridWorld/makeGridWorld.wppl",
-      "src/environments/gridWorld/gridworldPOMDP.wppl",
-      "src/environments/gridWorld/hikingExample.wppl",
-      "src/environments/gridWorld/restaurantChoiceExample.wppl",
-      "src/environments/gridWorld/restaurantChoiceHyperbolicInfer.wppl",
+      "src/environments/gridWorld/makeGridworldPOMDP.wppl",
+      "src/environments/gridWorld/concreteExamples/hiking.wppl",
+      "src/environments/gridWorld/concreteExamples/restaurantChoice.wppl",
+      "src/environments/gridWorld/concreteExamples/restaurantChoiceHyperbolicInfer.wppl",
       "src/environments/gridWorld/banditGridworld.wppl",
       "src/environments/procrastinationMDP.wppl"      
 
