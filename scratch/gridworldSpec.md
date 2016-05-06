@@ -50,3 +50,10 @@ Names:
 myopicUpdate, myopicReward
 
 myopic-update agent, myopic-reward agent. 
+
+probably best one is
+updateMyopic, rewardMyopic.
+
+since the first word being diferent makes it easier to see the difference.
+
+{updateMyopic: {on: true, bound:2}}
