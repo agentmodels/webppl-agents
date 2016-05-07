@@ -1,4 +1,4 @@
-var GridWorld = webpplGridworld; // reference to the exports of gridworld-viz.js
+var GridWorld = webpplAgents; // reference to the exports of gridworld-viz.js
 
 // for non-browser use of viz functions
 // var viz = webpplGridworld;
