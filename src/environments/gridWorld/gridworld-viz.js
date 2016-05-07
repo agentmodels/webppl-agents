@@ -1,6 +1,7 @@
 var paper = require('paper');
 
-
+//Attaches a canvas to a particular element
+//Takes width and height in options
 function createCanvas(element, options) {
   var canvas = document.createElement('canvas');
   canvas.width = options.width || 100;
@@ -42,13 +43,32 @@ function convertDraw(world, additional) {
   var labels = additionalLabels.concat(featureLabels);
 
   
-  var trajectory = _.map(additional.trajectory, function(state) { 
-    return [state.loc, ''];
-  });
 
-  return draw(world2, _.extend(additional, {trajectory : trajectory, labels : labels}));
+  //if trajectory is a list of state action pairs, remove the actions
+  var trajectory = additional.trajecotry; 
+
+  return draw(world2, _.extend(additional, {labels : labels}));
 }
 
+
+/*
+Draws a world with animated trajectories
+
+Parameters 
+   world : gridWorld
+
+   additional : object of extra args 
+     trajectory : array of States | array of [State, Action]
+         the trajectory of an agent to animate 
+     labels : array of { point , content }
+         labels to render on the world at the given point
+     actionExpectedUtilities : array of [State, 4 element array]
+         array containing a state (or object containing .loc) and utilities for Left, Right, Up, Down to statically draw
+         will statically draw the utilities in the locations in the state
+     dynamicActionExpectedUtilities : array of array of [State, 4 element array]
+         will animate between different paths of expected utilities 
+         used to show an agents 'plans' and how they're reasoning about a plan
+*/
 function draw(world, additional) {
   if (world.features) { 
     return convertDraw(world, additional)
@@ -174,7 +194,9 @@ function draw(world, additional) {
   };      
 
   var addAgentPath = function(trajectory, paths, group) {
-    var coords = _.map(trajectory, 0);
+    var trajectory = _.has(trajectory[0], 'loc') ? trajectory : _.map(trajectory, 0);
+    var coords = _.map(trajectory, 'loc') 
+    console.log(coords);
 
     var agentPath = new paper.Path();
     agentPath.strokeColor = 'black';
