@@ -1,5 +1,5 @@
-# webppl-gridworld
-Webppl library for generating Gridworld MDPs. JS library for displaying Gridworld. 
+# webppl-agents
+Webppl library with agents for solving MDPs and POMDPs. JS library for displaying Gridworld. 
 
 #Running script in browser
 
