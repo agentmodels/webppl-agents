@@ -41,8 +41,7 @@ utility function constructor also.
 BIG:
 - write the chapter explaining the library
 - rename REPO
-- remove examples
-- gridworld draw should take pomdps and any kind of trajectory. also need a display for POMDPs!
+- remove deprecated examples and install some working ones (copied from agentmodels)
 
 
 ### Gridworld viz:
