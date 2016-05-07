@@ -1,5 +1,5 @@
 {
-  "name": "webppl-gridworld",
+  "name": "webppl-agents",
   "version": "1.0.0",
   "description": "Webppl library for MDP and POMDP agent models and for generating Gridworld and Bandit problems. JS library for displaying Gridworld.",
   "main": "src/environments/gridWorld/gridworld-viz.js",
@@ -31,13 +31,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/agentmodels/webppl-gridworld.git"
+    "url": "git+https://github.com/agentmodels/webppl-agents.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/agentmodels/webppl-gridworld/issues"
+    "url": "https://github.com/agentmodels/webppl-agents/issues"
   },
-  "homepage": "https://github.com/agentmodels/webppl-gridworld#readme"
+  "homepage": "https://github.com/agentmodels/webppl-agents#readme"
 }
