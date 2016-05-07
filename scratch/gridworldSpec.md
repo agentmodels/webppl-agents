@@ -30,6 +30,7 @@ utility function constructor also.
 
 
 ### Redo beliefAgent
+d
 
 ** general **
 - two simple inference functions for general use (not gridworld or bandits specific).
