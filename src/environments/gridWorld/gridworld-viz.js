@@ -43,11 +43,11 @@ function convertDraw(world, additional) {
   var labels = additionalLabels.concat(featureLabels);
 
   
-  var trajectory = _.map(additional.trajectory, function(state) { 
-    return [state.loc, ''];
-  });
 
-  return draw(world2, _.extend(additional, {trajectory : trajectory, labels : labels}));
+  //if trajectory is a list of state action pairs, remove the actions
+  var trajectory = additional.trajecotry; 
+
+  return draw(world2, _.extend(additional, {labels : labels}));
 }
 
 
@@ -194,7 +194,9 @@ function draw(world, additional) {
   };      
 
   var addAgentPath = function(trajectory, paths, group) {
-    var coords = _.map(trajectory, 0);
+    var trajectory = _.has(trajectory[0], 'loc') ? trajectory : _.map(trajectory, 0);
+    var coords = _.map(trajectory, 'loc') 
+    console.log(coords);
 
     var agentPath = new paper.Path();
     agentPath.strokeColor = 'black';
