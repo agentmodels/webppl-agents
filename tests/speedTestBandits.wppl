@@ -40,9 +40,7 @@ var speedTestBandits = function(beliefOrBeliefDelay){
       alpha: 100,
       noDelays: true,
       discount: 0,
-      sophisticatedOrNaive: 'naive',
-      myopia: {on:false, bound:0},
-      boundVOI: {on:false, bound:0}
+      sophisticatedOrNaive: 'naive'
     };
 
     var agentParams = update(baseAgentParams, {priorBelief:priorBelief}); 
@@ -107,9 +105,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
     alpha: 100,
     noDelays: true,
     discount: 0,
-    sophisticatedOrNaive: 'naive',
-    myopia: {on:false, bound:0},
-    boundVOI: {on:false, bound:0}
+    sophisticatedOrNaive: 'naive'
   };
 
   var getTrajectory = function(priorBelief){
@@ -163,9 +159,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
     alpha: 100,
     noDelays: true,
     discount: 0,
-    sophisticatedOrNaive: 'naive',
-    myopia: {on:false, bound:0},
-    boundVOI: {on:false, bound:0}
+    sophisticatedOrNaive: 'naive'
   };
   
   // Agent thinks each arm might offer c, and so tries them all (as c is so good -- and b is not that bad)
@@ -233,8 +227,6 @@ var banditGenerativeDelay = function(){
     noDelays: true,
     discount: 0,
     sophisticatedOrNaive: 'naive',
-    myopia: {on:false, bound:0},
-    boundVOI: {on:false, bound:0}
   };
  
   var prizeToUtility = {a:5, b:10, c:-8}; 
@@ -267,13 +259,13 @@ var banditGenerativeDelay = function(){
   console.log( '\n Discounting: (actions, timeit) ', 
                out.value, out.runtimeInMilliseconds+' ms');
 
-  // Myopia (faster than discounting)
-  var testMyopia = function(myopiaBound,exploreOrNot){
+  // Myopic (faster than discounting)
+  var testRewardMyopic = function(rewardMyopicBound,exploreOrNot){
     var replaceParams = {
       discount:0, 
       noDelays:false,
       sophisticatedOrNaive: 'naive',
-      myopia:{on:true, bound:myopiaBound}, 
+      rewardMyopic:{bound:rewardMyopicBound}, 
       priorBelief:priorBelief
     };
     var agentParams = update(baseAgentParams, replaceParams);
@@ -285,25 +277,25 @@ var banditGenerativeDelay = function(){
     var out = timeit(thunk);
     var actions = out.value.slice(0,3);
     var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0]; 
-    console.log( '\n Myopia bound ' + myopiaBound + ' (actions, timeit) ', 
+    console.log( '\n RewardMyopic bound ' + rewardMyopicBound + ' (actions, timeit) ', 
                  out.value, out.runtimeInMilliseconds + ' ms');
     assert.ok(  _.difference(prediction,actions).length == 0,
-		'fail bandit example myopia');
+		'fail bandit example rewardMyopic');
   };
-  console.log( '\n MYOPIA \n Myopia should be faster than discount');
-  testMyopia(1,'not');
-  testMyopia(2,'not');
-  testMyopia(3,'explore');
+  console.log( '\n REWARD-MYOPIC \n RewardMyopic should be faster than discount');
+  testRewardMyopic(1,'not');
+  testRewardMyopic(2,'not');
+  testRewardMyopic(3,'explore');
 
-  // BoundVOI (faster than discounting)
-  var testBoundVOI = function(boundVOIBound, exploreOrNot){
+  // updateMyopic (faster than discounting)
+  var testUpdateMyopic = function(updateMyopicBound, exploreOrNot){
     var replaceParams = {
       alpha: 101,
       discount:0, 
       noDelays:false,
       sophisticatedOrNaive: 'naive',
-      boundVOI:{on:true, bound:boundVOIBound}, 
-      priorBelief:priorBelief,
+      updateMyopic: {bound:updateMyopicBound}, 
+      priorBelief: priorBelief,
       fastUpdateBelief: false
     };
     var agentParams = update(baseAgentParams, replaceParams);
@@ -315,13 +307,13 @@ var banditGenerativeDelay = function(){
     var out = timeit(thunk);
     var actions = out.value.slice(0,3);
     var prediction = exploreOrNot==='explore' ? [1,2,3] : [0,0,0];
-    assert.ok(  _.difference(prediction,actions).length === 0, 'fail bandit example boundVOI');
-    console.log( '\n BoundVOI bound: ' + boundVOIBound + ' (actions, timeit) ',
+    assert.ok(  _.difference(prediction,actions).length === 0, 'fail bandit example updateMyopic');
+    console.log( '\n UpdateMyopic bound: ' + updateMyopicBound + ' (actions, timeit) ',
                  out.value, out.runtimeInMilliseconds + ' ms');
   };
-  console.log('\n BOUND VOI \n BoundVOI should be similar in runtime to discount');
-  testBoundVOI(0,'not');
-  testBoundVOI(1,'explore');
+  console.log('\n BOUND \n UpdateMyopic should be similar in runtime to discount');
+  testUpdateMyopic(0,'not');
+  testUpdateMyopic(1,'explore');
 
   console.log('\n Passed banditGenerativeDelay');
 };

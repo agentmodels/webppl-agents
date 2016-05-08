@@ -1,5 +1,5 @@
-var testBoundVOI = function(){
-  console.log('\n Start test BoundVOI');
+var testUpdateMyopic = function(){
+  console.log('\n Start test UpdateMyopic');
   
   // Three paths:
   // There are three paths from 'start', each of length 2.
@@ -8,7 +8,7 @@ var testBoundVOI = function(){
   // 3. *eitherAorB*: Payoff that is delayed and depends on choosing between A and B, based
   // on observation at previous timestep. Highest payoff
 
-  // When boundVOI==1, agent will not take superior *eitherAorB* option. 
+  // When updateMyopic==1, agent will not take superior *eitherAorB* option. 
   
   
   var makeThreePathsWorldAndStart = function(perceivedTime, noisyObserve){
@@ -91,9 +91,9 @@ var testBoundVOI = function(){
       noDelays: false,
       discount: 0.1,
       sophisticatedOrNaive: 'naive',
-      myopia: {on:false, bound:0},
+      rewardMyopic: false,
       priorBelief: priorBelief,
-      boundVOI: {on:false, bound:0}
+      updateMyopic: false
     };
     
     var params = update(baseAgentParams, paramsUpdate);
@@ -114,34 +114,34 @@ var testBoundVOI = function(){
   // low discount agent
   var paramsUpdate = {discount: 0.1};
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
-  assert.ok( arraysEqual( out, [ 'start', 'eitherAorB_0', 'eitherAorB_A' ]), 'test boundVOI 1');
+  assert.ok( arraysEqual( out, [ 'start', 'eitherAorB_0', 'eitherAorB_A' ]), 'test updateMyopic 1');
 
   // high discount agent
   var paramsUpdate = {discount: 4};
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
-  assert.ok( arraysEqual( out, [ 'start', 'immediate0', 'immediate1' ]), 'test boundVOI 2');
+  assert.ok( arraysEqual( out, [ 'start', 'immediate0', 'immediate1' ]), 'test updateMyopic 2');
 
   // myopic agent
-  var paramsUpdate = {discount:0, myopia: {on:true, bound:1} };
+  var paramsUpdate = {discount:0, rewardMyopic: {bound:1} };
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
-  assert.ok( arraysEqual( out, [ 'start', 'immediate0', 'immediate1' ]), 'test boundVOI 3');
+  assert.ok( arraysEqual( out, [ 'start', 'immediate0', 'immediate1' ]), 'test updateMyopic 3');
 
-  var paramsUpdate = {discount:0, myopia: {on:true, bound:2} };
+  var paramsUpdate = {discount:0, rewardMyopic: {bound:2} };
   var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
-  assert.ok( arraysEqual( out, [ 'start', 'eitherAorB_0', 'eitherAorB_A' ]), 'test boundVOI 3');
-
-  
-  // boundVOI agent
-  var paramsUpdate = {discount:0, boundVOI:{on:true, bound:0} };
-  var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
-  assert.ok( arraysEqual( out, [ 'start', 'certain0', 'certain1' ]), 'test boundVOI 4');
-
-  var paramsUpdate = {discount:0, boundVOI:{on:true, bound:1} };
-  var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
-  assert.ok( arraysEqual( out, [ 'start', 'eitherAorB_0', 'eitherAorB_A' ]), 'test boundVOI 4');
+  assert.ok( arraysEqual( out, [ 'start', 'eitherAorB_0', 'eitherAorB_A' ]), 'test updateMyopic 3');
 
   
-  console.log('\n Passed all boundVOI tests');
+  // updateMyopic agent
+  var paramsUpdate = {discount:0, updateMyopic:{bound:0} };
+  var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
+  assert.ok( arraysEqual( out, [ 'start', 'certain0', 'certain1' ]), 'test updateMyopic 4');
+
+  var paramsUpdate = {discount:0, updateMyopic:{bound:1} };
+  var out = trajectoryToLocations( runThreePaths( totalTime, utilityTable, paramsUpdate ) );
+  assert.ok( arraysEqual( out, [ 'start', 'eitherAorB_0', 'eitherAorB_A' ]), 'test updateMyopic 4');
+
+  
+  console.log('\n Passed all updateMyopic tests');
 };
 
-testBoundVOI();
+testUpdateMyopic();
