@@ -223,9 +223,9 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
     var prizeToUtility = priorPrizeToUtility ? sample(priorPrizeToUtility)
 	  : undefined;
     var priorBelief = sample(priorAgentPrior);
-    var rewardMyopicUpdate = priorRewardMyopic? {rewardMyopia: sample(priorRewardMyopic) } : {};
+    var rewardMyopicUpdate = priorRewardMyopic ? {rewardMyopic: sample(priorRewardMyopic) } : {};
     var newAgentParams = update(baseAgentParams, update({priorBelief:priorBelief}, 
-                                                        rewardMyopiaUpdate) );
+                                                        rewardMyopicUpdate) );
     
     var agent = makeBanditAgent(newAgentParams, bandit, beliefOrBeliefDelay,
 				prizeToUtility);
@@ -268,10 +268,11 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
 
     var doInfer = (trajectoryOrOffPolicy=='trajectory') ? factorOnTrajectory() : 
         factorSequenceOffPolicy(priorBelief,'noAction', 0);
-    
+
+    var bound = newAgentParams.rewardMyopic ? newAgentParams.rewardMyopic.bound : 0;
     return {prizeToUtility: prizeToUtility, 
             priorBelief: priorBelief, 
-            rewardMyopiaBound: newAgentParams.rewardMyopia.bound};
+            rewardMyopicBound: bound};
   });
 };
 

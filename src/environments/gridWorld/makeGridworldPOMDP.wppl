@@ -228,9 +228,7 @@ var baseParamsNoDiscount = {
   alpha: 100,
   noDelays: true,
   discount: 0,
-  sophisticatedOrNaive: 'sophisticated',
-  myopia: {on: false, bound: 0},
-  boundVOI: {on: false, bound: 0},
+  sophisticatedOrNaive: 'sophisticated'
 };
 
 
