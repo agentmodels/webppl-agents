@@ -256,7 +256,7 @@ var makePOMDPAgentOptimal = function(params, world) {
 
 
 //-----------------------------
-// SUBOPTIMAL AGENT
+// SUB-OPTIMAL AGENT
 
 
 var makePOMDPAgentDelay = function (params, world){
