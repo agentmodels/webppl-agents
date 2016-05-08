@@ -256,7 +256,7 @@ var makePOMDPAgentOptimal = function(params, world) {
 
 
 //-----------------------------
-// SUBOPTIMAL AGENT
+// SUB-OPTIMAL AGENT
 
 
 var makePOMDPAgentDelay = function (params, world){
@@ -269,18 +269,18 @@ var makePOMDPAgentDelay = function (params, world){
     discount: 0,
     sophisticatedOrNaive: 'naive',
     noDelays: true,
-    myopia: {on:false},
-    boundVOI: {on:false}
+    updateMyopic: false,
+    rewardMyopic: false
   };
 
   var params = update(defaults, params);
 
-  if (params.myopia.on || params.boundVOI.on){
+  if (params.rewardMyopic || params.updateMyopic){
     assert.ok( params.noDelays === false && params.sophisticatedOrNaive=== 'naive', 
-    'myopia and boundVOI require Naive agent with delays');
+    'rewardMyopic and updateMyopic require Naive agent with delays');
   }
   
-  assert.ok( params.myopia.on === false || params.boundVOI.on === false, "one of myopia and boundVOI must be false");
+  assert.ok( params.rewardMyopic === false || params.updateMyopic === false, "one of rewardMyopic and updateMyopic must be false");
   
   
   // Variables for methods
@@ -295,7 +295,7 @@ var makePOMDPAgentDelay = function (params, world){
   var _updateBelief = POMDPFunctions.updateBelief;
   
   var updateBelief = function (belief, observation, action, delay) {
-    if (params.boundVOI.on && (delay > params.boundVOI.bound)){
+    if (params.updateMyopic && (delay > params.updateMyopic.bound)){
             
       // update manifestState (assuming no possibility that isNullAction(action))
       var nextBelief = Enumerate(function(){  
@@ -331,7 +331,7 @@ var makePOMDPAgentDelay = function (params, world){
         state.terminateAfterAction;
     
     if (terminateAfterAction){return true;}
-    if (params.myopia.on) {return delay >= params.myopia.bound;}
+    if (params.rewardMyopic) {return delay >= params.rewardMyopic.bound;}
     return false;
   };
   

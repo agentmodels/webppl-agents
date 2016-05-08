@@ -196,7 +196,7 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
 
   var priorPrizeToUtility = prior.priorPrizeToUtility || false;
   var priorAgentPrior = prior.priorAgentPrior;
-  var priorMyopia = prior.priorMyopia || false;
+  var priorRewardMyopic = prior.priorRewardMyopic || false;
 
 
   assert.ok(isPOMDPWithManifestLatent(world) && stateHasManifestLatent(startState)
@@ -213,8 +213,8 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
     assert.ok(hasSample(priorPrizeToUtility), 'inferBandit args: priorPrizeToUtility defined but not an ERP');
   }
 
-  if (priorMyopia) {
-    assert.ok(hasSample(priorMyopia), 'inferBandit args: priorMyopia defined but not an ERP');
+  if (priorRewardMyopic) {
+    assert.ok(hasSample(priorRewardMyopic), 'inferBandit args: priorMyopia defined but not an ERP');
   }
 
   
@@ -223,8 +223,9 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
     var prizeToUtility = priorPrizeToUtility ? sample(priorPrizeToUtility)
 	  : undefined;
     var priorBelief = sample(priorAgentPrior);
-    var myopiaUpdate = priorMyopia? {myopia: sample(priorMyopia) } : {};
-    var newAgentParams = update(baseAgentParams, update({priorBelief:priorBelief}, myopiaUpdate) );
+    var rewardMyopicUpdate = priorRewardMyopic ? {rewardMyopic: sample(priorRewardMyopic) } : {};
+    var newAgentParams = update(baseAgentParams, update({priorBelief:priorBelief}, 
+                                                        rewardMyopicUpdate) );
     
     var agent = makeBanditAgent(newAgentParams, bandit, beliefOrBeliefDelay,
 				prizeToUtility);
@@ -267,8 +268,11 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
 
     var doInfer = (trajectoryOrOffPolicy=='trajectory') ? factorOnTrajectory() : 
         factorSequenceOffPolicy(priorBelief,'noAction', 0);
-    
-    return {prizeToUtility: prizeToUtility, priorBelief: priorBelief, myopiaBound: newAgentParams.myopia.bound};
+
+    var bound = newAgentParams.rewardMyopic ? newAgentParams.rewardMyopic.bound : 0;
+    return {prizeToUtility: prizeToUtility, 
+            priorBelief: priorBelief, 
+            rewardMyopicBound: bound};
   });
 };
 
@@ -311,7 +315,5 @@ var noDiscountBaseAgentParams = { // doesn't contain priorBelief or utility
   alpha: 100,
   noDelays: true,
   discount: 0,
-  sophisticatedOrNaive: 'naive',
-  myopia: {on: false, bound:0},
-  boundVOI: {on: false, bound:0}
+  sophisticatedOrNaive: 'naive'
 };

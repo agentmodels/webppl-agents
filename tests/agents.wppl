@@ -280,14 +280,14 @@ var testPOMDPAgentDelay = function(){
   var locations = runAgent(paramsHyperbolic);
   assert.ok(last(locations)==0, 'test POMDP line');
 
-  var paramsMyopia = update(paramsHyperbolic,
-                            {discount: 0, myopia:{on:true, bound:2} });
-  var locations = runAgent(paramsMyopia);
+  var paramsRewardMyopia = update(paramsHyperbolic,
+                                  {discount: 0, rewardMyopic:{bound:2} });
+  var locations = runAgent(paramsRewardMyopia);
   assert.ok(last(locations)==0, 'test POMDP line');
 
-  var paramsBoundVOI = update(paramsHyperbolic,
-                              {discount: 0, boundVOI:{on:true, bound:2} });
-  var locations = runAgent(paramsBoundVOI);
+  var paramsUpdateMyopic = update(paramsHyperbolic,
+                              {discount: 0, updateMyopic:{bound:2} });
+  var locations = runAgent(paramsUpdateMyopic);
   assert.ok(locations[3]==3, 'test POMDP line');
 };
 

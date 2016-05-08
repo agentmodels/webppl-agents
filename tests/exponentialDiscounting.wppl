@@ -204,9 +204,7 @@ var test3 = function(){
     discount: 0,
     discountFunction: lightDiscount,
     sophisticatedOrNaive: 'naive',
-    noDelays: false,
-    myopia: {on: false, bound: 0},
-    boundVOI: {on: false, bound: 0}
+    noDelays: false
   };
 
   var lightDiscounter = makeBanditAgent(lightDiscounterParams, bandit,
@@ -229,9 +227,7 @@ var test3 = function(){
     discount: 0,
     discountFunction: heavyDiscount,
     sophisticatedOrNaive: 'naive',
-    noDelays: false,
-    myopia: {on: false, bound: 0},
-    boundVOI: {on: false, bound: 0}
+    noDelays: false
   };
 
   var heavyDiscounter = makeBanditAgent(heavyDiscounterParams, bandit,
