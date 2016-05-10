@@ -1,7 +1,15 @@
 console.log('--- "IRL" bandit tests ---\n');
 
 var getPriorBelief = function(numberOfTrials, armToPrizeERPThunk){
-  return _getPriorBelief(numberOfTrials, 'start', armToPrizeERPThunk);
+  
+  var startManifestState = {timeLeft: numberOfTrials, 
+                            loc: 'start', 
+                            terminateAfterAction: false};
+  
+  return Enumerate( function(){
+    var latentState = armToPrizeERPThunk();
+    return buildState(startManifestState, latentState);
+  });
 };
 
 
@@ -311,7 +319,7 @@ var banditGenerativeDelay = function(){
     console.log( '\n UpdateMyopic bound: ' + updateMyopicBound + ' (actions, timeit) ',
                  out.value, out.runtimeInMilliseconds + ' ms');
   };
-  console.log('\n BOUND \n UpdateMyopic should be similar in runtime to discount');
+  console.log('\n UPDATE-MYOPIC \n UpdateMyopic should be similar in runtime to discount');
   testUpdateMyopic(0,'not');
   testUpdateMyopic(1,'explore');
 

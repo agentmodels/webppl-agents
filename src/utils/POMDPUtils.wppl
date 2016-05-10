@@ -67,20 +67,3 @@ var stateActionPairsToFullStates = function(locAction, latentState){
 };
 
 
-// TODO remove this and just define locally
-var _getPriorBelief = function(perceivedTotalTime, startingLocation, latentStateSampler){
-  var startManifestState = {timeLeft: perceivedTotalTime, loc: startingLocation, terminateAfterAction: false};
-  
-  return Enumerate( function(){
-    var latentState = latentStateSampler();
-    return buildState(startManifestState, latentState);
-  });
-};
-
-// TODO remove and define locally
-var getPriorBeliefGridworld = function(startManifestState, latentStateSampler){
-  return Enumerate( function(){
-    var latentState = latentStateSampler();
-    return buildState(startManifestState, latentState);
-  });
-};

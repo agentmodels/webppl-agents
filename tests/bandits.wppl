@@ -3,7 +3,15 @@
 console.log('--- "IRL" bandit tests ---\n');
 
 var getPriorBelief = function(numberOfTrials, armToPrizeERPThunk){
-  return _getPriorBelief(numberOfTrials, 'start', armToPrizeERPThunk);
+  
+  var startManifestState = {timeLeft: numberOfTrials, 
+                            loc: 'start', 
+                            terminateAfterAction: false};
+  
+  return Enumerate( function(){
+    var latentState = armToPrizeERPThunk();
+    return buildState(startManifestState, latentState);
+  });
 };
 
 

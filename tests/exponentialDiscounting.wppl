@@ -169,6 +169,19 @@ var test2 = function() {
 // exponential discounter should not explore in bandits, unless discount factor
 // is small
 var test3 = function(){
+
+  var getPriorBelief = function(numberOfTrials, armToPrizeERPThunk){
+    
+  var startManifestState = {timeLeft: numberOfTrials, 
+                            loc: 'start', 
+                            terminateAfterAction: false};
+    
+    return Enumerate( function(){
+      var latentState = armToPrizeERPThunk();
+      return buildState(startManifestState, latentState);
+    });
+  };
+  
   var options = {
     numberOfArms: 2,
     armToPrizeERP: {
@@ -191,8 +204,7 @@ var test3 = function(){
     };
   };
 
-  var agentPrior = _getPriorBelief(numberOfTrials, 'start',
-				   armToPrizeERPSampler);
+  var agentPrior = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
 
   var lightDiscount = function(delay) {
     return Math.pow(0.8, delay);

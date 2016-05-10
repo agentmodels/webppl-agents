@@ -20,6 +20,13 @@ var checkEqualDeltaErps = function(erpArray) {
 };
 
 
+var getPriorBelief = function(startManifestState, latentStateSampler){
+  return Enumerate( function(){
+    return {manifestState:startManifestState, 
+            latentState: latentStateSampler()};
+  });
+};
+
 var test1 = function() {
 
   // WORLD PARAMS
@@ -65,7 +72,7 @@ var test1 = function() {
     return flip(.8) ? onlyDonutSouthClosedLatentState : trueLatentState;
   };
   
-  var truePriorBelief = getPriorBeliefGridworld( startState.manifestState, uninformedLatentStateSampler);
+  var truePriorBelief = getPriorBelief( startState.manifestState, uninformedLatentStateSampler);
 
 
   var trueAgentParams = update(baseParamsNoDiscount, 
@@ -81,7 +88,7 @@ var test1 = function() {
   
   var agentTypeAndFunctions = {type: beliefOrBeliefDelay, makeAgent:makeAgent, simulate: simulate};
 
-  var alternativePriorBelief = getPriorBeliefGridworld( startState.manifestState, function(){return trueLatentState;});
+  var alternativePriorBelief = getPriorBelief( startState.manifestState, function(){return trueLatentState;});
   var priorUtilityTable = function(){return uniformDraw([donutUtilityTable, vegUtilityTable]);};
   var priorAgentPrior = function(){return uniformDraw([truePriorBelief, alternativePriorBelief]);};
 
@@ -191,7 +198,7 @@ var test2 = function() {
     return flip(.8) ? noodleClosedLatent : trueLatentState;
   };
 
-  var truePriorBelief1 = getPriorBeliefGridworld( startState1.manifestState,
+  var truePriorBelief1 = getPriorBelief( startState1.manifestState,
 						  uninformedLatentStateSampler);
 
 
@@ -207,7 +214,7 @@ var test2 = function() {
 			       makeAgent:makeAgent,
 			       simulate: simulate};
 
-  var alternativePriorBelief1 = getPriorBeliefGridworld( startState1.manifestState,
+  var alternativePriorBelief1 = getPriorBelief( startState1.manifestState,
 							 function(){return trueLatentState;});
   var priorUtilityTable = function(){
     return uniformDraw([donutUtilityTable, noodleUtilityTable]);
@@ -294,7 +301,7 @@ var test2 = function() {
     var latentStateSampler = function(){
       return sample(agentPrior).latentState;
     };
-    var newAgentPrior = getPriorBeliefGridworld(startState2.manifestState,
+    var newAgentPrior = getPriorBelief(startState2.manifestState,
 						latentStateSampler);
     return {utilityTable: utilityTable,
 	    priorBelief: newAgentPrior};
@@ -303,7 +310,7 @@ var test2 = function() {
   var prior2 = {isJoint: true,
 		jointPrior: jointPrior};
 
-  var truePriorBelief2 = getPriorBeliefGridworld( startState2.manifestState,
+  var truePriorBelief2 = getPriorBelief( startState2.manifestState,
 						  uninformedLatentStateSampler);
 
 
@@ -409,7 +416,7 @@ var test3 = function() {
     return flip(.8) ? everythingOpenLatent : trueLatentState;
   };
 
-  var truePriorBelief = getPriorBeliefGridworld( startState.manifestState,
+  var truePriorBelief = getPriorBelief( startState.manifestState,
 						 uninformedLatentStateSampler);
 
 
@@ -425,7 +432,7 @@ var test3 = function() {
 			       makeAgent:makeAgent,
 			       simulate: simulate};
 
-  var alternativePriorBelief = getPriorBeliefGridworld( startState.manifestState,
+  var alternativePriorBelief = getPriorBelief( startState.manifestState,
 							function(){return trueLatentState;});
 
   var priorUtilityTable = function(){
