@@ -7,7 +7,7 @@
 
 
 // helper function
-var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
+var inSupport = function(x, erp){return _.isFinite( erp.score(x) ); };
 
 
 // main constructor function is makeBandit
@@ -236,8 +236,8 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
     // Factor on whole sampled trajectory (SLOW IF NOT DETERMINISTIC AND NUM SAMPLES HIGH)
     var factorOnTrajectory = function(){
       var trajectoryERP = Rejection( function(){
-        return simulate(startState, world, agent, 'states');}, numRejectionSamples);
-      factor(trajectoryERP.score([], map(first, observedStateAction)));
+        return simulate(startState, world, agent, 'states');}, { samples: numRejectionSamples });
+      factor(trajectoryERP.score(map(first, observedStateAction)));
     };
 
     // Move agent through observed sequence 
@@ -259,7 +259,7 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
             agentAct(nextBelief) : agentAct(nextBelief, delay); 
 
         var observedAction = observedStateAction[timeIndex][1];
-        factor(nextActionERP.score([], observedAction));
+        factor(nextActionERP.score(observedAction));
 
         // condition on next world state, passing through updated internal state
         factorSequenceOffPolicy(nextBelief, observedAction, timeIndex + 1);
@@ -300,7 +300,7 @@ var agentModelsBanditInfer = function(baseAgentParams, priorPrizeToUtility,
         var nextActionERP = agentAct(nextBelief);
         var observedAction = observedSequence[timeIndex].action;
         
-        factor(nextActionERP.score([], observedAction));
+        factor(nextActionERP.score(observedAction));
         
         factorSequence(nextBelief, observedAction, timeIndex + 1);
       }

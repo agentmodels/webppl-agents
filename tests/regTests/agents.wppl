@@ -176,7 +176,7 @@ var testPOMDPAgentOptimal = function(){
     // POMDP agent (optimal)
     var alternateStartState = getAlternateStartState(trueStartState, useManifestLatent);
 
-    var agentPriorBelief = Enumerate( function () { return uniformDraw([trueStartState, alternateStartState]);} );
+    var agentPriorBelief = Categorical({ ps: [.5,.5], vs: [trueStartState, alternateStartState]});
     var params = {alpha:1000,              
                   utility:utility, 
                   priorBelief: agentPriorBelief           
@@ -262,7 +262,7 @@ var testPOMDPAgentDelay = function(){
 
     // Agent params
     var alternateStartState = update(trueStartState, {treasureAt3: true});
-    var agentPriorBelief = Enumerate(function() { return uniformDraw( [trueStartState, alternateStartState]); });
+    var agentPriorBelief = Categorical({ ps: [.5,.5], vs: [trueStartState, alternateStartState]});
 
     var params = update(paramsBase, {utility: utility, priorBelief: agentPriorBelief});
     var agent =  makePOMDPAgent(params, world);
