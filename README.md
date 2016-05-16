@@ -25,7 +25,7 @@ Then we can compile webppl and webppl-gridworld together and run your script.
 sh compile.sh examples/hyperbolic/generative_examples.wppl
 ```
 
-To just run your script without compiling (for example if there have been no changes in `/src`) we can do:
+To just run your script without compiling (if there have been no changes to webppl-agents) we can do:
 
 ```
 sh run.sh myscript.webppl
