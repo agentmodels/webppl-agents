@@ -82,7 +82,6 @@ Parameters
 function draw(world, additional) {
   if (world.MDPWorld) { return pomConvert(world, additional); }
   if (world.features) { return convertDraw(world, additional); }
-  console.log(world, additional);
 
   if (typeof(wpEditor) === 'undefined') { 
     console.log("GridWorld.draw: no wpEditor, not drawing");

@@ -1,0 +1,15 @@
+var world = makeRestaurantChoiceWorld({POMDP:true});
+var trajectory1 = [
+  { manifestState : { loc : [3,1] } }, 
+  { manifestState : { loc : [3,2] } }, 
+  { manifestState : { loc : [3,3] } }, 
+  { manifestState : { loc : [3,4] } }]
+
+GridWorld.draw(world, { trajectory : trajectory1 });
+      
+var trajectory2 = [
+  [{ manifestState : { loc : [3,1] } }, 'a'], 
+  [{ manifestState : { loc : [3,2] } }, 'b'], 
+  [{ manifestState : { loc : [3,3] } }, 'c'], 
+  [{ manifestState : { loc : [3,4] } }, 'd']]
+GridWorld.draw(world, { trajectory : trajectory2 });
