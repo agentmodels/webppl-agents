@@ -26,11 +26,7 @@ sh run.sh myscript.webppl
 ```
 
 
-To run purely on the command line we need to install some webppl packages:
-
+To run purely on the command line we need to have the [webppl-dp](https://github.com/stuhlmueller/webppl-dp) package in a local repository. Then we can run with:
 ```
-mkdir ~/.webppl
-npm install --prefix ~/.webppl https://github.com/stuhlmueller/webppl-dp
-npm install --prefix ~/.webppl https://github.com/stuhlmueller/webppl-timeit
-npm install --prefix ~/.webppl https://github.com/stuhlmueller/webppl-viz
+webppl --require ../webppl-dp  --require . examples/hyperbolic/generative_examples.wppl
 ```
