@@ -1,7 +1,7 @@
 echo "installing dependencies for running in the browser"
 DEPS=webppl-dependencies
 mkdir $DEPS
-git clone https://github.com/probmods/webppl.git            $DEPS/webppl
+git clone https://github.com/probmods/webppl.git            $DEPS/webppl --branch v0.6.2
 git clone https://github.com/stuhlmueller/webppl-timeit.git $DEPS/webppl-timeit
 git clone https://github.com/stuhlmueller/webppl-dp.git     $DEPS/webppl-dp
 git clone https://github.com/probmods/webppl-viz            $DEPS/webppl-viz
