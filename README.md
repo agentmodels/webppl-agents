@@ -10,7 +10,7 @@ If `npm link` doesn't work due to permissions, you can use sudo or [follow this]
 Note that this links several repositories of webppl packages to your global npm package list. 
 
 ##Running from the command line 
-To run purely on the command line we need to have the [webppl-dp](https://github.com/stuhlmueller/webppl-dp) package in a local repository. Then we can run with:
+To run purely on the command line we need to require the package webppl-dp:
 ```
 webppl --require webppl-dp --require . examples/hyperbolic/generative_examples.wppl
 ```
@@ -25,7 +25,7 @@ Then we can compile webppl and webppl-gridworld together and run your script.
 sh compile.sh examples/hyperbolic/generative_examples.wppl
 ```
 
-To just run your script without compiling (for example if there have been not changes in `/src` we can do:
+To just run your script without compiling (for example if there have been no changes in `/src`) we can do:
 
 ```
 sh run.sh myscript.webppl
