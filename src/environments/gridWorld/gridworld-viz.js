@@ -50,6 +50,16 @@ function convertDraw(world, additional) {
   return draw(world2, _.extend(additional, {labels : labels}));
 }
 
+var pomConvert = function(world, additional) { 
+  var trajectory = (additional || {}).trajectory;
+  if (trajectory) {
+    var trajectory = _.isArray(trajectory[0]) ? _.map(trajectory, 0) : trajectory;
+    var trajectory = _.has(trajectory[0], 'manifestState') ? _.map(trajectory, 'manifestState') : trajectory;
+  }
+  var additional = _.extend(additional, { trajectory : trajectory});
+  return convertDraw(world.MDPWorld, additional);
+}
+
 
 /*
 Draws a world with animated trajectories
@@ -70,9 +80,8 @@ Parameters
          used to show an agents 'plans' and how they're reasoning about a plan
 */
 function draw(world, additional) {
-  if (world.features) { 
-    return convertDraw(world, additional)
-  }
+  if (world.MDPWorld) { return pomConvert(world, additional); }
+  if (world.features) { return convertDraw(world, additional); }
 
   if (typeof(wpEditor) === 'undefined') { 
     console.log("GridWorld.draw: no wpEditor, not drawing");

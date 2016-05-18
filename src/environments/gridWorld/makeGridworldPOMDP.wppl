@@ -112,11 +112,13 @@ var makeGridworldPOMDP = function(options) {
 
  
   
-  return {manifestStateToActions: manifestStateToActions,
+  return {
+    manifestStateToActions: manifestStateToActions,
 	  transition: transition,
 	  observe: observe,
-          feature : feature,
-          MDPWorld: gridworld };
+    feature : feature,
+    MDPWorld: gridworld 
+  };
 };
 
 
