@@ -30,7 +30,7 @@ var tableToUtilityFunction = function(table) {
 };
 
 var makeUninformedPrior = function(p){
-  return Enumerate(function(){
+  return Infer({ method: 'enumerate' }, function(){
     if (flip(p)) {
       return {'Donut N': true,
 	      'Donut S': true,
@@ -45,10 +45,10 @@ var makeUninformedPrior = function(p){
   });
 };
 
-var informedPrior = deltaERP({'Donut N': true,
+var informedPrior = Delta({ v: {'Donut N': true,
 			      'Donut S': true,
 			      'Veg': true,
-			      'Noodle': true});
+			      'Noodle': true} });
 
 var startState = {manifestState: {loc: [3,1],
 				  terminateAfterAction: false,
@@ -90,7 +90,7 @@ var observedTrajectory2 = simulateBeliefAgent(startState2, gridworldPOMDP, agent
 // var observedTrajectories = [observedTrajectory, observedTrajectory2];
 var observedTrajectories = [observedTrajectory];
 
-var utilityTablePrior = Enumerate(function(){
+var utilityTablePrior = Infer({ method: 'enumerate' }, function(){
   var donutUtility = uniformDraw(range(3));
   return {'Donut N': donutUtility,
 	  'Donut S': donutUtility,
@@ -113,7 +113,7 @@ var factorOnSequence = function(currentBelief, index, observedStateAction, agent
     var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation);
     var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
     
-    factor(nextActionERP.score([], observedAction));
+    factor(nextActionERP.score(observedAction));
     
     return factorOnSequence(nextBelief, index + 1, observedStateAction, agent);
   }

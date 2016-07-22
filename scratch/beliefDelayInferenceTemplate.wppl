@@ -50,13 +50,13 @@ var inferBeliefDelayAgent = function(observedTrajectories,
       var nextBelief = agentUpdateBelief(state.manifestState, belief, observation, 0);
       var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
       
-      factor(nextActionERP.score([], observedAction));
+      factor(nextActionERP.score(observedAction));
       
       return sampleAlongTrajectory(index + 1, trajectory, agent, nextBelief);
     }
   };
 
-  return Enumerate(function(){
+  return Infer({ method: 'enumerate' }, function(){
     var alpha = sample(alphaPrior);
     
     var utilityParams = sample(utilityParamsPrior);

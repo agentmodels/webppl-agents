@@ -36,7 +36,7 @@ var utility = function(state,action){
 // (instead of champagne)
 var alternativeStartState = update(startState, {armToPrize:{0:'chocolate', 1:'nothing'}});
 
-var priorBelief = Enumerate(function(){
+var priorBelief = Infer({ method: 'enumerate' }, function(){
   return categorical( [.5, .5], [startState, alternativeStartState]);
 });
 
@@ -45,7 +45,7 @@ var priorBelief = Enumerate(function(){
 // equation above
 
 var updateBelief = function(belief, observation, action){
-  return Enumerate(function(){
+  return Infer({ method: 'enumerate' }, function(){
     var state = sample(belief);
     var predictedNextState = transition(state, action);
     var predictedObservation = observe(predictedNextState);
@@ -56,7 +56,7 @@ var updateBelief = function(belief, observation, action){
 
 var act = dp.cache(
   function(belief) {
-    return Enumerate(function(){
+    return Infer({ method: 'enumerate' }, function(){
       var action = uniformDraw(actions);
       var eu = expectedUtility(belief, action);
       factor(100 * eu);
@@ -67,7 +67,7 @@ var act = dp.cache(
 var expectedUtility = dp.cache(
   function(belief, action) {
     return expectation(
-      Enumerate(function(){
+      Infer({ method: 'enumerate' }, function(){
 	var state = sample(belief);
 	var u = utility(state, action);
 	if (state.terminateAfterAction) {

@@ -5,12 +5,12 @@
 
 // helper functions - maybe delete
 
-var myInSupport = function(x, erp){return erp.score([], x) > -100; };
+var myInSupport = function(x, erp){return erp.score(x) > -100; };
 
 var getActualSupport = function(erp) {
   assert.ok(isERP(erp), 'tried to get the support of something other than an ERP');
   var hasNonNegligibleProbability = function(x) {
-    return erp.score([], x) > -100;
+    return erp.score(x) > -100;
   };
   return filter(hasNonNegligibleProbability, erp.support());
 };
@@ -100,8 +100,8 @@ var priorAgentPrior = function(){
   return uniformDraw([truePriorBelief, alternativePriorBelief]);
 };
 
-var prior = {priorUtilityTable: Enumerate(priorUtilityTable),
-	     priorAgentPrior: Enumerate(priorAgentPrior)};
+var prior = {priorUtilityTable: Infer({ method: 'enumerate' }, priorUtilityTable),
+	     priorAgentPrior: Infer({ method: 'enumerate' }, priorAgentPrior)};
 
 // INFERENCE
 
@@ -139,7 +139,7 @@ assert.ok(sample(erps[1]).utilityTable['Noodle'] === 3,
 	  'posterior ERP failed to infer agent liking noodles');
 var agentBelief = sample(erps[1]).priorBelief;
 var agentBeliefSample = sample(agentBelief);
-assert.ok(agentBelief.score([], agentBeliefSample) < -0.1,
+assert.ok(agentBelief.score(agentBeliefSample) < -0.1,
 	  'posterior ERP failed to infer agents uncertainty');
 
 // true params should be in support of both erps

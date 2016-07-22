@@ -18,7 +18,7 @@ var makeBeliefAgent = function(params, world) {
   var updateBelief = dp.cache(
     function(manifestState, belief, observation){
       return observation === 'noObservation' ? belief :
-	Enumerate(function(){
+	Infer({ method: 'enumerate' }, function(){
 	  var latentState = sample(belief);
 	  var state = buildState(manifestState, latentState);
 	  condition(_.isEqual(observe(state), observation));
@@ -31,7 +31,7 @@ var makeBeliefAgent = function(params, world) {
       assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief),
 		'agent args fail');
 
-      return Enumerate(function(){
+      return Infer({ method: 'enumerate' }, function(){
 	var action = uniformDraw(manifestStateToActions(manifestState));
 	var eu = expectedUtility(manifestState, belief, action);
 	factor(params.alpha * eu);
@@ -42,7 +42,7 @@ var makeBeliefAgent = function(params, world) {
   var expectedUtility = dp.cache(
     function(manifestState, belief, action) {
       return expectation(
-	Enumerate(function(){
+	Infer({ method: 'enumerate' }, function(){
 	  var latentState = sample(belief);
 	  var state = buildState(manifestState, latentState);
 	  var u = utility(state, action);

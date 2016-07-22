@@ -161,7 +161,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   
   assert.ok( stateHasManifestLatent(observedStateAction[0][0]), 'fullstate in trajectory for inferGridWorld');
 
-  return Enumerate(function(){
+  return Infer({ method: 'enumerate' }, function(){
     var utilityAndPrior = isJointPrior ? sample(jointPrior) : null;
 
     var utilityTable = isJointPrior ? utilityAndPrior.utilityTable
@@ -179,9 +179,9 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
 
     // Factor on whole sampled trajectory (SLOW IF TRANSITIONS NOT DETERMINISTIC OR IF NUM SAMPLES HIGH)
     var factorOnTrajectory = function(){
-      var trajectoryERP = Rejection( function(){
-        return simulate(startState, world, agent, 'states')}, numRejectionSamples);
-      factor(trajectoryERP.score([], map(first, observedStateAction)));
+      var trajectoryERP = Infer({ method: 'rejection', samples: numRejectionSamples }, function(){
+        return simulate(startState, world, agent, 'states')});
+      factor(trajectoryERP.score(map(first, observedStateAction)));
     };
 
     
@@ -205,7 +205,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
 
         var observedAction = observedStateAction[timeIndex][1];
 
-        factor(nextActionERP.score([], observedAction));
+        factor(nextActionERP.score(observedAction));
 
         // condition on next world state, passing through updated internal state
         factorSequenceOffPolicy(nextBelief, observedAction, timeIndex + 1);

@@ -78,7 +78,7 @@ var probOpen = 0.5;
 var params = {
   alpha: 1000,
   utility: tableToUtilityFunction(myUtilityTable),
-  priorBelief: Enumerate(function(){return flip(probOpen) ? {term2: true} :
+  priorBelief: Infer({ method: 'enumerate' }, function(){return flip(probOpen) ? {term2: true} :
 				    {term2: false};}),
   discount: 0,
   sophisticatedOrNaive: 'sophisticated',

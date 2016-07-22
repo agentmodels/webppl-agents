@@ -60,7 +60,7 @@ var testMDPAgents = function(){
   var makeMDPAgentRandom = function(params, world){
     var stateToActions = world.stateToActions;
     var act = function(state){
-      return Enumerate(function(){return uniformDraw(stateToActions(state));})
+      return Infer({ method: 'enumerate' }, function(){return uniformDraw(stateToActions(state));})
     };
     return {act:act, params:params};
   };
@@ -176,8 +176,8 @@ var testPOMDPAgentOptimal = function(){
     // POMDP agent (optimal)
     var alternateStartState = getAlternateStartState(trueStartState, useManifestLatent);
 
-    var agentPriorBelief = categoricalERP( [.5, .5],
-                                           [trueStartState, alternateStartState]);
+    var agentPriorBelief = Categorical({ ps:  [.5, .5],
+                                         vs: [trueStartState, alternateStartState] });
     var params = {alpha:1000,              
                   utility:utility, 
                   priorBelief: agentPriorBelief           
@@ -211,13 +211,13 @@ var testPOMDPAgentOptimal = function(){
     var utility = line.utility;
     var trueStartState = line.startState;
     
-    var agentPriorBeliefManifest = Enumerate( function(){
+    var agentPriorBeliefManifest = Infer({ method: 'enumerate' },  function(){
       var latentState = {treasureAt3: flip(),
                          dummy: uniformDraw(range(20))};
       return update(trueStartState, {latentState:latentState});
     });
 
-    var agentPriorBelief = Enumerate( function(){
+    var agentPriorBelief = Infer({ method: 'enumerate' },  function(){
       return update(trueStartState,
                     {treasureAt3: flip(),
                      dummy: uniformDraw(range(20))});
@@ -263,8 +263,8 @@ var testPOMDPAgentDelay = function(){
 
     // Agent params
     var alternateStartState = update(trueStartState, {treasureAt3: true});
-    var agentPriorBelief = categoricalERP( [.5, .5],
-                                           [trueStartState, alternateStartState]);
+    var agentPriorBelief = Categorical({ ps:  [.5, .5],
+                                         vs: [trueStartState, alternateStartState] });
 
     var params = update(paramsBase, {utility: utility, priorBelief: agentPriorBelief});
     var agent =  makePOMDPAgent(params, world);

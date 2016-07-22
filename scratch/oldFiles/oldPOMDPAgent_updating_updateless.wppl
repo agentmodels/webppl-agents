@@ -100,7 +100,7 @@ var pomdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, pa
     function(manifestState_Observation_pairs, params){
       var observationEquality = params.observationEquality;
       
-      return Enumerate( function(){
+      return Infer({ method: 'enumerate' },  function(){
         var hypotheticalLatentState = startStatePrior(params).latentState;
         
         map( function( manifestState_Observation ){
@@ -123,12 +123,12 @@ var pomdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, pa
   function(manifestState, timeLeft, memory, params){    // update belief: currentBelief, observation
     assert.ok(timeLeft>0 & _.isArray(memory) & _.isString(manifestState) & params.actions.length>0, 'agent args');
     
-    return Enumerate( function(){
+    return Infer({ method: 'enumerate' },  function(){
       var posterior = getPosteriorLatent(memory, params);
       var action = uniformDraw(params.actions);
       
       var expectedUtility = expectation(
-        Enumerate(function(){
+        Infer({ method: 'enumerate' }, function(){
           var state = buildState(manifestState, sample(posterior));
           assert.ok(getManifestState(state, params) == manifestState, 'check on state');
           return expUtility(state, action, timeLeft, memory, params);   
@@ -149,7 +149,7 @@ var pomdpSimulate = function(startState, actualTotalTime, perceivedTotalTime, pa
       if (timeLeft - 1 == 0){
         return u;
       } else {                     
-        return u + expectation( Enumerate(function(){
+        return u + expectation( Infer({ method: 'enumerate' }, function(){
           var nextState = transition(state, action, params);
           var nextMemory = updateMemory(memory, getManifestState(nextState, params), observe(nextState,params), params );   
           var nextAction = sample(agent(getManifestState(nextState, params), timeLeft-1, nextMemory, params));
@@ -215,7 +215,7 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
   // a state (not a latentState) we need to build a state from the sampled latentState. 
   var updateBelief = dp.cache(
     function(currentBelief, manifestState, observation, params){
-      return Enumerate( function(){
+      return Infer({ method: 'enumerate' },  function(){
         var hypotheticalLatentState = sample(currentBelief);
         var hypotheticalState = buildState(manifestState, hypotheticalLatentState);
         var hypotheticalObservation = observe(hypotheticalState, params);
@@ -232,12 +232,12 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
     function(manifestState, timeLeft, currentBelief, observation, params){
 	// console.log(manifestState, " ", observation);
       assert.ok(timeLeft>0  & isERP(currentBelief) & _.isString(manifestState) & params.actions.length>0, 'agent args');
-    return Enumerate( function(){
+      return Infer({ method: 'enumerate' },  function(){
       var updatedBelief = updateBelief(currentBelief, manifestState, observation, params);
       var action = uniformDraw(params.actions);
       
       var expectedUtility = expectation(
-        Enumerate(function(){
+        Infer({ method: 'enumerate' }, function(){
           var state = buildState(manifestState, sample(updatedBelief));
           assert.ok(getManifestState(state, params) == manifestState, 'check on state');
           return expUtility(state, action, timeLeft, updatedBelief, params);   
@@ -256,7 +256,7 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
       if (timeLeft - 1 == 0){
         return u;
       } else {                     
-        return u + expectation( Enumerate(function(){
+        return u + expectation( Infer({ method: 'enumerate' }, function(){
           var nextState = transition(state, action, params);
           var nextManifestState = getManifestState(nextState,params);
           var observation = observe(nextState,params);
@@ -330,7 +330,7 @@ var updatePOMDPSimulate = function(startState, actualTotalTime, perceivedTotalTi
 var getBanditParams = function(uA, priorB, alpha){
 
   // start in special 'start' state which you can never return to
-  var latentStatePriorERP = Enumerate(function(){return {'A':uA, 'B':priorB()};});
+  var latentStatePriorERP = Infer({ method: 'enumerate' }, function(){return {'A':uA, 'B':priorB()};});
   
   var startStatePrior = function(){
     return {manifestState:'start', 
@@ -483,7 +483,7 @@ var testBandits = function(pomdpSimulateVersion){
 // utilities of the other arms, returning an object. alpha represents the softmax noise
 // of the agent.
 var getKArmBanditParams = function(numArms, u0, priorArms, alpha) {
-    var latentStatePriorERP = Enumerate(function(){return update({'0': u0}, priorArms());});
+  var latentStatePriorERP = Infer({ method: 'enumerate' }, function(){return update({'0': u0}, priorArms());});
 
     // similarly to getBanditParams, the initial state is a special 'start' state
     // that can never be returned to.
@@ -736,7 +736,7 @@ var makeBlockedGridPOMDPParams = function(xLim, yLim, openGridPositions, startGr
 		latentState: map(stringify, terminalPrior())};
     };
 
-    var latentStatePriorERP = Enumerate(function(){return map(stringify, terminalPrior());});
+  var latentStatePriorERP = Infer({ method: 'enumerate' }, function(){return map(stringify, terminalPrior());});
 
     var actions = ['l', 'r', 'u', 'd'];
 
@@ -1120,8 +1120,8 @@ var makePOMDPGridworld = function(mdpParamsDefault, utilityValuesTable){
 //   }; 
 
 //   // true state is in support of agent's prior
-//   var erpPrior = Enumerate(function(){return startBeliefStatePrior().stateToUtilities;});
-//   assert.ok( Math.exp(erpPrior.score([],startBeliefState.stateToUtilities)) > 0, 'getkbandit erpPrior' )
+//   var erpPrior = Infer({ method: 'enumerate' }, function(){return startBeliefStatePrior().stateToUtilities;});
+//   assert.ok( Math.exp(erpPrior.score(startBeliefState.stateToUtilities)) > 0, 'getkbandit erpPrior' )
 
   
 //   // environment functions

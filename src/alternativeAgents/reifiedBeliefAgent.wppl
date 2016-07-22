@@ -16,7 +16,7 @@ var makeBeliefAgent = function(agentParams, world) {
   var updateBelief = dp.cache(
     function(manifestState, currentBelief, observation){
       return observation === 'noObservation' ? currentBelief :
-	Enumerate(function(){
+	Infer({ method: 'enumerate' }, function(){
 	  var latentState = sample(currentBelief);
 	  var state = buildState(manifestState, latentState);
 	  condition(_.isEqual(observe(state), observation));
@@ -28,7 +28,7 @@ var makeBeliefAgent = function(agentParams, world) {
   var makeAgent(belief) {
     
     var act = dp.globalCache(function(manifestState) {
-      return Enumerate(function(){
+      return Infer({ method: 'enumerate' }, function(){
 	var action = uniformDraw(manifestStateToActions(manifestState));
 	var eu = expectedUtility(manifestState, action);
 	factor(agentParams.alpha * eu);
@@ -38,7 +38,7 @@ var makeBeliefAgent = function(agentParams, world) {
     
     var expectedUtility = dp.globalCache(function(manifestState, action){
       return expectation(
-	Enumerate(function(){
+	Infer({ method: 'enumerate' }, function(){
 	  var latentState = sample(belief);
 	  var state = buildState(manifestState, latentState);
 	  var u = utility(state, action);
@@ -114,7 +114,7 @@ var runBandit = function(numArms, armToRewards, priorBelief,
   var world = makeDeterministicBandit(numArms);
   
   // agent params 
-  assert.ok( _.isFinite(priorBelief.score([],armToRewards)),
+  assert.ok( _.isFinite(priorBelief.score(armToRewards)),
 	     "actual latent not in prior's support" );
 
   var agentParams = { 

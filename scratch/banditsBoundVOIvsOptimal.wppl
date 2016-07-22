@@ -10,8 +10,8 @@ var worldObserve = world.observe;
 var observe = getFullObserve(worldObserve);
 var transition = world.transition;
 
-var probablyChampagneERP = categoricalERP([0.4, 0.6], ['nothing', 'champagne']);
-var probablyNothingERP = categoricalERP([0.6, 0.4], ['nothing', 'champagne']);
+var probablyChampagneERP = Categorical({ ps: [0.4, 0.6], vs: ['nothing', 'champagne'] });
+var probablyNothingERP = Categorical({ ps: [0.6, 0.4], vs: ['nothing', 'champagne'] });
 
 var trueLatent = {0: probablyNothingERP,
 		  1: probablyChampagneERP};
@@ -20,14 +20,14 @@ var timeLeft = 7;
 
 var startState = buildStochasticBanditStartState(timeLeft, trueLatent);
 
-var prior = Enumerate(function(){
+var prior = Infer({ method: 'enumerate' }, function(){
   var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
 		     1: categorical([0.6, 0.4], [probablyChampagneERP,
 						   probablyNothingERP])};
   return buildStochasticBanditStartState(timeLeft, latentState);
 });
 
-// var prior = deltaERP(buildStochasticBanditStartState(timeLeft, trueLatent));
+// var prior = Delta({ v: buildStochasticBanditStartState(timeLeft, trueLatent }));
 
 var prizeToUtility = {start: 0, nothing: 0, champagne: 2};
 var utility = makeStochasticBanditUtility(prizeToUtility);
@@ -53,8 +53,8 @@ var nearlyEqualActionERPs = function(erp1, erp2) {
   var nearlyEqual = function(float1, float2) {
     return Math.abs(float1 - float2) < 0.05;
   };
-  return nearlyEqual(erp1.score([], 0), erp2.score([], 0))
-    && nearlyEqual(erp1.score([], 1), erp2.score([], 1));
+  return nearlyEqual(erp1.score(0), erp2.score(0))
+    && nearlyEqual(erp1.score(1), erp2.score(1));
 };
 
 // it's important that we simulate the two agents such that they get the same

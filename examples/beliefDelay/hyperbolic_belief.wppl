@@ -112,7 +112,7 @@ var restaurantBelief = function(){
   };
 
   var getPosterior = function(priorUtilityTable, priorDiscounting, priorAlpha, observedPath){
-    return Enumerate(function () { 
+    return Infer({ method: 'enumerate' }, function () { 
       var utilityTable = priorUtilityTable();
       var discounting = priorDiscounting();
       var alpha = priorAlpha();
@@ -201,8 +201,8 @@ var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
   // TODO fix this so we can condition on states- one of the softmax factors
   // when simulating has a NaN eu. 
   var runGeneralInfer = function(){
-    var prior = {priorUtilityTable: Enumerate(function(){return priorUtilityTable();}), 
-                 priorAgentPrior:deltaERP(agentPrior)};
+    var prior = {priorUtilityTable: Infer({ method: 'enumerate' }, function(){return priorUtilityTable();}), 
+                 priorAgentPrior:Delta({ v: agentPrior })};
     var agentTypeAndFunctions = {makeAgent: makeBeliefDelayAgent, 
                                  simulate:simulateBeliefDelayAgent,
                                  beliefOrBeliefDelay: 'beliefDelay'};

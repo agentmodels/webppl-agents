@@ -81,7 +81,7 @@ var testUpdateMyopic = function(){
 
     var worldAndStart = makeThreePathsWorldAndStart(totalTime);
 
-    var priorBelief = Enumerate( function(){
+    var priorBelief = Infer({ method: 'enumerate' },  function(){
       var latentState = flip() ? 'gotoA' : 'gotoB';
       return buildState( worldAndStart.startState.manifestState, latentState);
     });

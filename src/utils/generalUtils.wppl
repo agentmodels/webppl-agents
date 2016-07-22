@@ -38,15 +38,19 @@ var arraysEqual = function(xs, ys){
   return JSON.stringify(xs) === JSON.stringify(ys);
 };
 
+var argMax = function(f, ar){
+  return maxWith(f, ar)[0]
+};
+
 
 
 // Helpers for displaying ERPs
 var printERP = function(x,k) {
-  var erpValues = sort(x.support(), undefined, function(v){return -x.score([], v);});
+  var erpValues = sort(x.support(), undefined, function(v){return -x.score(v);});
   var erpValues = typeof(k)=='undefined' ? erpValues : erpValues.slice(0,k);
   map(
     function(v){
-      var prob = Math.exp(x.score([], v));
+      var prob = Math.exp(x.score(v));
       if (prob > 0.0){
         console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
       }
@@ -55,10 +59,10 @@ var printERP = function(x,k) {
 };
 
 var printTopK = function(erp,k){
-  var erpValues = sort(erp.support(), undefined, function(v){return -erp.score([], v);});
+  var erpValues = sort(erp.support(), undefined, function(v){return -erp.score(v);});
   map(
     function(v){
-      var prob = Math.exp(erp.score([], v));
+      var prob = Math.exp(erp.score(v));
       if (prob > 0.0){
         console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
       }
@@ -68,13 +72,13 @@ var printTopK = function(erp,k){
 
 
 var getMarginal = function(erp,key){
-  return Enumerate(function(){
+  return Infer({ method: 'enumerate' }, function(){
     return sample(erp)[key];
   });
 };
 
 var getMarginalObject = function(erp,key){
-  return Enumerate(function(){
+  return Infer({ method: 'enumerate' }, function(){
     var s = sample(erp);
     var keys = _.keys(s);
     var omitKeys = filter(function(el){

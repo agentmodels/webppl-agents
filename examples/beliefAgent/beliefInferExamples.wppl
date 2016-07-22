@@ -22,7 +22,7 @@ var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
     return state.latentState[state.manifestState.loc];
   };
 
-  return Enumerate(function(){
+  return Infer({ method: 'enumerate' }, function(){
     var agentUtilitySign = sample(utilitySignPrior);
     var agentUtility = function(state, action){
       return agentUtilitySign * rewardUtility(state, action);
@@ -40,7 +40,7 @@ var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
       if (actionsSampled === trajectoryLength - 1) {
 	return [];
       } else {
-	var actionERP = Enumerate(function(){
+	var actionERP = Infer({ method: 'enumerate' }, function(){
 	  return sample(agentActionBelief(state.manifestState, currentBelief,
 					  observe(state))).action;
 	});
@@ -50,7 +50,7 @@ var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
 
 	var nextState = observedTrajectory[actionsSampled + 1];
 	
-	factor(actionERP.score([], nextState.manifestState.loc));
+	factor(actionERP.score(nextState.manifestState.loc));
 	
 	return sampleAlongTrajectory(nextState, newBelief, actionsSampled + 1);
       }
@@ -89,21 +89,21 @@ var inferBeliefAgent = function(observedTrajectories, utilityParamsPrior, belief
     } else {
       var actionBeliefERP = agentActionBelief(state.manifestState, currentBelief,
 					      observe(state));
-      var nextStateERP = Enumerate(function(){
+      var nextStateERP = Infer({ method: 'enumerate' }, function(){
 	return transition(state, sample(actionBeliefERP).action);
       });
       var newBelief = sample(actionBeliefERP).belief;
 
       var trajectoryNextState = trajectory[actionsSampled + 1];
       
-      factor(nextStateERP.score([], trajectoryNextState));
+      factor(nextStateERP.score(trajectoryNextState));
       
       return sampleAlongTrajectory(trajectoryNextState, newBelief, actionsSampled + 1,
 				   trajectory, agentActionBelief);
     }
   };
 
-  return Enumerate(function(){
+  return Infer({ method: 'enumerate' }, function(){
     var utilityParams = sample(utilityParamsPrior);
     var utility = paramsToUtilityFunction(utilityParams);
     var agentPrior = sample(beliefPrior);

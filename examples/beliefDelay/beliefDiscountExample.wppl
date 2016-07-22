@@ -140,7 +140,7 @@ var conditionOnPath = function (agent, path, world, startState) {
 
 var posterior = function() {
 
-  var posteriorERP = Enumerate(function () { 
+  var posteriorERP = Infer({ method: 'enumerate' }, function () { 
 
     var agentProbNoodleOpen = agentProbNoodleOpenSampler();
     var agentPrior = agentProbNoodleOpen === 1 ? informedPriorBelief

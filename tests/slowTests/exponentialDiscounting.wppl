@@ -53,13 +53,13 @@ var test1 = function() {
     world
   );
 
-  var naiveTrajectoryDistribution = Enumerate(function(){
+  var naiveTrajectoryDistribution = Infer({ method: 'enumerate' }, function(){
     return simulate(startState, world, naiveAgent, 'states');
   });
 
   var mostLikelyNaiveTrajectory = MAP(naiveTrajectoryDistribution).val;
   
-  var sophisticatedTrajectoryDistribution = Enumerate(function(){
+  var sophisticatedTrajectoryDistribution = Infer({ method: 'enumerate' }, function(){
     return simulate(startState, world, sophisticatedAgent, 'states');
   });
 
@@ -86,7 +86,7 @@ var simulateUntilManyLikelyActions = function(startState, world, agent) {
 
   var manyLikelyActions = function(state) {
     var availableActions = stateToActions(state);
-    var actProbs = map(function(action){return act(state).score([], action);},
+    var actProbs = map(function(action){return act(state).score(action);},
 		       availableActions);
     var positiveActProbs = filter(function(prob){return prob > 0.01;},
 				  actProbs);
@@ -176,7 +176,7 @@ var test3 = function(){
                             loc: 'start', 
                             terminateAfterAction: false};
     
-    return Enumerate( function(){
+    return Infer({ method: 'enumerate' },  function(){
       var latentState = armToPrizeERPThunk();
       return buildState(startManifestState, latentState);
     });
@@ -185,8 +185,8 @@ var test3 = function(){
   var options = {
     numberOfArms: 2,
     armToPrizeERP: {
-      0: deltaERP(0.5),
-      1: deltaERP(1)
+      0: Delta({ v: 0.5 }),
+      1: Delta({ v: 1 })
     },
     numberOfTrials: 3,
     numericalPrizes: true
@@ -199,8 +199,8 @@ var test3 = function(){
 
   var armToPrizeERPSampler = function() {
     return {
-      0: deltaERP(0.5),
-      1: categorical([0.6, 0.4], [deltaERP(0), deltaERP(1)])
+      0: Delta({ v: 0.5 }),
+      1: categorical([0.6, 0.4], [Delta({ v: 0 }), Delta({ v: 1 })])
     };
   };
 

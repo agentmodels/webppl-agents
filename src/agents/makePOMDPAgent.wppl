@@ -13,7 +13,7 @@ var isERPOverLatent = function(belief){
 // Convert priorBelief from ERP over full states to ERP over latents
 var toERPOverLatent = function(belief){
   var manifestState = belief.support()[0].manifestState;
-  var latentStateERP = Enumerate(function(){return sample(belief).latentState;})
+  var latentStateERP = Infer({ method: 'enumerate' }, function(){return sample(belief).latentState;})
   return {manifestState: manifestState,
           latentStateERP: latentStateERP};
 };
@@ -80,7 +80,7 @@ var getPOMDPFunctions = function(params, world){
           // Sample latent, update state, compare predicted observation from state
           // to actual observation.
 
-          var newLatentERP = Enumerate(function(){
+          var newLatentERP = Infer({ method: 'enumerate' }, function(){
             var latentState = sample(belief.latentStateERP);
 	    var state = buildState( belief.manifestState, latentState);    
             var predictedNextState = isNullAction(action) ? state : transition(state, action);
@@ -99,7 +99,7 @@ var getPOMDPFunctions = function(params, world){
   var getUpdateBeliefSimple = function(transition, observe){
     return dp.cache(
       function(belief, observation, action){
-        return Enumerate(function(){
+        return Infer({ method: 'enumerate' }, function(){
 	  var state = sample(belief);
           var predictedNextState = isNullAction(action) ? state : transition(state, action);
           var predictedObservation = observe(predictedNextState);
@@ -170,7 +170,7 @@ var makePOMDPAgentOptimal = function(params, world) {
   // RECURSE ON BELIEF (BELLMAN STYLE)
   var act = dp.cache(
     function(belief) {
-      return Enumerate(function(){
+      return Infer({ method: 'enumerate' }, function(){
 	var action = uniformDraw(beliefToActions(belief));
 	var eu = expectedUtilityBelief(belief, action);
 	factor(params.alpha * eu);
@@ -181,7 +181,7 @@ var makePOMDPAgentOptimal = function(params, world) {
   var expectedUtilityBelief = dp.cache(
     function(belief, action) {
       return expectation(
-	Enumerate(function(){
+	Infer({ method: 'enumerate' }, function(){
 	  var state = sampleBelief(belief);
 	  var u = utility(state, action);
 	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
@@ -204,7 +204,7 @@ var makePOMDPAgentOptimal = function(params, world) {
   // RECURSE ON STATE (FIXES THE LATENT STATE)
   var act_recState = dp.cache(
     function(belief) {
-      return Enumerate(function(){
+      return Infer({ method: 'enumerate' }, function(){
 	var action = uniformDraw(beliefToActions(belief));
 	var eu = expectedUtilityBelief_recState(belief, action);
 	factor(params.alpha * eu);
@@ -215,7 +215,7 @@ var makePOMDPAgentOptimal = function(params, world) {
   var expectedUtilityBelief_recState = dp.cache(
     function(belief, action){
       return expectation(
-        Enumerate( function(){
+        Infer({ method: 'enumerate' },  function(){
           var state = sampleBelief(belief);
           return expectedUtilityState_recState(belief,state, action);
         }));
@@ -224,7 +224,7 @@ var makePOMDPAgentOptimal = function(params, world) {
   var expectedUtilityState_recState = dp.cache(
     function(belief, state, action){
       return expectation(  // need this for caching
-        Enumerate( function(){
+        Infer({ method: 'enumerate' },  function(){
           var u = utility(state, action);
 	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
 		    + JSON.stringify(state));
@@ -298,7 +298,7 @@ var makePOMDPAgentDelay = function (params, world){
     if (params.updateMyopic && (delay > params.updateMyopic.bound)){
             
       // update manifestState (assuming no possibility that isNullAction(action))
-      var nextBelief = Enumerate(function(){  
+      var nextBelief = Infer({ method: 'enumerate' }, function(){  
         var state = sampleBelief(belief);
         return transition(state,action); 
       });
@@ -340,7 +340,7 @@ var makePOMDPAgentDelay = function (params, world){
   var act = dp.cache(
     function (belief, delay) {
       assert.ok( _.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
-      return Enumerate(function () {
+      return Infer({ method: 'enumerate' }, function () {
         var action = uniformDraw(beliefToActions(belief));
         var eu = expectedUtilityBelief(belief, action, delay);
         factor(params.alpha * eu);
@@ -351,7 +351,7 @@ var makePOMDPAgentDelay = function (params, world){
   var expectedUtilityBelief = dp.cache(
     function (belief, action, delay) {
       return expectation(
-        Enumerate(function () {
+        Infer({ method: 'enumerate' }, function () {
           var state = sampleBelief(belief);
 	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
 		    + JSON.stringify(state));
@@ -378,7 +378,7 @@ var makePOMDPAgentDelay = function (params, world){
   var act_recState = dp.cache(
     function(belief, delay) {
       assert.ok( _.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
-      return Enumerate(function(){
+      return Infer({ method: 'enumerate' }, function(){
 	var action = uniformDraw(beliefToActions(belief));
 	var eu = expectedUtilityBelief_recState(belief, action, delay);
 	factor(params.alpha * eu);
@@ -389,7 +389,7 @@ var makePOMDPAgentDelay = function (params, world){
   var expectedUtilityBelief_recState = dp.cache(
     function(belief, action, delay){
       return expectation(
-        Enumerate( function(){
+        Infer({ method: 'enumerate' },  function(){
           var state = sampleBelief(belief);
           return expectedUtilityState_recState(belief,state, action, delay);
         }));
@@ -398,7 +398,7 @@ var makePOMDPAgentDelay = function (params, world){
   var expectedUtilityState_recState = dp.cache(
     function(belief, state, action, delay){
       return expectation(  // need this for caching
-        Enumerate( function(){
+        Infer({ method: 'enumerate' },  function(){
 	  assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
 		    + JSON.stringify(state));
           var u = discountFunction(delay) * utility(state, action);

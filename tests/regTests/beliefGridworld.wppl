@@ -1,10 +1,10 @@
 
-var myInSupport = function(x, erp){return erp.score([], x) > -100; };
+var myInSupport = function(x, erp){return erp.score(x) > -100; };
 
 var getActualSupport = function(erp) {
   assert.ok(hasSample(erp), 'tried to get the support of something other than an ERP');
   var hasNonNegligibleProbability = function(x) {
-    return erp.score([], x) > -100;
+    return erp.score(x) > -100;
   };
   return filter(hasNonNegligibleProbability, erp.support());
 };
@@ -21,7 +21,7 @@ var checkEqualDeltaErps = function(erpArray) {
 
 
 var getPriorBelief = function(startManifestState, latentStateSampler){
-  return Enumerate( function(){
+  return Infer({ method: 'enumerate' },  function(){
     return {manifestState:startManifestState, 
             latentState: latentStateSampler()};
   });
@@ -92,8 +92,8 @@ var test1 = function() {
   var priorUtilityTable = function(){return uniformDraw([donutUtilityTable, vegUtilityTable]);};
   var priorAgentPrior = function(){return uniformDraw([truePriorBelief, alternativePriorBelief]);};
 
-  var prior = {priorUtilityTable: Enumerate(priorUtilityTable),
-               priorAgentPrior: Enumerate(priorAgentPrior)};
+  var prior = {priorUtilityTable: Infer({ method: 'enumerate' }, priorUtilityTable),
+               priorAgentPrior: Infer({ method: 'enumerate' }, priorAgentPrior)};
 
   // INFERENCE
   
@@ -131,7 +131,7 @@ var test1 = function() {
 
   var agentBelief = sample(erps[1]).priorBelief;
   var agentBeliefSample = sample(agentBelief);
-  assert.ok(agentBelief.score([], agentBeliefSample) < -0.1,
+  assert.ok(agentBelief.score(agentBeliefSample) < -0.1,
 	    'posterior ERP failed to infer agents uncertainty');
 
   // other possible tests: look at MAP of erps[0] and erps[1], see if certain
@@ -223,8 +223,8 @@ var test2 = function() {
     return uniformDraw([truePriorBelief1, alternativePriorBelief1]);
   };
 
-  var prior1 = {priorUtilityTable: Enumerate(priorUtilityTable),
-		priorAgentPrior: Enumerate(priorAgentPrior1)};
+  var prior1 = {priorUtilityTable: Infer({ method: 'enumerate' }, priorUtilityTable),
+                priorAgentPrior: Infer({ method: 'enumerate' },  priorAgentPrior1)};
 
   // INFERENCE
   
@@ -254,15 +254,15 @@ var test2 = function() {
 
   // inference should be unsure of whether the agent likes noodles
 
-  assert.ok(Math.abs(erps1[1].score([], {utilityTable: noodleUtilityTable,
+  assert.ok(Math.abs(erps1[1].score({utilityTable: noodleUtilityTable,
 					 priorBelief: truePriorBelief1})
-		     - erps1[1].score([], {utilityTable: donutUtilityTable,
+		     - erps1[1].score({utilityTable: donutUtilityTable,
 					   priorBelief: truePriorBelief1})) < 0.5,
 	    'inference improperly sure about whether agent likes noodles');
 
-  assert.ok(Math.abs(erps1[1].score([], {utilityTable: noodleUtilityTable,
+  assert.ok(Math.abs(erps1[1].score({utilityTable: noodleUtilityTable,
 					 priorBelief: truePriorBelief1})
-		     - erps1[1].score([], {utilityTable: donutUtilityTable,
+		     - erps1[1].score({utilityTable: donutUtilityTable,
 					   priorBelief: alternativePriorBelief1})) < 0.5,
 	    'inference improperly sure about whether agent likes noodles');
   
@@ -294,7 +294,7 @@ var test2 = function() {
   // condition on second trajectory
 
   // update erps1[1] so that the agent knows the initial manifest state
-  var jointPrior = Enumerate(function(){
+  var jointPrior = Infer({ method: 'enumerate' }, function(){
     var jointSample = sample(erps1[1]);
     var utilityTable = jointSample.utilityTable;
     var agentPrior = jointSample.priorBelief;
@@ -346,7 +346,7 @@ var test2 = function() {
 	    'posterior ERP failed to infer agent liking noodles');
   var agentBelief = sample(erps2[1]).priorBelief;
   var agentBeliefSample = sample(agentBelief);
-  assert.ok(agentBelief.score([], agentBeliefSample) < -0.1,
+  assert.ok(agentBelief.score(agentBeliefSample) < -0.1,
 	    'posterior ERP failed to infer agents uncertainty');
 
   // true params should be in support of both erps -- this test fails because
@@ -442,8 +442,8 @@ var test3 = function() {
     return uniformDraw([truePriorBelief, alternativePriorBelief]);
   };
 
-  var prior = {priorUtilityTable: Enumerate(priorUtilityTable),
-	       priorAgentPrior: Enumerate(priorAgentPrior)};
+  var prior = {priorUtilityTable: Infer({ method: 'enumerate' }, priorUtilityTable),
+               priorAgentPrior: Infer({ method: 'enumerate' },  priorAgentPrior)};
 
   // INFERENCE
   
@@ -481,7 +481,7 @@ var test3 = function() {
 	    'posterior ERP failed to infer agent liking noodles');
   var agentBelief = sample(erps[1]).priorBelief;
   var agentBeliefSample = sample(agentBelief);
-  assert.ok(agentBelief.score([], agentBeliefSample) < -0.1,
+  assert.ok(agentBelief.score(agentBeliefSample) < -0.1,
 	    'posterior ERP failed to infer agents uncertainty');
 
   // true params should be in support of both erps
