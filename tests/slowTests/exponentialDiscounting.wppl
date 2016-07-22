@@ -170,41 +170,41 @@ var test2 = function() {
 // is small
 var test3 = function(){
 
-  var getPriorBelief = function(numberOfTrials, armToPrizeERPThunk){
+  var getPriorBelief = function(numberOfTrials, armToPrizeDistThunk){
     
   var startManifestState = {timeLeft: numberOfTrials, 
                             loc: 'start', 
                             terminateAfterAction: false};
     
     return Infer({ method: 'enumerate' },  function(){
-      var latentState = armToPrizeERPThunk();
+      var latentState = armToPrizeDistThunk();
       return buildState(startManifestState, latentState);
     });
   };
   
   var options = {
     numberOfArms: 2,
-    armToPrizeERP: {
+    armToPrizeDist: {
       0: Delta({ v: 0.5 }),
       1: Delta({ v: 1 })
     },
     numberOfTrials: 3,
     numericalPrizes: true
   };
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   var bandit = makeBandit(options);
   var world = bandit.world;
   var startState = bandit.startState;
 
-  var armToPrizeERPSampler = function() {
+  var armToPrizeDistSampler = function() {
     return {
       0: Delta({ v: 0.5 }),
       1: categorical([0.6, 0.4], [Delta({ v: 0 }), Delta({ v: 1 })])
     };
   };
 
-  var agentPrior = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
+  var agentPrior = getPriorBelief(numberOfTrials, armToPrizeDistSampler);
 
   var lightDiscount = function(delay) {
     return Math.pow(0.8, delay);

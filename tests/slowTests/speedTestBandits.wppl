@@ -1,13 +1,13 @@
 console.log('--- "IRL" bandit tests ---\n');
 
-var getPriorBelief = function(numberOfTrials, armToPrizeERPThunk){
+var getPriorBelief = function(numberOfTrials, armToPrizeDistThunk){
   
   var startManifestState = {timeLeft: numberOfTrials, 
                             loc: 'start', 
                             terminateAfterAction: false};
   
   return Infer({ method: 'enumerate' },  function(){
-    var latentState = armToPrizeERPThunk();
+    var latentState = armToPrizeDistThunk();
     return buildState(startManifestState, latentState);
   });
 };
@@ -17,7 +17,7 @@ var speedTestBandits = function(beliefOrBeliefDelay){
   console.log('\nSpeedtest on bandits for agent: ', beliefOrBeliefDelay);
 
   var getBandit = function(numberOfTrials){
-    var armToPrizeERP = {
+    var armToPrizeDist = {
       0:Delta({ v: 'a' }),
       1:Delta({ v: 'a' }),
       2:Delta({ v: 'a' }),
@@ -26,14 +26,14 @@ var speedTestBandits = function(beliefOrBeliefDelay){
 
     return makeBandit({
       numberOfArms: 4,
-      armToPrizeERP: armToPrizeERP,
+      armToPrizeDist: armToPrizeDist,
       numberOfTrials: numberOfTrials
     });
   };
   
   var getAgent = function(numberOfTrials, bandit){
 
-    var armToPrizeERPThunk = function(){
+    var armToPrizeDistThunk = function(){
       var dist = function(){
 	return categorical([0.02, 0.49, 0.49],
 			   [Delta({ v: 'a' }), Delta({ v: 'b' }), Delta({ v: 'c' })]);
@@ -41,7 +41,7 @@ var speedTestBandits = function(beliefOrBeliefDelay){
 
       return {0:Delta({ v: 'a' }), 1:dist(), 2:dist(), 3:dist()};
     };
-    var priorBelief = getPriorBelief( numberOfTrials, armToPrizeERPThunk);
+    var priorBelief = getPriorBelief( numberOfTrials, armToPrizeDistThunk);
     
     var baseAgentParams = {
       priorBelief: priorBelief,
@@ -97,11 +97,11 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
   // world params
   var options = {
     numberOfArms: 2,
-    armToPrizeERP: {0:Delta({ v: 'a' }), 1:Delta({ v: 'b' })},
+    armToPrizeDist: {0:Delta({ v: 'a' }), 1:Delta({ v: 'b' })},
     numberOfTrials: 3
   };
   var numberOfTrials = options.numberOfTrials;
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var bandit = makeBandit(options);
   var world = bandit.world;
   var startState = bandit.startState;
@@ -123,16 +123,16 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
     return simulate(startState, world, agent, 'actions');
   };
 
-  // Agent knows armToPrizeERP, picks arm with best prize
+  // Agent knows armToPrizeDist, picks arm with best prize
   var priorBelief = getPriorBelief( numberOfTrials,
-				    function(){return armToPrizeERP;});
+				    function(){return armToPrizeDist;});
   //  console.log('prior: ', sample(priorBelief), sample(priorBelief), sample(priorBelief)); ash();
   var trajectory = getTrajectory( priorBelief );
   assert.ok( trajectory[0] === 0, 'fail banditexample 1');
 
   // Agent has .5 chance on arm 1 having best prize c, and so tries 1 before switching to 0.
   var priorBelief = getPriorBelief( numberOfTrials, function(){
-    return categorical( [.5, .5], [ armToPrizeERP,
+    return categorical( [.5, .5], [ armToPrizeDist,
 				    {0:Delta({ v: 'a' }), 1:Delta({ v: 'c' })}]);
   });
   var trajectory = getTrajectory( priorBelief );
@@ -148,14 +148,14 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
   
   // world params
   var options = {numberOfArms: 4,
-		 armToPrizeERP: {
+		 armToPrizeDist: {
 		   0:Delta({ v: 'a' }),
 		   1:Delta({ v: 'a' }),
 		   2:Delta({ v: 'a' }),
 		   3:Delta({ v: 'a' })},
 		 numberOfTrials: 6};
   var numberOfTrials = options.numberOfTrials;
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var bandit = makeBandit(options);
   var world = bandit.world;
   var startState = bandit.startState;
@@ -201,7 +201,7 @@ var banditGenerativeDelay = function(){
   // world params
   var options = {
     numberOfArms: 4,
-    armToPrizeERP: {
+    armToPrizeDist: {
       0:Delta({ v: 'a' }),
       1:Delta({ v: 'a' }),
       2:Delta({ v: 'a' }),
@@ -209,7 +209,7 @@ var banditGenerativeDelay = function(){
     numberOfTrials: 6
   };
   var numberOfTrials = options.numberOfTrials;
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var bandit = makeBandit(options);
   var world = bandit.world;
   var startState = bandit.startState;

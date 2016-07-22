@@ -6,10 +6,10 @@
 // and returns the associated utility function,
 // *world* the POMDP that the trajectories were generated in,
 // and *priors* an object containing:
-// *utilityParamsPrior* an ERP over parameters for a utility function,
-// *beliefPrior* an ERP over the agent's prior over the latent state,
-// *alphaPrior* an ERP over the agent's softmax noise,
-// *discountPrior* an ERP over the agent's discount parameter (if zero, run with noDelays
+// *utilityParamsPrior* an Dist over parameters for a utility function,
+// *beliefPrior* an Dist over the agent's prior over the latent state,
+// *alphaPrior* an Dist over the agent's softmax noise,
+// *discountPrior* an Dist over the agent's discount parameter (if zero, run with noDelays
 // unless agent is myopic or has bounded VOI),
 // *probSophisticated* the probability that the agent is sophisticated (conditioned on no myopia
 // or bounded VOI),
@@ -48,9 +48,9 @@ var inferBeliefDelayAgent = function(observedTrajectories,
 
       var observation = observe(state);
       var nextBelief = agentUpdateBelief(state.manifestState, belief, observation, 0);
-      var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
+      var nextActionDist = agentAct(state.manifestState, nextBelief, 0);
       
-      factor(nextActionERP.score(observedAction));
+      factor(nextActionDist.score(observedAction));
       
       return sampleAlongTrajectory(index + 1, trajectory, agent, nextBelief);
     }

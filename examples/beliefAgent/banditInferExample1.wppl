@@ -34,7 +34,7 @@ console.log('observed trajectory', map( function (state) {
 // might start out with informedBelief or agentBelief. we also time the
 // inference.
 var inferredAgent = function(){
-  return printERP(Infer({ method: 'enumerate' }, function(){
+  return printDist(Infer({ method: 'enumerate' }, function(){
     var priorBelief = uniformDraw([agentBelief, informedBelief]);
 
     var agentUtility = function (state,action) {

@@ -127,7 +127,7 @@ var conditionOnPath = function (agent, path, world, startState) {
 
 var posterior = function(inferFunction, options) {
   return function() {
-    var posteriorERP = inferFunction(function () { 
+    var posteriorDist = inferFunction(function () { 
 
       var agentUtilityTable = agentUtilityTableSampler();
       var discount = agentDiscountSampler();
@@ -153,11 +153,11 @@ var posterior = function(inferFunction, options) {
 
     }, options);
 
-    printERP(posteriorERP);
+    printDist(posteriorDist);
   };
 };
 
-// printERP(posterior);
+// printDist(posterior);
 // with way more possibilities (5*5*5*5*2*10 = 12500):
 // estimate for time to enumerate: 295 minutes (based on time for pureDiscountExample)
 // MCMC doesn't explore enough, takes ~100 seconds (depends on the run)

@@ -112,7 +112,7 @@ var conditionOnPath = function (agent, path, world, startState) {
 
 var posterior = function() {
 
-  var posteriorERP = Infer({ method: 'enumerate' }, function () { 
+  var posteriorDist = Infer({ method: 'enumerate' }, function () { 
 
     var agentProbNoodleOpen = agentProbNoodleOpenSampler();
     var agentPrior = agentProbNoodleOpen === 0 ? informedPriorBelief
@@ -139,11 +139,11 @@ var posterior = function() {
 
   });
 
-  printERP(posteriorERP);
+  printDist(posteriorDist);
 
 };
 
-// printERP(posterior);
+// printDist(posterior);
 
 timeit(posterior);
 

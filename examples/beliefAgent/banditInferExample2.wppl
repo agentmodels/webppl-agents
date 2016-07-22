@@ -30,7 +30,7 @@ console.log('observed trajectory', map( function (state) {
 
 // here is where the inference happens
 var inferredAgent = function () {
-  return printERP(Infer({ method: 'enumerate' }, function(){
+  return printDist(Infer({ method: 'enumerate' }, function(){
     var priorBelief = uniformDraw([agentBelief, informedBelief]);
     // to represent uncertainty about the agent's utility function, we randomly
     // generate a utility sign, 1 or -1. If the utility sign is 1, then the

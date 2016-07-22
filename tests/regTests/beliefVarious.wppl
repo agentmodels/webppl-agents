@@ -10,9 +10,9 @@ var testAgent = function(){
   var options = {maxTimeAtRestaurant: 1, POMDP:true};
   var gridworldPOMDP = makeRestaurantChoiceWorld(options);
 
-  var makePriorGridworld = function(manifestState, latentStateERP) {
+  var makePriorGridworld = function(manifestState, latentStateDist) {
     return Infer({ method: 'enumerate' }, function(){
-      return buildState(manifestState, sample(latentStateERP));
+      return buildState(manifestState, sample(latentStateDist));
     });
   };
   

@@ -88,16 +88,16 @@ var factorOnSequence = function(currentBelief, index, observedStateAction, agent
 
     var observation = observe(state);
     var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation);
-    var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
+    var nextActionDist = agentAct(state.manifestState, nextBelief, 0);
     
-    factor(nextActionERP.score(observedAction));
+    factor(nextActionDist.score(observedAction));
     
     return factorOnSequence(nextBelief, index + 1, observedStateAction, agent);
   }
 };
 
 var inferredAgent = function(){
-  return printERP(MCMC(function(){
+  return printDist(MCMC(function(){
     var utilityTable = sample(utilityTablePrior);
     var utility = tableToUtilityFunction(utilityTable);
     var agentProbDSClosed = uniformDraw([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]);

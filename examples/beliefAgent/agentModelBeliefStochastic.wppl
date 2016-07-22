@@ -25,25 +25,25 @@ var observe = function(state){return state.prize;};
 
 
 
-// Define ERPs for armToPrize
+// Define Dists for armToPrize
 
-var getBernoulliERP = function(p){return Infer({ method: 'enumerate' },
+var getBernoulliDist = function(p){return Infer({ method: 'enumerate' },
   function(){return categorical([1-p,p],['zero','one'])})};
 
 // Agent prior is that arm1 has either flip(.6) or flip(.4).
 var betterProb = .6;
-var betterERP = getBernoulliERP(betterProb);
-var worseERP = getBernoulliERP(1-betterProb);
+var betterDist = getBernoulliDist(betterProb);
+var worseDist = getBernoulliDist(1-betterProb);
 
 // Agent knows that arm0 has deterministic reward of .5
-var halfERP = Delta({ v: 'half' });
+var halfDist = Delta({ v: 'half' });
 
 // For testing, arm1 will actually always pay 0
-var actualERP = getBernoulliERP(.001);
+var actualDist = getBernoulliDist(.001);
 var startState = { prize: 'start',
                    timeLeft:totalTime, 
                    terminateAfterAction:false,
-                   armToPrize: {0:halfERP, 1:actualERP}
+                   armToPrize: {0:halfDist, 1:actualDist}
                  };
 
                 
@@ -57,8 +57,8 @@ var utility = function(state,action){
 };
 
 // Possible startStates for the agent
-var agentState1 = update(startState, {armToPrize:{0:halfERP, 1:betterERP}});
-var agentState2 = update(startState, {armToPrize:{0:halfERP, 1:worseERP}});
+var agentState1 = update(startState, {armToPrize:{0:halfDist, 1:betterDist}});
+var agentState2 = update(startState, {armToPrize:{0:halfDist, 1:worseDist}});
 
 var priorBelief = Infer({ method: 'enumerate' }, function(){
   return categorical( [.5, .5], [agentState1, agentState2]);
@@ -80,9 +80,9 @@ var updateBelief = dp.cache(function(belief, observation, action){
 var specialUpdateBelief = dp.cache(function(belief, observation, action){
   return Infer({ method: 'enumerate' }, function(){
     var state = sample(belief);
-    var armToPrizeERPs = state.armToPrize;
-    var ERPForArm = armToPrizeERPs[action];
-    factor( ERPForArm.score(observation ) ); // because the observation is same as the prize in this case
+    var armToPrizeDists = state.armToPrize;
+    var DistForArm = armToPrizeDists[action];
+    factor( DistForArm.score(observation ) ); // because the observation is same as the prize in this case
     return transition(state,action) // doesn't matter which prize we're at: only what we infer about armToPrize
   });
 });

@@ -4,18 +4,18 @@
 // TODO these two functions should be moved into getPOMDPFRunctions
 
 // Test whether belief has right form for fastUpdateBelief, i.e. it's not
-// an ERP but an object with 'manifestState' and 'latentStateERP' properties
-var isERPOverLatent = function(belief){
-  return _.has(belief, 'manifestState') && _.has(belief, 'latentStateERP')
-    && !_.has(belief,'support') && hasSample(belief.latentStateERP);
+// an Dist but an object with 'manifestState' and 'latentStateDist' properties
+var isDistOverLatent = function(belief){
+  return _.has(belief, 'manifestState') && _.has(belief, 'latentStateDist')
+    && !_.has(belief,'support') && hasSample(belief.latentStateDist);
 };
 
-// Convert priorBelief from ERP over full states to ERP over latents
-var toERPOverLatent = function(belief){
+// Convert priorBelief from Dist over full states to Dist over latents
+var toDistOverLatent = function(belief){
   var manifestState = belief.support()[0].manifestState;
-  var latentStateERP = Infer({ method: 'enumerate' }, function(){return sample(belief).latentState;})
+  var latentStateDist = Infer({ method: 'enumerate' }, function(){return sample(belief).latentState;})
   return {manifestState: manifestState,
-          latentStateERP: latentStateERP};
+          latentStateDist: latentStateDist};
 };
 
 
@@ -26,8 +26,8 @@ var getPOMDPFunctions = function(params, world){
 
   // Sample a state from belief: works for general states and manifestLatent states.
   var sampleBelief = function(belief){
-    if (isERPOverLatent(belief)){
-      return buildState(belief.manifestState, sample(belief.latentStateERP) );
+    if (isDistOverLatent(belief)){
+      return buildState(belief.manifestState, sample(belief.latentStateDist) );
     } else {
       return sample(belief);
     };
@@ -41,7 +41,7 @@ var getPOMDPFunctions = function(params, world){
   
   var getBeliefToActions = function(manifestStateToActions){
     return function(belief){
-      var manifestState = isERPOverLatent(belief) ? belief.manifestState : 
+      var manifestState = isDistOverLatent(belief) ? belief.manifestState : 
           sample(belief).manifestState;
       return manifestStateToActions( manifestState );
     };
@@ -59,29 +59,29 @@ var getPOMDPFunctions = function(params, world){
 
   var getUpdateBeliefManifestLatent = function(transition, observe){
     
-    var isDeltaERP = function(erp){return erp.support().length===1;};
+    var isDeltaDist = function(dist){return dist.support().length===1;};
     
     return dp.cache(
       function(belief_, observation, action){
 
-        // If belief has form of "ERP over {manifest:, latent:}" then we convert
-        // to form of "{manifest:, ERP over latent}". 
-        var belief = isERPOverLatent(belief_) ? belief_ : toERPOverLatent(belief_);
+        // If belief has form of "Dist over {manifest:, latent:}" then we convert
+        // to form of "{manifest:, Dist over latent}". 
+        var belief = isDistOverLatent(belief_) ? belief_ : toDistOverLatent(belief_);
 
         // we set the manifest state to the observed manifest state
         var newManifestState = observation.manifestState;
         
         // Don't update latent when you don't need to
         if (observation.observation === 'noObservation'
-	    || isDeltaERP(belief.latentStateERP) ) {
+	    || isDeltaDist(belief.latentStateDist) ) {
           return update(belief, {manifestState: newManifestState});
         } else {
 
           // Sample latent, update state, compare predicted observation from state
           // to actual observation.
 
-          var newLatentERP = Infer({ method: 'enumerate' }, function(){
-            var latentState = sample(belief.latentStateERP);
+          var newLatentDist = Infer({ method: 'enumerate' }, function(){
+            var latentState = sample(belief.latentStateDist);
 	    var state = buildState( belief.manifestState, latentState);    
             var predictedNextState = isNullAction(action) ? state : transition(state, action);
             var predictedObservation = observe(predictedNextState);
@@ -89,7 +89,7 @@ var getPOMDPFunctions = function(params, world){
 	    condition(_.isEqual(predictedObservation, observation));
 	    return latentState;});
           
-          return {manifestState: newManifestState, latentStateERP: newLatentERP};
+          return {manifestState: newManifestState, latentStateDist: newLatentDist};
         }
       });
   };
@@ -302,7 +302,7 @@ var makePOMDPAgentDelay = function (params, world){
         var state = sampleBelief(belief);
         return transition(state,action); 
       });
-      return POMDPFunctions.useManifestLatent ? toERPOverLatent(nextBelief) : nextBelief;
+      return POMDPFunctions.useManifestLatent ? toDistOverLatent(nextBelief) : nextBelief;
       
     } else {
       return _updateBelief(belief, observation, action);

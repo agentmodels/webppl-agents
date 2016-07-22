@@ -213,8 +213,8 @@ var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
 
     var newBaseParams = update(baseParams, {sophisticatedOrNaive: 'naive', discount: 1});
 
-    var erp =  inferGridWorldPOMDP(world, start, newBaseParams, trueAgentParams, prior, agentTypeAndFunctions, 'offPolicy', 0);
-    printTopK(erp,4);
+    var dist =  inferGridWorldPOMDP(world, start, newBaseParams, trueAgentParams, prior, agentTypeAndFunctions, 'offPolicy', 0);
+    printTopK(dist,4);
   };
   
   return { 
@@ -241,7 +241,7 @@ ash();
 var timePosterior = function( observedPath ){
   var thunk = function(){return posterior(observedPath)};
   var out = timeit( thunk );
-  printERP(out.value);
+  printDist(out.value);
   console.log( 'runtime in s:', .001 * out.runtimeInMilliseconds);
 };
 

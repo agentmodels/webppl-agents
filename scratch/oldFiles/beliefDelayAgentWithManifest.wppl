@@ -66,7 +66,7 @@ var makeBeliefDelayAgent = function (params, world){
   }
 
   
-  // *belief* is ERP on latent states, returns posterior ERP on latent states
+  // *belief* is Dist on latent states, returns posterior Dist on latent states
   var updateBelief = dp.cache(
     function (manifestState, belief, observation, delay) {
       if (params.boundVOI.on && (delay >= params.boundVOI.bound)){
@@ -84,7 +84,7 @@ var makeBeliefDelayAgent = function (params, world){
   
   var act = dp.cache(
     function (manifestState, belief, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), 'act arguments error' + 
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isDist(belief) && _.isFinite(delay), 'act arguments error' + 
                 'act: manifestState, belief, delay' + JSON.stringify([manifestState, belief, delay]));
 
       return Infer({ method: 'enumerate' }, function () {

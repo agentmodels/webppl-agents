@@ -1,7 +1,7 @@
-// Note: the action ERPs for the myopic agent and the optimal agent are not
+// Note: the action Dists for the myopic agent and the optimal agent are not
 // identical because the myopic agent thinks the EUs are lower (because it
 // doesn't forsee exploiting from future exploration) and softmax noise means
-// that this is reflected in the action ERPs. However, they are close, and the
+// that this is reflected in the action Dists. However, they are close, and the
 // MAP is always the same (meaning that they would act the same if they had no
 // softmax noise and broke ties in the same way).
 
@@ -10,20 +10,20 @@ var worldObserve = world.observe;
 var observe = getFullObserve(worldObserve);
 var transition = world.transition;
 
-var probablyChampagneERP = Categorical({ ps: [0.4, 0.6], vs: ['nothing', 'champagne'] });
-var probablyNothingERP = Categorical({ ps: [0.6, 0.4], vs: ['nothing', 'champagne'] });
+var probablyChampagneDist = Categorical({ ps: [0.4, 0.6], vs: ['nothing', 'champagne'] });
+var probablyNothingDist = Categorical({ ps: [0.6, 0.4], vs: ['nothing', 'champagne'] });
 
-var trueLatent = {0: probablyNothingERP,
-		  1: probablyChampagneERP};
+var trueLatent = {0: probablyNothingDist,
+		  1: probablyChampagneDist};
 
 var timeLeft = 7;
 
 var startState = buildStochasticBanditStartState(timeLeft, trueLatent);
 
 var prior = Infer({ method: 'enumerate' }, function(){
-  var latentState = {0: uniformDraw([probablyChampagneERP, probablyNothingERP]),
-		     1: categorical([0.6, 0.4], [probablyChampagneERP,
-						   probablyNothingERP])};
+  var latentState = {0: uniformDraw([probablyChampagneDist, probablyNothingDist]),
+		     1: categorical([0.6, 0.4], [probablyChampagneDist,
+						   probablyNothingDist])};
   return buildStochasticBanditStartState(timeLeft, latentState);
 });
 
@@ -49,12 +49,12 @@ var myopicAgentParams = {utility: utility,
 			 fastUpdateBelief: false};
 var myopicAgent = makeBeliefDelayAgent(myopicAgentParams, world);
 
-var nearlyEqualActionERPs = function(erp1, erp2) {
+var nearlyEqualActionDists = function(dist1, dist2) {
   var nearlyEqual = function(float1, float2) {
     return Math.abs(float1 - float2) < 0.05;
   };
-  return nearlyEqual(erp1.score(0), erp2.score(0))
-    && nearlyEqual(erp1.score(1), erp2.score(1));
+  return nearlyEqual(dist1.score(0), dist2.score(0))
+    && nearlyEqual(dist1.score(1), dist2.score(1));
 };
 
 // it's important that we simulate the two agents such that they get the same
@@ -89,21 +89,21 @@ var sampleTwoSequences = function(states, priorBeliefs, actions) {
   var myopicEU = myopicAgent.expectedUtility;
   var optimalEU = optimalAgent.expectedUtilityBelief;
 
-  var newMyopicActionERP = myopicAct(newMyopicBelief, delay);
-  var newOptimalActionERP = optimalAct(newOptimalBelief);
+  var newMyopicActionDist = myopicAct(newMyopicBelief, delay);
+  var newOptimalActionDist = optimalAct(newOptimalBelief);
 
-  var newMyopicAction = sample(newMyopicActionERP);
-  var newOptimalAction = nearlyEqualActionERPs(newMyopicActionERP,
-					       newOptimalActionERP)
-	? newMyopicAction : sample(newOptimalActionERP);
+  var newMyopicAction = sample(newMyopicActionDist);
+  var newOptimalAction = nearlyEqualActionDists(newMyopicActionDist,
+					       newOptimalActionDist)
+	? newMyopicAction : sample(newOptimalActionDist);
 
-  // console.log('\naction ERPs:');
+  // console.log('\naction Dists:');
   // console.log('optimal agent:');
-  // printERP(optimalAct(newOptimalBelief));
+  // printDist(optimalAct(newOptimalBelief));
   // console.log('myopic agent:');
-  // printERP(myopicAct(newMyopicBelief, delay));
-  // console.log('Are these ERPs nearly equal?');
-  // console.log(nearlyEqualActionERPs(newMyopicActionERP, newOptimalActionERP));
+  // printDist(myopicAct(newMyopicBelief, delay));
+  // console.log('Are these Dists nearly equal?');
+  // console.log(nearlyEqualActionDists(newMyopicActionDist, newOptimalActionDist));
   // console.log('Myopic EU of action 0: ');
   // console.log(myopicEU(newMyopicBelief, 0, delay));
   // console.log('Myopic EU of action 1: ');

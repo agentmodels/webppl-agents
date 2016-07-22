@@ -133,7 +133,7 @@ console.log('nameTo', pathToName(path),
 
 
 // var pathDist = Infer({ method: 'rejection', samples: 10 }, testLocations);
-// printERP(pathDist);
+// printDist(pathDist);
 // //assert.ok( arraysEqual(path, testLocations.slice(0,testLocations.length-1), 'check' ) );
 // ash();
 
@@ -207,7 +207,7 @@ var posterior = function(observedPath) {
 var getPosterior = function( observedPath ){
   var thunk = function(){return posterior(observedPath)};
   var out = timeit( thunk );
-  printERP(out.value);
+  printDist(out.value);
   console.log( 'runtime in s:', .001 * out.runtimeInMilliseconds);
 };
 

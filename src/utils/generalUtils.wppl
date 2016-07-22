@@ -44,10 +44,10 @@ var argMax = function(f, ar){
 
 
 
-// Helpers for displaying ERPs
-var printERP = function(x,k) {
-  var erpValues = sort(x.support(), undefined, function(v){return -x.score(v);});
-  var erpValues = typeof(k)=='undefined' ? erpValues : erpValues.slice(0,k);
+// Helpers for displaying Dists
+var printDist = function(x,k) {
+  var distValues = sort(x.support(), undefined, function(v){return -x.score(v);});
+  var distValues = typeof(k)=='undefined' ? distValues : distValues.slice(0,k);
   map(
     function(v){
       var prob = Math.exp(x.score(v));
@@ -55,31 +55,31 @@ var printERP = function(x,k) {
         console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
       }
     },
-    erpValues);
+    distValues);
 };
 
-var printTopK = function(erp,k){
-  var erpValues = sort(erp.support(), undefined, function(v){return -erp.score(v);});
+var printTopK = function(dist,k){
+  var distValues = sort(dist.support(), undefined, function(v){return -dist.score(v);});
   map(
     function(v){
-      var prob = Math.exp(erp.score(v));
+      var prob = Math.exp(dist.score(v));
       if (prob > 0.0){
         console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
       }
     },
-    erpValues.slice(0,k));
+    distValues.slice(0,k));
 };
 
 
-var getMarginal = function(erp,key){
+var getMarginal = function(dist,key){
   return Infer({ method: 'enumerate' }, function(){
-    return sample(erp)[key];
+    return sample(dist)[key];
   });
 };
 
-var getMarginalObject = function(erp,key){
+var getMarginalObject = function(dist,key){
   return Infer({ method: 'enumerate' }, function(){
-    var s = sample(erp);
+    var s = sample(dist);
     var keys = _.keys(s);
     var omitKeys = filter(function(el){
       return el !== key;}, keys);
@@ -88,10 +88,10 @@ var getMarginalObject = function(erp,key){
 };
 
 // Helper for displaying marginals of array of keys
-var displayMarginals = function(erp, keys){
+var displayMarginals = function(dist, keys){
   map( function(key){
     console.log('\n Marginal for : ', key);
-    printERP(getMarginal(erp, key) );
+    printDist(getMarginal(dist, key) );
   }, keys);
 };
 

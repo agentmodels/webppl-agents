@@ -1,13 +1,13 @@
 // Stochastic bandit pomdp constructor: outputs Bandit environments whose prizes are
 // strings or numbers.
 
-// The latent state stores each arm's ERP over prizes, and the manifest state
+// The latent state stores each arm's Dist over prizes, and the manifest state
 // location contains the reward gained after the previous arm pull.
 
 
 
 // helper function
-var inSupport = function(x, erp){return _.isFinite( erp.score(x) ); };
+var inSupport = function(x, dist){return _.isFinite( dist.score(x) ); };
 
 
 // main constructor function is makeBandit
@@ -25,7 +25,7 @@ var makeBanditWorld = function(numberOfArms) {
 
   var transition = function(state, action){
     
-    assert.ok(hasSample(state.latentState[action]), 'bandit transition: latent state has no ERP for given action');
+    assert.ok(hasSample(state.latentState[action]), 'bandit transition: latent state has no Dist for given action');
     // figure out what the prize is
     var prize = sample(state.latentState[action]);
 
@@ -56,35 +56,35 @@ var makeBanditWorld = function(numberOfArms) {
   };
 };
 
-var makeBanditStartState = function(numberOfTrials, armToPrizeERP) {
+var makeBanditStartState = function(numberOfTrials, armToPrizeDist) {
   return {manifestState: {loc: 'start',
 			  timeLeft: numberOfTrials,
 			  terminateAfterAction: false},
-	  latentState: armToPrizeERP};
+	  latentState: armToPrizeDist};
 };
 
 var makeBandit = function(options) {
 
-  assert.ok(_.has(options, 'numberOfArms') && _.has(options, 'armToPrizeERP')
+  assert.ok(_.has(options, 'numberOfArms') && _.has(options, 'armToPrizeDist')
 	    && _.has(options, 'numberOfTrials'),
-	   'makeBandit args: options does not contain one or more of numberOfArms, armToPrizeERP, and numberOfTrials');
+	   'makeBandit args: options does not contain one or more of numberOfArms, armToPrizeDist, and numberOfTrials');
 
   var numberOfArms = options.numberOfArms;
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   var numericalPrizes = options.numericalPrizes;
   var prizeToUtility = options.prizeToUtility;
   
-  // ensure that armToPrizeERP has an entry for every arm
+  // ensure that armToPrizeDist has an entry for every arm
   mapN(function(arm){
-    assert.ok(_.has(armToPrizeERP, arm.toString()),
-	      'makeBandit: arm ' + arm + ' has no entry in armToPrizeERP');
+    assert.ok(_.has(armToPrizeDist, arm.toString()),
+	      'makeBandit: arm ' + arm + ' has no entry in armToPrizeDist');
   }, numberOfArms);
   
-  // ensure that armToPrizeERP has an ERP for every arm
+  // ensure that armToPrizeDist has an Dist for every arm
   mapN(function(arm){
-    assert.ok(hasSample(armToPrizeERP[arm.toString()]),
-	      'makeBandit: arm ' + arm + ' has no ERP in armToPrizeERP');
+    assert.ok(hasSample(armToPrizeDist[arm.toString()]),
+	      'makeBandit: arm ' + arm + ' has no Dist in armToPrizeDist');
   }, numberOfArms);
 
   // ensure that prizes are numerical iff numericalPrizes is true,
@@ -93,34 +93,34 @@ var makeBandit = function(options) {
   // that every prize has a utility
   if (numericalPrizes) {
     var supportIsNumeric = function(arm) {
-      var erp = armToPrizeERP[arm];
+      var dist = armToPrizeDist[arm];
       map(function(x){
-	assert.ok(_.isFinite(x) && inSupport(x, erp),
+	assert.ok(_.isFinite(x) && inSupport(x, dist),
 		  'makeBandit: some prizes are non-numeric but numericalPrizes is true');
-      }, erp.support());
+      }, dist.support());
     };
 
     mapN(supportIsNumeric, numberOfArms);
     
   } else {
     var supportIsStringy = function(arm) {
-      var erp = armToPrizeERP[arm];
+      var dist = armToPrizeDist[arm];
       map(function(x){
-	assert.ok(_.isString(x) && inSupport(x, erp),
+	assert.ok(_.isString(x) && inSupport(x, dist),
 		  'makeBandit: some prizes are not strings but numericalPrizes is false');
-      }, erp.support());
+      }, dist.support());
     };
 
     mapN(supportIsStringy, numberOfArms);
   }
   
   var world = makeBanditWorld(numberOfArms);
-  var startState = makeBanditStartState(numberOfTrials, armToPrizeERP);
+  var startState = makeBanditStartState(numberOfTrials, armToPrizeDist);
 
   return {
     world: world,
     startState: startState,
-    armToPrizeERP: armToPrizeERP,
+    armToPrizeDist: armToPrizeDist,
     numericalPrizes: numericalPrizes,
     numberOfArms: numberOfArms
   };
@@ -144,12 +144,12 @@ var makeBanditUtility = function(bandit, prizeToUtility) {
     return numericBanditUtility;
   } else {
     var prizesHaveUtilities = function(arm) {
-      var armToPrizeERP = bandit.armToPrizeERP;
-      var erp = armToPrizeERP[arm];
+      var armToPrizeDist = bandit.armToPrizeDist;
+      var dist = armToPrizeDist[arm];
       map(function(x){
-	assert.ok(_.isFinite(prizeToUtility[x]) && inSupport(x, erp),
+	assert.ok(_.isFinite(prizeToUtility[x]) && inSupport(x, dist),
 		  'makeBandit: some prizes do not have utilities');
-      }, erp.support());
+      }, dist.support());
     };
 
     mapN(prizesHaveUtilities, bandit.numberOfArms);
@@ -164,12 +164,12 @@ var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
   var priorBelief = agentParams.priorBelief;
   var numericalPrizes = bandit.numericalPrizes;
 
-  if (isERPOverLatent(priorBelief)) {
+  if (isDistOverLatent(priorBelief)) {
     assert.ok(_.isEqual(priorBelief.manifestState,
 			bandit.startState.manifestState),
 	      'makeBanditAgent: priorBelief has wrong start manifestState');
   } else {
-    assert.ok(hasSample(priorBelief), 'makeBanditAgent: priorBelief is neither an ERP nor an object containing a manifest state and a latentStateERP');
+    assert.ok(hasSample(priorBelief), 'makeBanditAgent: priorBelief is neither an Dist nor an object containing a manifest state and a latentStateDist');
     assert.ok(_.isEqual(sample(priorBelief).manifestState,
 			bandit.startState.manifestState),
 	      'makeBanditAgent: priorBelief has wrong start manifestState');
@@ -210,11 +210,11 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
 	     'inferBandit args: observedStateAction first entry of first entry not a POMDP state');
 
   if (priorPrizeToUtility) {
-    assert.ok(hasSample(priorPrizeToUtility), 'inferBandit args: priorPrizeToUtility defined but not an ERP');
+    assert.ok(hasSample(priorPrizeToUtility), 'inferBandit args: priorPrizeToUtility defined but not an Dist');
   }
 
   if (priorRewardMyopic) {
-    assert.ok(hasSample(priorRewardMyopic), 'inferBandit args: priorMyopia defined but not an ERP');
+    assert.ok(hasSample(priorRewardMyopic), 'inferBandit args: priorMyopia defined but not an Dist');
   }
 
   
@@ -235,9 +235,9 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
 
     // Factor on whole sampled trajectory (SLOW IF NOT DETERMINISTIC AND NUM SAMPLES HIGH)
     var factorOnTrajectory = function(){
-      var trajectoryERP = Infer({ method: 'rejection', samples: numRejectionSamples }, function(){
+      var trajectoryDist = Infer({ method: 'rejection', samples: numRejectionSamples }, function(){
         return simulate(startState, world, agent, 'states');});
-      factor(trajectoryERP.score(map(first, observedStateAction)));
+      factor(trajectoryDist.score(map(first, observedStateAction)));
     };
 
     // Move agent through observed sequence 
@@ -248,18 +248,18 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
         var state = observedStateAction[timeIndex][0];
         var observation = observe(state);
 
-        // Update agent's internal state and get action ERP
+        // Update agent's internal state and get action Dist
         var delay = 0;     
         var nextBelief = beliefOrBeliefDelay == 'belief' ?
             agentUpdateBelief(currentBelief, observation, previousAction) :
             agentUpdateBelief(currentBelief, observation, previousAction, delay);
 
         
-        var nextActionERP = beliefOrBeliefDelay == 'belief' ? 
+        var nextActionDist = beliefOrBeliefDelay == 'belief' ? 
             agentAct(nextBelief) : agentAct(nextBelief, delay); 
 
         var observedAction = observedStateAction[timeIndex][1];
-        factor(nextActionERP.score(observedAction));
+        factor(nextActionDist.score(observedAction));
 
         // condition on next world state, passing through updated internal state
         factorSequenceOffPolicy(nextBelief, observedAction, timeIndex + 1);
@@ -297,10 +297,10 @@ var agentModelsBanditInfer = function(baseAgentParams, priorPrizeToUtility,
         var state = observedSequence[timeIndex].state;
         var observation = observedSequence[timeIndex].observation;
         var nextBelief = agentUpdateBelief(currentBelief, observation, previousAction);
-        var nextActionERP = agentAct(nextBelief);
+        var nextActionDist = agentAct(nextBelief);
         var observedAction = observedSequence[timeIndex].action;
         
-        factor(nextActionERP.score(observedAction));
+        factor(nextActionDist.score(observedAction));
         
         factorSequence(nextBelief, observedAction, timeIndex + 1);
       }

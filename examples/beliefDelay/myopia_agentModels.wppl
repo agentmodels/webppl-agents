@@ -19,7 +19,7 @@ var getPosterior = function(timeLeft, useOptimalModel) {
 	    champagne: 20};
   });
   
-  var priorMyopia =  useOptimalModel ? deltaERP({on:false, bound:0}) :
+  var priorMyopia =  useOptimalModel ? deltaDist({on:false, bound:0}) :
       Infer({ method: 'enumerate' }, function(){
         return {on: true, 
                 bound: categorical([.4, .2, .1, .1, .1, .1], 
@@ -39,15 +39,15 @@ var getPosterior = function(timeLeft, useOptimalModel) {
 
   var observedStateAction = [[startState, 0]];
 
-  var outputERP = inferIRLBandit(worldAndStart, baseAgentParams, prior,
+  var outputDist = inferIRLBandit(worldAndStart, baseAgentParams, prior,
 				 observedStateAction, 'offPolicy', 0, 'beliefDelay');
   
   var marginalChocolate = Infer({ method: 'enumerate' }, function(){
-    return sample(outputERP).prizeToUtility.chocolate;
+    return sample(outputDist).prizeToUtility.chocolate;
   });
   
   return [expectation(marginalChocolate), 
-          expectation(getMarginal(outputERP,'myopiaBound'))]
+          expectation(getMarginal(outputDist,'myopiaBound'))]
 };
 
 var timeHorizonValues = range(10).slice(2);

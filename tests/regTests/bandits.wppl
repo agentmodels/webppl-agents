@@ -2,14 +2,14 @@
 
 console.log('--- "IRL" bandit tests ---\n');
 
-var getPriorBelief = function(numberOfTrials, armToPrizeERPThunk){
+var getPriorBelief = function(numberOfTrials, armToPrizeDistThunk){
   
   var startManifestState = {timeLeft: numberOfTrials, 
                             loc: 'start', 
                             terminateAfterAction: false};
   
   return Infer({ method: 'enumerate' },  function(){
-    var latentState = armToPrizeERPThunk();
+    var latentState = armToPrizeDistThunk();
     return buildState(startManifestState, latentState);
   });
 };
@@ -23,11 +23,11 @@ var testInferBandit = function(beliefOrBeliefDelay){
   // world params
   var options = {
     numberOfArms: 2,
-    armToPrizeERP: {0:Delta({ v: 'a' }), 1:Delta({ v: 'b' })},
+    armToPrizeDist: {0:Delta({ v: 'a' }), 1:Delta({ v: 'b' })},
     numberOfTrials: 3
   };
   var numberOfArms = options.numberOfArms;
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   var bandit = makeBandit(options);
   
@@ -48,31 +48,31 @@ var testInferBandit = function(beliefOrBeliefDelay){
   
   // EXAMPLE 1
   var observedStateAction = [['start',1], ['b',1], ['b',1]]; 
-  var latentState = armToPrizeERP;
+  var latentState = armToPrizeDist;
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
   // Test on two different inference functions
-  var erp1 = inferBandit( bandit, baseAgentParams, prior,
+  var dist1 = inferBandit( bandit, baseAgentParams, prior,
 			  fullObservedStateAction, 'trajectory', 10,
 			  beliefOrBeliefDelay);
-  var erp2 = inferBandit( bandit, baseAgentParams, prior,
+  var dist2 = inferBandit( bandit, baseAgentParams, prior,
 			  fullObservedStateAction,'offPolicy', 10,
 			  beliefOrBeliefDelay);
-  assert.ok( sample(erp1).prizeToUtility.a === 0
-	     && sample(erp2).prizeToUtility.a === 0, 'testbandit infer 1');
+  assert.ok( sample(dist1).prizeToUtility.a === 0
+	     && sample(dist2).prizeToUtility.a === 0, 'testbandit infer 1');
 
   // EXAMPLE 2
   var observedStateAction = [['start',0], ['a',0], ['a',0]]; 
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
-  var erp1 = inferBandit( bandit, baseAgentParams, prior,
+  var dist1 = inferBandit( bandit, baseAgentParams, prior,
 			  fullObservedStateAction, 'trajectory', 10,
 			  beliefOrBeliefDelay); 
-  var erp2 = inferBandit( bandit, baseAgentParams, prior,
+  var dist2 = inferBandit( bandit, baseAgentParams, prior,
 			  fullObservedStateAction,'offPolicy', 10,
 			  beliefOrBeliefDelay);
-  assert.ok( sample(erp1).prizeToUtility.a === 1
-	     && sample(erp2).prizeToUtility.a === 1, 'testbandit infer 2');
+  assert.ok( sample(dist1).prizeToUtility.a === 1
+	     && sample(dist2).prizeToUtility.a === 1, 'testbandit infer 2');
 
   console.log('passed easy inferBandit tests');
   
@@ -82,18 +82,18 @@ var testInferBandit = function(beliefOrBeliefDelay){
   // Two arms: {0:a, 1:c}. Agent stays at 0. 
   // Explanation: u(a) high and prior that 1:b is low.
 
-  // True armToPrizeERP: 0:a, 1:c
+  // True armToPrizeDist: 0:a, 1:c
   // True priorBelief:  0:a, 1:categorical([.05,.95],[b,c])
   // True utilities: {a:10, b:20, c:1}
   
   // world params
   var options = {
     numberOfArms: 2,
-    armToPrizeERP: {0:Delta({ v: 'a' }), 1:Delta({ v: 'c' })},
+    armToPrizeDist: {0:Delta({ v: 'a' }), 1:Delta({ v: 'c' })},
     numberOfTrials: 5
   };
   var numberOfArms = options.numberOfArms;
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   var bandit = makeBandit(options);
   
@@ -126,7 +126,7 @@ var testInferBandit = function(beliefOrBeliefDelay){
   
   var prior = {priorPrizeToUtility: priorPrizeToUtility, priorAgentPrior: priorAgentPrior};
 
-  var latentState = armToPrizeERP;
+  var latentState = armToPrizeDist;
   var observedStateAction = [['start',0], ['a',0], ['a',0], ['a',0], ['a',0]]; 
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
@@ -141,29 +141,29 @@ var testInferBandit = function(beliefOrBeliefDelay){
   });
   console.log('\n Time for Example 3, 2 arms and time 5: [from states, offpolicy]', out1.runtimeInMilliseconds, out2.runtimeInMilliseconds);
   
-  var testERP = function(erp){
-    var out = sample(erp);
+  var testDist = function(dist){
+    var out = sample(dist);
     assert.ok( out.prizeToUtility.a===10, 'testbandit inferbelief example 4' );
   };
-  map(testERP,[out1.value,out2.value]);
+  map(testDist,[out1.value,out2.value]);
   
 
   // He goes to 1 every time => u(a)==0=
   var observedStateAction = [['start',1], ['c',1], ['c',1], ['c',1], ['c',1]]; 
   var fullObservedStateAction = stateActionPairsToFullStates(observedStateAction, latentState);
 
-  var erp1 = inferBandit( bandit, baseAgentParams, prior,
+  var dist1 = inferBandit( bandit, baseAgentParams, prior,
 			  fullObservedStateAction, 'trajectory', 10,
 			  beliefOrBeliefDelay); 
-  var erp2 = inferBandit( bandit, baseAgentParams, prior,
+  var dist2 = inferBandit( bandit, baseAgentParams, prior,
 			  fullObservedStateAction,'offPolicy', 10,
 			  beliefOrBeliefDelay);
 
-  var testERP = function(erp){
-    var out = sample(erp);
+  var testDist = function(dist){
+    var out = sample(dist);
     assert.ok( out.prizeToUtility.a == 0, 'testbandit inferbelief example 5' );
   };
-  map(testERP,[erp1,erp2]);
+  map(testDist,[dist1,dist2]);
  
   console.log('\n-----\npassed ALL inferBandit tests');
 };
@@ -176,7 +176,7 @@ var stochasticTest1 = function() {
   // params for world
   var options = {
     numberOfArms: 2,
-    armToPrizeERP: {0: Delta({ v: 0 }), 1: Delta({ v: 1 })},
+    armToPrizeDist: {0: Delta({ v: 0 }), 1: Delta({ v: 1 })},
     numberOfTrials: 3,
     numericalPrizes: true
   };
@@ -211,39 +211,39 @@ var stochasticTest2 = function() {
   // the agent should choose the highest utility arm, whether it be the sure
   // or the unsure arm.
 
-  var uncertainArmRiskERP = Infer({ method: 'enumerate' }, function() {
+  var uncertainArmRiskDist = Infer({ method: 'enumerate' }, function() {
     return uniformDraw([0, 10]);
   });
 
-  var uncertainArmSafeERP = Infer({ method: 'enumerate' }, function() {
+  var uncertainArmSafeDist = Infer({ method: 'enumerate' }, function() {
     return uniformDraw([0, 1.2]);
   });
 
   var shortRiskBandit = makeBandit({
     numberOfArms: 2,
     numberOfTrials: 3,
-    armToPrizeERP: {0: Delta({ v: 1 }), 1: uncertainArmRiskERP},
+    armToPrizeDist: {0: Delta({ v: 1 }), 1: uncertainArmRiskDist},
     numericalPrizes: true
   });
   
   var shortSafeBandit = makeBandit({
     numberOfArms: 2,
     numberOfTrials: 3,
-    armToPrizeERP: {0: Delta({ v: 1 }), 1: uncertainArmSafeERP},
+    armToPrizeDist: {0: Delta({ v: 1 }), 1: uncertainArmSafeDist},
     numericalPrizes: true
   });
   
   var longRiskBandit = makeBandit({
     numberOfArms: 2,
     numberOfTrials: 20,
-    armToPrizeERP: {0: Delta({ v: 1 }), 1: uncertainArmRiskERP},
+    armToPrizeDist: {0: Delta({ v: 1 }), 1: uncertainArmRiskDist},
     numericalPrizes: true
   });
 
   var longSafeBandit = makeBandit({
     numberOfArms: 2,
     numberOfTrials: 20,
-    armToPrizeERP: {0: Delta({ v: 1 }), 1: uncertainArmSafeERP},
+    armToPrizeDist: {0: Delta({ v: 1 }), 1: uncertainArmSafeDist},
     numericalPrizes: true
   });
 
@@ -326,44 +326,44 @@ var stochasticTest3 = function(){
 
   // parameters for world
 
-  var luckyArmToPrizeERP = {0: Delta({ v: 1 }),
+  var luckyArmToPrizeDist = {0: Delta({ v: 1 }),
 			    1: Categorical({ ps: [0.2, 0.8], vs: [0, 1.5] })};
 
-  var unluckyArmToPrizeERP = {0: Delta({ v: 1 }),
+  var unluckyArmToPrizeDist = {0: Delta({ v: 1 }),
 			      1: Categorical({ ps: [0.8, 0.2], vs: [0, 1.5] })};
 
   var shortBandit = makeBandit({
     numberOfTrials: 2,
     numberOfArms: 2,
-    armToPrizeERP: luckyArmToPrizeERP,
+    armToPrizeDist: luckyArmToPrizeDist,
     numericalPrizes: true
   });
 
   var longLuckyBandit = makeBandit({
     numberOfTrials: 12,
     numberOfArms: 2,
-    armToPrizeERP: luckyArmToPrizeERP,
+    armToPrizeDist: luckyArmToPrizeDist,
     numericalPrizes: true
   });
 
   var longUnluckyBandit = makeBandit({
     numberOfTrials: 12,
     numberOfArms: 2,
-    armToPrizeERP: unluckyArmToPrizeERP,
+    armToPrizeDist: unluckyArmToPrizeDist,
     numericalPrizes: true
   });
 
   // parameters for agent
 
-  var agentArmToPrizeERPPrior = function() {
-    return uniformDraw([luckyArmToPrizeERP, unluckyArmToPrizeERP]);
+  var agentArmToPrizeDistPrior = function() {
+    return uniformDraw([luckyArmToPrizeDist, unluckyArmToPrizeDist]);
   };
 
   var shortPrior = {manifestState: shortBandit.startState.manifestState,
-		    latentStateERP: Infer({ method: 'enumerate' }, agentArmToPrizeERPPrior)};
+		    latentStateDist: Infer({ method: 'enumerate' }, agentArmToPrizeDistPrior)};
 
   var longPrior = {manifestState: longLuckyBandit.startState.manifestState,
-		   latentStateERP: Infer({ method: 'enumerate' },  agentArmToPrizeERPPrior)};
+		   latentStateDist: Infer({ method: 'enumerate' },  agentArmToPrizeDistPrior)};
 
   // simulating agent in short environment
 
@@ -409,7 +409,7 @@ var deterministicTest1 = function() {
   // Agent thinks 0 is likely better. It is better and so agent stays
   var options = {
     numberOfArms: 2,
-    armToPrizeERP: {
+    armToPrizeDist: {
       0: Delta({ v: 10 }),
       1: Delta({ v: 5 })
     },
@@ -417,15 +417,15 @@ var deterministicTest1 = function() {
     numericalPrizes: true
   };
   var bandit = makeBandit(options);
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   
-  var armToPrizeERPSampler = function(){
-    return categorical([0.8, 0.2], [armToPrizeERP, update(armToPrizeERP,
+  var armToPrizeDistSampler = function(){
+    return categorical([0.8, 0.2], [armToPrizeDist, update(armToPrizeDist,
 							  {1: Delta({ v: 15 })})]);
   };
 
-  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
+  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeDistSampler);
   var agentParams = {
     alpha: 100,
     priorBelief: priorBelief
@@ -447,7 +447,7 @@ var deterministicTest2 = function() {
   // 1 is worse, so it goes back to 0.
   var options = {
     numberOfArms: 2,
-    armToPrizeERP: {
+    armToPrizeDist: {
       0: Delta({ v: 10 }),
       1: Delta({ v: 5 })
     },
@@ -455,15 +455,15 @@ var deterministicTest2 = function() {
     numericalPrizes: true
   };
   var bandit = makeBandit(options);
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   
-  var armToPrizeERPSampler = function(){
-    return categorical([0.6, 0.4], [armToPrizeERP, update(armToPrizeERP,
+  var armToPrizeDistSampler = function(){
+    return categorical([0.6, 0.4], [armToPrizeDist, update(armToPrizeDist,
 							  {1: Delta({ v: 15 })})]);
   };
 
-  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
+  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeDistSampler);
   var agentParams = {
     alpha: 100,
     priorBelief: priorBelief
@@ -489,7 +489,7 @@ var deterministicTest3 = function(){
 
   var options = {
     numberOfArms: 2,
-    armToPrizeERP: {
+    armToPrizeDist: {
       0: Delta({ v: 10 }),
       1: Delta({ v: 15 })
     },
@@ -497,15 +497,15 @@ var deterministicTest3 = function(){
     numericalPrizes: true
   };
   var bandit = makeBandit(options);
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   
-  var armToPrizeERPSampler = function(){
-    return categorical([0.4, 0.6], [armToPrizeERP, update(armToPrizeERP,
+  var armToPrizeDistSampler = function(){
+    return categorical([0.4, 0.6], [armToPrizeDist, update(armToPrizeDist,
 							  {1: Delta({ v: 5 })})]);
   };
 
-  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
+  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeDistSampler);
   var agentParams = {
     alpha: 100,
     priorBelief: priorBelief
@@ -529,7 +529,7 @@ var deterministicTest4 = function(){
 
   var options = {
     numberOfArms: 3,
-    armToPrizeERP: {
+    armToPrizeDist: {
       0: Delta({ v: 1 }),
       1: Delta({ v: 0 }),
       2: Delta({ v: 0 })
@@ -538,10 +538,10 @@ var deterministicTest4 = function(){
     numericalPrizes: true
   };
   var bandit = makeBandit(options);
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   
-  var armToPrizeERPSampler = function(){
+  var armToPrizeDistSampler = function(){
     return {
       0: Delta({ v: 1 }),
       1: categorical([0.8, 0.2], [Delta({ v: 0 }), Delta({ v: 200 })]),
@@ -549,7 +549,7 @@ var deterministicTest4 = function(){
     };
   };
   
-  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
+  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeDistSampler);
   
   var agentParams = {
     alpha: 100,
@@ -572,7 +572,7 @@ var deterministicTest5 = function(){
 
   var options = {
     numberOfArms: 3,
-    armToPrizeERP: {
+    armToPrizeDist: {
       0: Delta({ v: 1 }),
       1: Delta({ v: 0 }),
       2: Delta({ v: 150 })
@@ -581,10 +581,10 @@ var deterministicTest5 = function(){
     numericalPrizes: true
   };
   var bandit = makeBandit(options);
-  var armToPrizeERP = options.armToPrizeERP;
+  var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   
-  var armToPrizeERPSampler = function(){
+  var armToPrizeDistSampler = function(){
     return {
       0: Delta({ v: 1 }),
       1: categorical([0.8, 0.2], [Delta({ v: 0 }), Delta({ v: 200 })]),
@@ -592,7 +592,7 @@ var deterministicTest5 = function(){
     };
   };
   
-  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeERPSampler);
+  var priorBelief = getPriorBelief(numberOfTrials, armToPrizeDistSampler);
   
   var agentParams = {
     alpha: 100,

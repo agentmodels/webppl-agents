@@ -5,22 +5,22 @@
 
 // helper functions - maybe delete
 
-var myInSupport = function(x, erp){return erp.score(x) > -100; };
+var myInSupport = function(x, dist){return dist.score(x) > -100; };
 
-var getActualSupport = function(erp) {
-  assert.ok(isERP(erp), 'tried to get the support of something other than an ERP');
+var getActualSupport = function(dist) {
+  assert.ok(isDist(dist), 'tried to get the support of something other than an Dist');
   var hasNonNegligibleProbability = function(x) {
-    return erp.score(x) > -100;
+    return dist.score(x) > -100;
   };
-  return filter(hasNonNegligibleProbability, erp.support());
+  return filter(hasNonNegligibleProbability, dist.support());
 };
 
-var checkEqualDeltaErps = function(erpArray) {
-  assert.ok(isERP(erpArray[0]) && isERP(erpArray[1]),
-	    'checkEqualDeltaErps applied to something other than an array of erps');
+var checkEqualDeltaDists = function(distArray) {
+  assert.ok(isDist(distArray[0]) && isDist(distArray[1]),
+	    'checkEqualDeltaDists applied to something other than an array of dists');
   var sample2 = function() {
-    assert.ok(_.isEqual(sample(erpArray[0]), sample(erpArray[1])),
-	      'erps not equal');
+    assert.ok(_.isEqual(sample(distArray[0]), sample(distArray[1])),
+	      'dists not equal');
   };
   repeat(5, sample2);
 };
@@ -107,7 +107,7 @@ var prior = {priorUtilityTable: Infer({ method: 'enumerate' }, priorUtilityTable
 
 var numRejectionSamples = 20;
 
-var erps = map( function(trajectoryOrOffPolicy){
+var dists = map( function(trajectoryOrOffPolicy){
   return inferGridWorldPOMDP(world, startState, baseParamsNoDiscount,
 			     trueAgentParams, prior, agentTypeAndFunctions,
 			     trajectoryOrOffPolicy, numRejectionSamples);
@@ -120,36 +120,36 @@ var erps = map( function(trajectoryOrOffPolicy){
 // need to filter 'support' for things which actually have positive
 // probability
 // NB: this is generally applicable
-var erp0ActualSupport = getActualSupport(erps[0]);
+var dist0ActualSupport = getActualSupport(dists[0]);
 
-var erp1ActualSupport = getActualSupport(erps[1]);
+var dist1ActualSupport = getActualSupport(dists[1]);
 
 map(function(index){
-  assert.ok( myInSupport(erp0ActualSupport[index], erps[1]),
-  	     'support of trajectory ERP not contained in support of offPolicy ERP');
-}, range(erp0ActualSupport.length));
+  assert.ok( myInSupport(dist0ActualSupport[index], dists[1]),
+  	     'support of trajectory Dist not contained in support of offPolicy Dist');
+}, range(dist0ActualSupport.length));
 
-// ERPs should be delta ERPs (almost)
+// Dists should be delta Dists (almost)
 
-checkEqualDeltaErps(erps);
+checkEqualDeltaDists(dists);
 
 // inference should think that agent likes noodles and thought noodles were closed
 
-assert.ok(sample(erps[1]).utilityTable['Noodle'] === 3,
-	  'posterior ERP failed to infer agent liking noodles');
-var agentBelief = sample(erps[1]).priorBelief;
+assert.ok(sample(dists[1]).utilityTable['Noodle'] === 3,
+	  'posterior Dist failed to infer agent liking noodles');
+var agentBelief = sample(dists[1]).priorBelief;
 var agentBeliefSample = sample(agentBelief);
 assert.ok(agentBelief.score(agentBeliefSample) < -0.1,
-	  'posterior ERP failed to infer agents uncertainty');
+	  'posterior Dist failed to infer agents uncertainty');
 
-// true params should be in support of both erps
+// true params should be in support of both dists
 
 assert.ok(myInSupport({utilityTable: noodleUtilityTable,
-  		       priorBelief: truePriorBelief}, erps[1]),
+  		       priorBelief: truePriorBelief}, dists[1]),
   	  'Enumeration incorrectly rules out true explanation');
 
 assert.ok(myInSupport({utilityTable: noodleUtilityTable,
-  		       priorBelief: truePriorBelief}, erps[0]),
+  		       priorBelief: truePriorBelief}, dists[0]),
   	  'Rejection sampling incorrectly rules out true explanation');
 
 console.log('everything is fine');

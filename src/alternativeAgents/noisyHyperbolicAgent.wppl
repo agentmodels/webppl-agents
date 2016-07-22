@@ -171,7 +171,7 @@ var runRiskAgent = function(probStick){
 runRiskAgent(.99);
 
 var out =  Infer({ method: 'rejection', samples: 2 }, function(){return runRiskAgent(.8).lastState;});
-printERP(out);
+printDist(out);
 
   
 ash();
