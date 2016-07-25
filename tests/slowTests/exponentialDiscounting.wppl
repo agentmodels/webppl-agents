@@ -86,7 +86,7 @@ var simulateUntilManyLikelyActions = function(startState, world, agent) {
 
   var manyLikelyActions = function(state) {
     var availableActions = stateToActions(state);
-    var actProbs = map(function(action){return act(state).score([], action);},
+    var actProbs = map(function(action){return act(state).score(action);},
 		       availableActions);
     var positiveActProbs = filter(function(prob){return prob > 0.01;},
 				  actProbs);

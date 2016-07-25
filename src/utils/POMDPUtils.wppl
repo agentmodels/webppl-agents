@@ -1,7 +1,7 @@
 
 // General POMDP utils
 
-var hasSample = function (x) {return _.has(x,'sample')};
+var hasSample = function (x) {return dists.isDist(x); }//_.has(x,'sample')};
 
 var hasUtilityPriorBelief = function(agentParams){
   if ( _.has(agentParams,'utility') && _.has(agentParams, 'priorBelief') ){
