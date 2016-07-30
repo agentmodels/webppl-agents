@@ -1,4 +1,6 @@
 
+// TODO: looks like if you have named features in a gridworld, then they have to be terminal (or at terminal after *timeAtRestaurant* is exceeded). 
+
 
 var inGrid_ = function(gridMap, loc) {
   return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
