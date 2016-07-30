@@ -56,7 +56,7 @@ var getPOMDPFunctions = function(params, world){
   // Agent gets an obervation in starting state without having taken an action
   var isNullAction = function(action){return action=='noAction';};
   
-
+  // Optimized belief update for manifest/latent POMDPs
   var getUpdateBeliefManifestLatent = function(transition, observe){
     
     var isDeltaDist = function(dist){return dist.support().length===1;};
