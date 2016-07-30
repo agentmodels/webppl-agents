@@ -1,6 +1,9 @@
 
 // TODO: looks like if you have named features in a gridworld, then they have to be terminal (or at terminal after *timeAtRestaurant* is exceeded). we should change this so that features can be non-terminal. 
 
+// Should have a 't' feature (when inputting gridworld)
+// which indicates a terminal state. need to adjust 'advance state time' to allow for this. 
+
 
 var inGrid_ = function(gridMap, loc) {
   return (loc[0] >= 0 && loc[0] < gridMap.xLim &&
@@ -17,7 +20,8 @@ var isAllowedState_ = function(gridMap, loc) {
   return (inGrid_(gridMap, loc)) && !isBlockedLoc(gridMap, loc);
 };
 
-var advanceStateTime = function(state) { 
+var advanceStateTime = function(state) {
+  
   return update(state, { 
     timeLeft : state.timeLeft - 1, 
     terminateAfterAction : state.timeLeft - 1> 1 ? state.terminateAfterAction : true, 
