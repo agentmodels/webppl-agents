@@ -1,5 +1,5 @@
 
-// TODO: looks like if you have named features in a gridworld, then they have to be terminal (or at terminal after *timeAtRestaurant* is exceeded). 
+// TODO: looks like if you have named features in a gridworld, then they have to be terminal (or at terminal after *timeAtRestaurant* is exceeded). we should change this so that features can be non-terminal. 
 
 
 var inGrid_ = function(gridMap, loc) {
