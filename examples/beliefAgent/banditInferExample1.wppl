@@ -11,7 +11,7 @@ var falseLatent = {start: 0, rewards: [10, 20]};
 
 // this is the agent's prior: they think that arm 1 probably has reward 20, but
 // may only have reward 1.
-var agentBelief = Enumerate(function(){
+var agentBelief = Infer({ method: 'enumerate' }, function(){
   if (flip(0.8)) {
     return falseLatent;
   } else {
@@ -20,7 +20,7 @@ var agentBelief = Enumerate(function(){
 });
 
 // one could imagine that the agent actually knew the true latent state.
-var informedBelief = deltaERP(trueLatent);
+var informedBelief = Delta({ v: trueLatent });
 
 // here, we generate the trajectory of our agent, which we then print.
 var observedTrajectory = runBeliefAgentBandit(numArms, trueLatent, agentBelief, 3);
@@ -34,7 +34,7 @@ console.log('observed trajectory', map( function (state) {
 // might start out with informedBelief or agentBelief. we also time the
 // inference.
 var inferredAgent = function(){
-  return printERP(Enumerate(function(){
+  return printDist(Infer({ method: 'enumerate' }, function(){
     var priorBelief = uniformDraw([agentBelief, informedBelief]);
 
     var agentUtility = function (state,action) {

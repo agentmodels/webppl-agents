@@ -23,7 +23,7 @@ var makeRiskAgent = function (agentParams, world) {
   
   var agent = dp.cache( 
     function(state, delay){
-      return Enumerate(function(){
+      return Infer({ method: 'enumerate' }, function(){
         var possibleActions = stateToActions(state);
         var action = uniformDraw(possibleActions);
         var eu = expectedUtility(state, action, delay);    
@@ -41,7 +41,7 @@ var makeRiskAgent = function (agentParams, world) {
       if (state.terminateAfterAction){
         return u; 
       } else {                     
-        return u + expectation( Enumerate(function(){
+        return u + expectation( Infer({ method: 'enumerate' }, function(){
           var nextState = transition(state, action); 
 
           var perceivedDelay = flip(probStick) ? delay + 1 : 0;
@@ -55,7 +55,7 @@ var makeRiskAgent = function (agentParams, world) {
   // change action function to single argument
   var agent2 = dp.cache( 
     function(state, evaluateDelay, simulateActionDelay){
-      return Enumerate(function(){
+      return Infer({ method: 'enumerate' }, function(){
         var possibleActions = stateToActions(state);
         var action = uniformDraw(possibleActions);
         var eu = expectedUtility2(state, action, evaluateDelay, simulateActionDelay);    
@@ -71,7 +71,7 @@ var makeRiskAgent = function (agentParams, world) {
       if (state.terminateAfterAction){
         return u; 
       } else {                     
-        return u + expectation( Enumerate(function(){
+        return u + expectation( Infer({ method: 'enumerate' }, function(){
           var nextState = transition(state, action); 
 
           var stickWithPlan = flip(probStick);
@@ -170,8 +170,8 @@ var runRiskAgent = function(probStick){
 
 runRiskAgent(.99);
 
-var out =  Rejection(function(){return runRiskAgent(.8).lastState;},2,undefined, true );
-printERP(out);
+var out =  Infer({ method: 'rejection', samples: 2 }, function(){return runRiskAgent(.8).lastState;});
+printDist(out);
 
   
 ash();

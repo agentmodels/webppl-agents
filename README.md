@@ -1,7 +1,7 @@
 # webppl-agents
 Webppl library with agents for solving MDPs and POMDPs. JS library for displaying Gridworld. 
 
-##Insallation
+## Installation
 ```
 sh install.sh
 ```
@@ -15,7 +15,8 @@ To run purely on the command line we need to require the package webppl-dp:
 webppl --require webppl-dp --require . examples/hyperbolic/generative_examples.wppl
 ```
 
-##Running in the browser
+
+## Running in the browser
 
 Running a webppl script in the browser allows use of `GridWorld.draw` for easier debugging of agents. To do so, do we first have to install webppl from source and link it to node. 
 

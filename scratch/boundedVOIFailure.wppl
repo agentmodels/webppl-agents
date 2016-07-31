@@ -47,7 +47,7 @@ var startState = {manifestState: {loc: [0,0],
 var utilityTable = {Noodle: 11,
 		    Donut: 1,
 		    timeCost: -0.1};
-var prior = Enumerate(function(){
+var prior = Infer({ method: 'enumerate' }, function(){
   return categorical([0.1, 0.9], [startState.latentState, {Donut: true, Noodle: false}]);
 });
 

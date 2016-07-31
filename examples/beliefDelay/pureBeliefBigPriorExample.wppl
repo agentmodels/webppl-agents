@@ -98,7 +98,7 @@ var conditionOnPath = function (agent, path, world, startState) {
 
 var posterior = function(inferFunc, options) {
   return function() {
-    var posteriorERP = inferFunc(function () { 
+    var posteriorDist = inferFunc(function () { 
 
       var agentProbNoodleOpen = agentProbNoodleOpenSampler();
       var agentPrior = getPriorBeliefGridworld(
@@ -126,11 +126,11 @@ var posterior = function(inferFunc, options) {
 
     }, options);
 
-    printERP(posteriorERP);
+    printDist(posteriorDist);
   };
 };
 
-// printERP(posterior);
+// printDist(posterior);
 
 timeit(posterior(MCMC));
 

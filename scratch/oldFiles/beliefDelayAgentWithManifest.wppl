@@ -18,7 +18,7 @@ var exampleMakeAgentParams = {
   discount: 2,
   sophisticatedOrNaive: 'sophisticated',
   myopia: {on:false, bound:0},
-  priorBelief: Enumerate(function(){return flip() ? 'latentA' : 'latentB';}),
+  priorBelief: Infer({ method: 'enumerate' }, function(){return flip() ? 'latentA' : 'latentB';}),
   boundVOI: {on:false, bound:0}
 };
 
@@ -66,13 +66,13 @@ var makeBeliefDelayAgent = function (params, world){
   }
 
   
-  // *belief* is ERP on latent states, returns posterior ERP on latent states
+  // *belief* is Dist on latent states, returns posterior Dist on latent states
   var updateBelief = dp.cache(
     function (manifestState, belief, observation, delay) {
       if (params.boundVOI.on && (delay >= params.boundVOI.bound)){
         return belief;
       } else {
-        return Enumerate(function () {
+        return Infer({ method: 'enumerate' }, function () {
           var latentState = sample(belief);
           var state = buildState(manifestState, latentState);
           condition(_.isEqual(observe(state), observation));
@@ -84,10 +84,10 @@ var makeBeliefDelayAgent = function (params, world){
   
   var act = dp.cache(
     function (manifestState, belief, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), 'act arguments error' + 
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isDist(belief) && _.isFinite(delay), 'act arguments error' + 
                 'act: manifestState, belief, delay' + JSON.stringify([manifestState, belief, delay]));
 
-      return Enumerate(function () {
+      return Infer({ method: 'enumerate' }, function () {
         var action = uniformDraw(manifestStateToActions(manifestState));
         var eu = expectedUtility(manifestState, belief, action, delay);
         factor(params.alpha * eu);
@@ -98,7 +98,7 @@ var makeBeliefDelayAgent = function (params, world){
   var expectedUtility = dp.cache(
     function (manifestState, belief, action, delay) {
       return expectation(
-        Enumerate(function () {
+        Infer({ method: 'enumerate' }, function () {
           var latentState = sample(belief);
           var state = buildState(manifestState, latentState);
           var u = 1.0 / (1 + params.discount * delay) * utility(state, action);

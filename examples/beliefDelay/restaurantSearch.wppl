@@ -4,7 +4,7 @@ var world = makeBanditGridworld(gridworld);
 var feature = world.feature;
 var startState = restaurantSearchStartState;
 
-var agentPrior = Enumerate(function(){
+var agentPrior = Infer({ method: 'enumerate' }, function(){
   var rewardE = flip() ? 5 : 0;
   var latentState = {A: 3,
 		             B: uniformDraw(range(6)),
@@ -40,7 +40,7 @@ var world = makeBanditGridworld(gridworld);
 var feature = world.feature;
 var startState = restaurantSearchStartState;
 
-var agentPrior = Enumerate(function(){
+var agentPrior = Infer({ method: 'enumerate' }, function(){
   var rewardE = flip() ? 5 : 0;
   var latentState = {A: 3,
 		     B: uniformDraw(range(3)),

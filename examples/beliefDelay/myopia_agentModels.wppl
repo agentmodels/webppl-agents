@@ -10,18 +10,17 @@ var getPosterior = function(timeLeft, useOptimalModel) {
   var alternativeStartState = update(startState, {latentState:
 						  alternativeLatent});
 
-  var priorAgentPrior = deltaERP(categoricalERP([0.7, 0.3],
-						[startState,
-						 alternativeStartState]));
+  var priorAgentPrior = Delta({ v: Categorical({ ps: [0.7, 0.3],
+						 vs: [startState, alternativeStartState] }) });
   
-  var priorPrizeToUtility = Enumerate(function(){
+  var priorPrizeToUtility = Infer({ method: 'enumerate' }, function(){
     return {chocolate: uniformDraw(range(20).concat(25)),
 	    nothing: 0,
 	    champagne: 20};
   });
   
-  var priorMyopia =  useOptimalModel ? deltaERP({on:false, bound:0}) :
-      Enumerate(function(){
+  var priorMyopia =  useOptimalModel ? deltaDist({on:false, bound:0}) :
+      Infer({ method: 'enumerate' }, function(){
         return {on: true, 
                 bound: categorical([.4, .2, .1, .1, .1, .1], 
                                    [1, 2, 3, 4, 6, 10])};
@@ -40,15 +39,15 @@ var getPosterior = function(timeLeft, useOptimalModel) {
 
   var observedStateAction = [[startState, 0]];
 
-  var outputERP = inferIRLBandit(worldAndStart, baseAgentParams, prior,
+  var outputDist = inferIRLBandit(worldAndStart, baseAgentParams, prior,
 				 observedStateAction, 'offPolicy', 0, 'beliefDelay');
   
-  var marginalChocolate = Enumerate(function(){
-    return sample(outputERP).prizeToUtility.chocolate;
+  var marginalChocolate = Infer({ method: 'enumerate' }, function(){
+    return sample(outputDist).prizeToUtility.chocolate;
   });
   
   return [expectation(marginalChocolate), 
-          expectation(getMarginal(outputERP,'myopiaBound'))]
+          expectation(getMarginal(outputDist,'myopiaBound'))]
 };
 
 var timeHorizonValues = range(10).slice(2);

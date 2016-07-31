@@ -142,10 +142,10 @@ var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
   var stateToActions = function (state) { 
     var possibleActions = filter(function (action) {
       // if noReverse, check that MAP of newState doesn't reverse you
-      var transitionERP = Enumerate(function(){
+      var transitionDist = Infer({ method: 'enumerate' }, function(){
 	return transition(state, action);
       });
-      var likelyNewState = MAP(transitionERP).val;
+      var likelyNewState = MAP(transitionDist).val;
       if (options.noReverse && state.previousLoc
 	  && state.previousLoc[0] === likelyNewState.loc[0]
 	  && state.previousLoc[1] === likelyNewState.loc[1]) {

@@ -1,6 +1,6 @@
 ## Features for *draw*
 
-1. Animation of trajectories. [Would be cool to have ability to show repeated samples from ERP as a seris of animations with a paused between]. A related feature is arrows along the static trajectory line to indicate the direction of the path. (indicate start and end state). Make -ve utility different color from terminals. Maybe use texture for terminals (or double borders or something). Maybe a door or something restaurant-like.
+1. Animation of trajectories. [Would be cool to have ability to show repeated samples from Dist as a seris of animations with a paused between]. A related feature is arrows along the static trajectory line to indicate the direction of the path. (indicate start and end state). Make -ve utility different color from terminals. Maybe use texture for terminals (or double borders or something). Maybe a door or something restaurant-like.
 [General todo: MDP where you have state to action function.]
 
 2. Bigger numbers for the expUtilities. The current heatmap looks really good but numbers are hard to read. This might require a bigger grid when showing expUtilities. 

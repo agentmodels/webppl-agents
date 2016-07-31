@@ -149,7 +149,7 @@ var testPOMDP = function(){
     latentState: {cafe: false, pub:true}
   };
 
-  var priorBelief = deltaERP(startState);
+  var priorBelief = Delta({ v: startState });
   
   var params = {priorBelief: priorBelief,
                 utility: utility};
@@ -162,8 +162,8 @@ var testPOMDP = function(){
   // Agent is uncertain
   var alternateStartState = update(startState, 
                                    {latentState: {cafe:true, pub:true}});
-  var priorBelief = categoricalERP( [.5, .5], 
-                                    [startState, alternateStartState]);
+  var priorBelief = Categorical({ ps:  [.5, .5], 
+                                  vs: [startState, alternateStartState] });
                                                
   var params = {priorBelief: priorBelief,
                 utility: utility};

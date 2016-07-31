@@ -1,7 +1,11 @@
 
 // General POMDP utils
 
-var hasSample = function (x) {return _.has(x,'sample')};
+var hasSample = function (x) {
+  // Can't use _.has here since `sample` is an inherited property;
+  // could use _.hasIn if we switched to lodash.
+  return x.sample !== undefined;
+};
 
 var hasUtilityPriorBelief = function(agentParams){
   if ( _.has(agentParams,'utility') && _.has(agentParams, 'priorBelief') ){

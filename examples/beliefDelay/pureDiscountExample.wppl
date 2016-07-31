@@ -132,8 +132,8 @@ console.log('nameTo', pathToName(path),
             '\n runtime: ', time); ash();
 
 
-// var pathDist = Rejection(testLocations, 10);
-// printERP(pathDist);
+// var pathDist = Infer({ method: 'rejection', samples: 10 }, testLocations);
+// printDist(pathDist);
 // //assert.ok( arraysEqual(path, testLocations.slice(0,testLocations.length-1), 'check' ) );
 // ash();
 
@@ -179,7 +179,7 @@ var conditionOnPath = function (agent, path, world, startState) {
 };
 
 var posterior = function(observedPath) {
-  return Enumerate(function () { 
+  return Infer({ method: 'enumerate' }, function () { 
     var agentUtilityTable = agentUtilityTableSampler();
     var discount = agentDiscountSampler();
     var sophistication = agentSophisticationSampler();
@@ -207,7 +207,7 @@ var posterior = function(observedPath) {
 var getPosterior = function( observedPath ){
   var thunk = function(){return posterior(observedPath)};
   var out = timeit( thunk );
-  printERP(out.value);
+  printDist(out.value);
   console.log( 'runtime in s:', .001 * out.runtimeInMilliseconds);
 };
 

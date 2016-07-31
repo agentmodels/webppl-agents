@@ -7,13 +7,13 @@
 // Helper functions for testing argument types (warning: heuristics only)
 
 var isGreaterZero = function (x) {return _.isFinite(x) && x > 0;};
-var isERP = function (x) {return x.hasOwnProperty('score') && x.hasOwnProperty('sample');};
+var isDist = function (x) {return x.hasOwnProperty('score') && x.hasOwnProperty('sample');};
 var isState = function (x) {x.hasOwnProperty('latentState') && _.isFinite(x.manifestState.timeLeft);};
 var isGridworld = function(world){return arraysEqual(world.actions, ['l', 'r', 'u', 'd']);};
 var isWorld = function (x) { return x.hasOwnProperty('transition') && x.hasOwnProperty('manifestStateToActions') &&
                              x.hasOwnProperty('observe');};
 
-var inSupport = function(x, erp){return _.isFinite( erp.score([], x) ); };
+var inSupport = function(x, dist){return _.isFinite( dist.score(x) ); };
                    
 
 // Helper functions
@@ -94,10 +94,10 @@ var makeBeliefDelayAgent = function (agentParams, world){
     return false;
   }
   
-  // *belief* is ERP on latent states, returns posterior ERP on latent states
+  // *belief* is Dist on latent states, returns posterior Dist on latent states
   var updateBelief = dp.cache(
     function (manifestState, belief, observation) {
-      return Enumerate(function () {
+      return Infer({ method: 'enumerate' }, function () {
         var latentState = sample(belief);
         var state = buildState(manifestState, latentState);
         condition(_.isEqual(observe(state), observation));
@@ -107,9 +107,9 @@ var makeBeliefDelayAgent = function (agentParams, world){
 
   var act = dp.cache(
     function (manifestState, belief, delay) {
-      assert.ok(isGreaterZero(manifestState.timeLeft) && isERP(belief) && _.isFinite(delay), '_agent args fail'); 
+      assert.ok(isGreaterZero(manifestState.timeLeft) && isDist(belief) && _.isFinite(delay), '_agent args fail'); 
    
-      return Enumerate(function () {
+      return Infer({ method: 'enumerate' }, function () {
         var action = uniformDraw(manifestStateToActions(manifestState));
         var eu = expectedUtility(manifestState, belief, action, delay);
         factor(agentParams.alpha * eu);
@@ -119,12 +119,12 @@ var makeBeliefDelayAgent = function (agentParams, world){
 
   var expectedUtility = dp.cache(
     function (manifestState, belief, action, delay) {
-      return expectation(Enumerate(function(){  // don't actually need this...
+      return expectation(Infer({ method: 'enumerate' }, function(){  // don't actually need this...
         var trueLatentState = sample(belief);
 
         var recurse = function(manifestState, belief, action, delay)  {
           return expectation(
-            Enumerate(function () {
+            Infer({ method: 'enumerate' }, function () {
               var state = buildState(manifestState, trueLatentState);            
               var u = 1.0 / (1 + agentParams.discount * delay) * utility(state, action);
               

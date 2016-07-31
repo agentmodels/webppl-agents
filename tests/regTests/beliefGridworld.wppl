@@ -1,27 +1,27 @@
 
-var myInSupport = function(x, erp){return erp.score([], x) > -100; };
+var myInSupport = function(x, dist){return dist.score(x) > -100; };
 
-var getActualSupport = function(erp) {
-  assert.ok(hasSample(erp), 'tried to get the support of something other than an ERP');
+var getActualSupport = function(dist) {
+  assert.ok(hasSample(dist), 'tried to get the support of something other than an Dist');
   var hasNonNegligibleProbability = function(x) {
-    return erp.score([], x) > -100;
+    return dist.score(x) > -100;
   };
-  return filter(hasNonNegligibleProbability, erp.support());
+  return filter(hasNonNegligibleProbability, dist.support());
 };
 
-var checkEqualDeltaErps = function(erpArray) {
-  assert.ok(hasSample(erpArray[0]) && hasSample(erpArray[1]),
-	    'checkEqualDeltaErps applied to something other than an array of erps');
+var checkEqualDeltaDists = function(distArray) {
+  assert.ok(hasSample(distArray[0]) && hasSample(distArray[1]),
+	    'checkEqualDeltaDists applied to something other than an array of dists');
   var sample2 = function() {
-    assert.ok(_.isEqual(sample(erpArray[0]), sample(erpArray[1])),
-	      'erps not equal');
+    assert.ok(_.isEqual(sample(distArray[0]), sample(distArray[1])),
+	      'dists not equal');
   };
   repeat(5, sample2);
 };
 
 
 var getPriorBelief = function(startManifestState, latentStateSampler){
-  return Enumerate( function(){
+  return Infer({ method: 'enumerate' },  function(){
     return {manifestState:startManifestState, 
             latentState: latentStateSampler()};
   });
@@ -92,13 +92,13 @@ var test1 = function() {
   var priorUtilityTable = function(){return uniformDraw([donutUtilityTable, vegUtilityTable]);};
   var priorAgentPrior = function(){return uniformDraw([truePriorBelief, alternativePriorBelief]);};
 
-  var prior = {priorUtilityTable: Enumerate(priorUtilityTable),
-               priorAgentPrior: Enumerate(priorAgentPrior)};
+  var prior = {priorUtilityTable: Infer({ method: 'enumerate' }, priorUtilityTable),
+               priorAgentPrior: Infer({ method: 'enumerate' }, priorAgentPrior)};
 
   // INFERENCE
   
   var numRejectionSamples = 10;
-  var erps = map( function(trajectoryOrOffPolicy){
+  var dists = map( function(trajectoryOrOffPolicy){
     return inferGridWorldPOMDP(world, startState, baseParamsNoDiscount, trueAgentParams, prior, agentTypeAndFunctions,
                                trajectoryOrOffPolicy, numRejectionSamples);
   }, ['trajectory', 'offPolicy']);
@@ -112,30 +112,30 @@ var test1 = function() {
   // NB: this is generally applicable
 
 
-  var erp0ActualSupport = getActualSupport(erps[0]);
+  var dist0ActualSupport = getActualSupport(dists[0]);
   
-  var erp1ActualSupport = getActualSupport(erps[1]);
+  var dist1ActualSupport = getActualSupport(dists[1]);
 
   map(function(index){
-    assert.ok( myInSupport(erp0ActualSupport[index], erps[1]),
-  	       'support of trajectory ERP not contained in support of offPolicy ERP');
-  }, range(erp0ActualSupport.length));
+    assert.ok( myInSupport(dist0ActualSupport[index], dists[1]),
+  	       'support of trajectory Dist not contained in support of offPolicy Dist');
+  }, range(dist0ActualSupport.length));
 
 
-  // we expect both ERPs to be delta ERPs
+  // we expect both Dists to be delta Dists
   
-  checkEqualDeltaErps(erps);
+  checkEqualDeltaDists(dists);
 
-  assert.ok(sample(erps[1]).utilityTable['Donut S'] === 5,
-	    'posterior ERP failed to infer agent liking donuts');
+  assert.ok(sample(dists[1]).utilityTable['Donut S'] === 5,
+	    'posterior Dist failed to infer agent liking donuts');
 
-  var agentBelief = sample(erps[1]).priorBelief;
+  var agentBelief = sample(dists[1]).priorBelief;
   var agentBeliefSample = sample(agentBelief);
-  assert.ok(agentBelief.score([], agentBeliefSample) < -0.1,
-	    'posterior ERP failed to infer agents uncertainty');
+  assert.ok(agentBelief.score(agentBeliefSample) < -0.1,
+	    'posterior Dist failed to infer agents uncertainty');
 
-  // other possible tests: look at MAP of erps[0] and erps[1], see if certain
-  // things are more probable than other things in erps[1]
+  // other possible tests: look at MAP of dists[0] and dists[1], see if certain
+  // things are more probable than other things in dists[1]
 
   console.log('passed first test');
 };
@@ -223,14 +223,14 @@ var test2 = function() {
     return uniformDraw([truePriorBelief1, alternativePriorBelief1]);
   };
 
-  var prior1 = {priorUtilityTable: Enumerate(priorUtilityTable),
-		priorAgentPrior: Enumerate(priorAgentPrior1)};
+  var prior1 = {priorUtilityTable: Infer({ method: 'enumerate' }, priorUtilityTable),
+                priorAgentPrior: Infer({ method: 'enumerate' },  priorAgentPrior1)};
 
   // INFERENCE
   
   var numRejectionSamples = 20;
 
-  var erps1 = map( function(trajectoryOrOffPolicy){
+  var dists1 = map( function(trajectoryOrOffPolicy){
     return inferGridWorldPOMDP(world, startState1, baseParamsNoDiscount,
 			       trueAgentParams1, prior1, agentTypeAndFunctions,
 			       trajectoryOrOffPolicy, numRejectionSamples);
@@ -243,26 +243,26 @@ var test2 = function() {
   // need to filter 'support' for things which actually have positive
   // probability
   // NB: this is generally applicable
-  var erp10ActualSupport = getActualSupport(erps1[0]);
+  var dist10ActualSupport = getActualSupport(dists1[0]);
   
-  var erp11ActualSupport = getActualSupport(erps1[1]);
+  var dist11ActualSupport = getActualSupport(dists1[1]);
 
   map(function(index){
-    assert.ok( myInSupport(erp10ActualSupport[index], erps1[1]),
-  	       'support of trajectory ERP not contained in support of offPolicy ERP');
-  }, range(erp10ActualSupport.length));
+    assert.ok( myInSupport(dist10ActualSupport[index], dists1[1]),
+  	       'support of trajectory Dist not contained in support of offPolicy Dist');
+  }, range(dist10ActualSupport.length));
 
   // inference should be unsure of whether the agent likes noodles
 
-  assert.ok(Math.abs(erps1[1].score([], {utilityTable: noodleUtilityTable,
+  assert.ok(Math.abs(dists1[1].score({utilityTable: noodleUtilityTable,
 					 priorBelief: truePriorBelief1})
-		     - erps1[1].score([], {utilityTable: donutUtilityTable,
+		     - dists1[1].score({utilityTable: donutUtilityTable,
 					   priorBelief: truePriorBelief1})) < 0.5,
 	    'inference improperly sure about whether agent likes noodles');
 
-  assert.ok(Math.abs(erps1[1].score([], {utilityTable: noodleUtilityTable,
+  assert.ok(Math.abs(dists1[1].score({utilityTable: noodleUtilityTable,
 					 priorBelief: truePriorBelief1})
-		     - erps1[1].score([], {utilityTable: donutUtilityTable,
+		     - dists1[1].score({utilityTable: donutUtilityTable,
 					   priorBelief: alternativePriorBelief1})) < 0.5,
 	    'inference improperly sure about whether agent likes noodles');
   
@@ -271,31 +271,31 @@ var test2 = function() {
   // agent's beliefs
 
   // console.log('posterior on agent params:');
-  // printERP(erps1[1]);
+  // printDist(dists1[1]);
   
   // console.log('true prior belief 1:');
-  // printERP(truePriorBelief1);
+  // printDist(truePriorBelief1);
 
 
   assert.ok(myInSupport({utilityTable: noodleUtilityTable,
-			 priorBelief: truePriorBelief1}, erps1[1]),
+			 priorBelief: truePriorBelief1}, dists1[1]),
 	    'Enumeration incorrectly rules out true explanation');
 
   assert.ok(myInSupport({utilityTable: noodleUtilityTable,
-			 priorBelief: truePriorBelief1}, erps1[0]),
+			 priorBelief: truePriorBelief1}, dists1[0]),
 	    'Rejection sampling incorrectly rules out true explanation');
   
   assert.ok(!myInSupport({utilityTable: noodleUtilityTable,
-			  priorBelief: alternativePriorBelief1}, erps1[1]),
+			  priorBelief: alternativePriorBelief1}, dists1[1]),
 	    'incorrect inference that agent could like noodles and know latent state');
 
   console.log('passed second test part 1');
   
   // condition on second trajectory
 
-  // update erps1[1] so that the agent knows the initial manifest state
-  var jointPrior = Enumerate(function(){
-    var jointSample = sample(erps1[1]);
+  // update dists1[1] so that the agent knows the initial manifest state
+  var jointPrior = Infer({ method: 'enumerate' }, function(){
+    var jointSample = sample(dists1[1]);
     var utilityTable = jointSample.utilityTable;
     var agentPrior = jointSample.priorBelief;
     var latentStateSampler = function(){
@@ -320,48 +320,48 @@ var test2 = function() {
 								        noodleUtilityTable)});
 
 
-  var erps2 = map( function(trajectoryOrOffPolicy){
+  var dists2 = map( function(trajectoryOrOffPolicy){
     return inferGridWorldPOMDP(world, startState2, baseParamsNoDiscount,
   			       trueAgentParams2, prior2, agentTypeAndFunctions,
   			       trajectoryOrOffPolicy, numRejectionSamples);
   }, ['trajectory', 'offPolicy']);
 
   // check if inference functions are working as expected
-  var erp20ActualSupport = getActualSupport(erps2[0]);
+  var dist20ActualSupport = getActualSupport(dists2[0]);
   
-  var erp21ActualSupport = getActualSupport(erps2[1]);
+  var dist21ActualSupport = getActualSupport(dists2[1]);
 
   map(function(index){
-    assert.ok( myInSupport(erp20ActualSupport[index], erps2[1]),
-  	       'support of trajectory ERP not contained in support of offPolicy ERP');
-  }, range(erp20ActualSupport.length));
+    assert.ok( myInSupport(dist20ActualSupport[index], dists2[1]),
+  	       'support of trajectory Dist not contained in support of offPolicy Dist');
+  }, range(dist20ActualSupport.length));
 
-  // ERPs should be delta ERPs (almost)
+  // Dists should be delta Dists (almost)
 
-  checkEqualDeltaErps(erps2);
+  checkEqualDeltaDists(dists2);
   
   // inference should think that agent likes noodles and thought noodles were closed
 
-  assert.ok(sample(erps2[1]).utilityTable['Noodle'] === 5,
-	    'posterior ERP failed to infer agent liking noodles');
-  var agentBelief = sample(erps2[1]).priorBelief;
+  assert.ok(sample(dists2[1]).utilityTable['Noodle'] === 5,
+	    'posterior Dist failed to infer agent liking noodles');
+  var agentBelief = sample(dists2[1]).priorBelief;
   var agentBeliefSample = sample(agentBelief);
-  assert.ok(agentBelief.score([], agentBeliefSample) < -0.1,
-	    'posterior ERP failed to infer agents uncertainty');
+  assert.ok(agentBelief.score(agentBeliefSample) < -0.1,
+	    'posterior Dist failed to infer agents uncertainty');
 
-  // true params should be in support of both erps -- this test fails because
-  // the true agent prior erp has its possiblities listed in the wrong order.
+  // true params should be in support of both dists -- this test fails because
+  // the true agent prior dist has its possiblities listed in the wrong order.
   // I don't think that there would have been a problem had I not modified the
-  // ERP in the *jointPrior* code block at line 279.
+  // Dist in the *jointPrior* code block at line 279.
   // I judged that fixing this would be more trouble than it was worth, although
   // it should be done eventually.
   
   // assert.ok(myInSupport({utilityTable: noodleUtilityTable,
-  // 			 priorBelief: truePriorBelief2}, erps2[1]),
+  // 			 priorBelief: truePriorBelief2}, dists2[1]),
   // 	    'Enumeration incorrectly rules out true explanation');
 
   // assert.ok(myInSupport({utilityTable: noodleUtilityTable,
-  // 			 priorBelief: truePriorBelief1}, erps2[0]),
+  // 			 priorBelief: truePriorBelief1}, dists2[0]),
   // 	    'Rejection sampling incorrectly rules out true explanation');
 
   console.log('passed second test part 2');
@@ -442,14 +442,14 @@ var test3 = function() {
     return uniformDraw([truePriorBelief, alternativePriorBelief]);
   };
 
-  var prior = {priorUtilityTable: Enumerate(priorUtilityTable),
-	       priorAgentPrior: Enumerate(priorAgentPrior)};
+  var prior = {priorUtilityTable: Infer({ method: 'enumerate' }, priorUtilityTable),
+               priorAgentPrior: Infer({ method: 'enumerate' },  priorAgentPrior)};
 
   // INFERENCE
   
   var numRejectionSamples = 20;
 
-  var erps = map( function(trajectoryOrOffPolicy){
+  var dists = map( function(trajectoryOrOffPolicy){
     return inferGridWorldPOMDP(world, startState, baseParamsNoDiscount,
 			       trueAgentParams, prior, agentTypeAndFunctions,
 			       trajectoryOrOffPolicy, numRejectionSamples);
@@ -462,36 +462,36 @@ var test3 = function() {
   // need to filter 'support' for things which actually have positive
   // probability
   // NB: this is generally applicable
-  var erp0ActualSupport = getActualSupport(erps[0]);
+  var dist0ActualSupport = getActualSupport(dists[0]);
   
-  var erp1ActualSupport = getActualSupport(erps[1]);
+  var dist1ActualSupport = getActualSupport(dists[1]);
 
   map(function(index){
-    assert.ok( myInSupport(erp0ActualSupport[index], erps[1]),
-  	       'support of trajectory ERP not contained in support of offPolicy ERP');
-  }, range(erp0ActualSupport.length));
+    assert.ok( myInSupport(dist0ActualSupport[index], dists[1]),
+  	       'support of trajectory Dist not contained in support of offPolicy Dist');
+  }, range(dist0ActualSupport.length));
 
-  // ERPs should be delta ERPs (almost)
+  // Dists should be delta Dists (almost)
 
-  checkEqualDeltaErps(erps);
+  checkEqualDeltaDists(dists);
   
   // inference should think that agent likes noodles and thought noodles were closed
 
-  assert.ok(sample(erps[1]).utilityTable['Noodle'] === 3,
-	    'posterior ERP failed to infer agent liking noodles');
-  var agentBelief = sample(erps[1]).priorBelief;
+  assert.ok(sample(dists[1]).utilityTable['Noodle'] === 3,
+	    'posterior Dist failed to infer agent liking noodles');
+  var agentBelief = sample(dists[1]).priorBelief;
   var agentBeliefSample = sample(agentBelief);
-  assert.ok(agentBelief.score([], agentBeliefSample) < -0.1,
-	    'posterior ERP failed to infer agents uncertainty');
+  assert.ok(agentBelief.score(agentBeliefSample) < -0.1,
+	    'posterior Dist failed to infer agents uncertainty');
 
-  // true params should be in support of both erps
+  // true params should be in support of both dists
   
   assert.ok(myInSupport({utilityTable: noodleUtilityTable,
-  			 priorBelief: truePriorBelief}, erps[1]),
+  			 priorBelief: truePriorBelief}, dists[1]),
   	    'Enumeration incorrectly rules out true explanation');
 
   assert.ok(myInSupport({utilityTable: noodleUtilityTable,
-  			 priorBelief: truePriorBelief}, erps[0]),
+  			 priorBelief: truePriorBelief}, dists[0]),
   	    'Rejection sampling incorrectly rules out true explanation');
 
   console.log('passed third test');

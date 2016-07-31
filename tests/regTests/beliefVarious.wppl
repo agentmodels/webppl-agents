@@ -10,9 +10,9 @@ var testAgent = function(){
   var options = {maxTimeAtRestaurant: 1, POMDP:true};
   var gridworldPOMDP = makeRestaurantChoiceWorld(options);
 
-  var makePriorGridworld = function(manifestState, latentStateERP) {
-    return Enumerate(function(){
-      return buildState(manifestState, sample(latentStateERP));
+  var makePriorGridworld = function(manifestState, latentStateDist) {
+    return Infer({ method: 'enumerate' }, function(){
+      return buildState(manifestState, sample(latentStateDist));
     });
   };
   
@@ -32,7 +32,7 @@ var testAgent = function(){
   		       Veg: 0,
   		       Noodle: 0,
   		       timeCost: -0.1};
-  var latentPrior1 = deltaERP(startState1.latentState);
+  var latentPrior1 = Delta({ v: startState1.latentState });
   var prior1 = makePriorGridworld(startState1.manifestState, latentPrior1);
   var agent1 = makePOMDPAgent({
     utility: makeRestaurantUtilityFunction(gridworldPOMDP, utilityTable1),
@@ -59,7 +59,7 @@ var testAgent = function(){
   		       Veg: 0,
   		       Noodle: 3,
   		       timeCost: -0.1};
-  var latentPrior2 = Enumerate(function(){
+  var latentPrior2 = Infer({ method: 'enumerate' }, function(){
     return categorical([0.2, 0.8], [startState2.latentState,
   				    startState1.latentState]);
   });
@@ -94,7 +94,7 @@ var testAgent = function(){
 		       Veg: 1,
 		       Noodle: 3,
 		       timeCost: -0.1};
-  var latentPrior3 = Enumerate(function(){
+  var latentPrior3 = Infer({ method: 'enumerate' }, function(){
     return uniformDraw([startState1.latentState, startState3.latentState]);
   });
   var prior3 = makePriorGridworld(startState3.manifestState, latentPrior3);
@@ -150,7 +150,7 @@ var testAgent = function(){
 		       Donut: 4.6,
 		       timeCost: -0.1,
                        Veg: 0};
-  var latentPrior4 = deltaERP(startState4.latentState);
+  var latentPrior4 = Delta({ v: startState4.latentState });
   var prior4 = makePriorGridworld(startState4.manifestState, latentPrior4);
   var agent4 = makePOMDPAgent({utility: makeRestaurantUtilityFunction(forkyGridworldPOMDP, utilityTable4),
 				alpha: 100,
@@ -173,7 +173,7 @@ var testAgent = function(){
 		       Donut: 50,
 		       timeCost: -0.1, 
                        Veg:0};
-  var latentPrior5 = deltaERP(startState5.latentState);
+  var latentPrior5 = Delta({ v: startState5.latentState });
   var prior5 = makePriorGridworld(startState5.manifestState, latentPrior5);
   var agent5 = makePOMDPAgent({utility: makeRestaurantUtilityFunction(forkyGridworldPOMDP, utilityTable5),
 				alpha: 100,

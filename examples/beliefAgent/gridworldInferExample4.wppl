@@ -29,7 +29,7 @@ var tableToUtilityFunction = function(table) {
 };
 
 var makeUninformedPrior = function(p){
-  return Enumerate(function(){
+  return Infer({ method: 'enumerate' }, function(){
     if (flip(p)) {
       return {'Donut N': true,
 	      'Donut S': false,
@@ -63,7 +63,7 @@ var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 
 // GridWorld.draw(gridworldMDP, {trajectory: observedTrajectory});
 // TODO: labels
 
-var utilityTablePrior = Enumerate(function(){
+var utilityTablePrior = Infer({ method: 'enumerate' }, function(){
   var donutUtility = uniformDraw(range(5));
   return {'Donut N': donutUtility,
 	  'Donut S': donutUtility,
@@ -88,16 +88,16 @@ var factorOnSequence = function(currentBelief, index, observedStateAction, agent
 
     var observation = observe(state);
     var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation);
-    var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
+    var nextActionDist = agentAct(state.manifestState, nextBelief, 0);
     
-    factor(nextActionERP.score([], observedAction));
+    factor(nextActionDist.score(observedAction));
     
     return factorOnSequence(nextBelief, index + 1, observedStateAction, agent);
   }
 };
 
 var inferredAgent = function(){
-  return printERP(MCMC(function(){
+  return printDist(MCMC(function(){
     var utilityTable = sample(utilityTablePrior);
     var utility = tableToUtilityFunction(utilityTable);
     var agentProbDSClosed = uniformDraw([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]);

@@ -8,7 +8,7 @@ var printOut = function ( trajectory ) {
 
 
 // second inference function: generate an agent. In the first state of the trajectory,
-// update that agent's beliefs, get the agent's ERP over next states, get the score
+// update that agent's beliefs, get the agent's Dist over next states, get the score
 // of the actual next state, then put the agent in the actual next state, and repeat
 // this process for the whole trajectory.
 
@@ -22,7 +22,7 @@ var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
     return state.latentState[state.manifestState.loc];
   };
 
-  return Enumerate(function(){
+  return Infer({ method: 'enumerate' }, function(){
     var agentUtilitySign = sample(utilitySignPrior);
     var agentUtility = function(state, action){
       return agentUtilitySign * rewardUtility(state, action);
@@ -40,7 +40,7 @@ var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
       if (actionsSampled === trajectoryLength - 1) {
 	return [];
       } else {
-	var actionERP = Enumerate(function(){
+	var actionDist = Infer({ method: 'enumerate' }, function(){
 	  return sample(agentActionBelief(state.manifestState, currentBelief,
 					  observe(state))).action;
 	});
@@ -50,7 +50,7 @@ var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
 
 	var nextState = observedTrajectory[actionsSampled + 1];
 	
-	factor(actionERP.score([], nextState.manifestState.loc));
+	factor(actionDist.score(nextState.manifestState.loc));
 	
 	return sampleAlongTrajectory(nextState, newBelief, actionsSampled + 1);
       }
@@ -63,9 +63,9 @@ var inferUtilityBeliefBandits2 = function(observedTrajectory, utilitySignPrior,
 };
 
 // arguments: *observedTrajectories* an array of trajectories,
-// *utilityParamsPrior* an ERP over parameters for a utility function,
-// *beliefPrior* an ERP over the agent's prior over the latent state,
-// *alphaPrior an ERP over the agent's softmax noise,
+// *utilityParamsPrior* an Dist over parameters for a utility function,
+// *beliefPrior* an Dist over the agent's prior over the latent state,
+// *alphaPrior an Dist over the agent's softmax noise,
 // *paramsToUtilityFunction* a function which takes parameters for a utility function
 // and returns the associated utility function, and *world* the POMDP that the
 // trajectories were generated in.
@@ -80,30 +80,30 @@ var inferBeliefAgent = function(observedTrajectories, utilityParamsPrior, belief
 
   var sampleAlongTrajectory = function(state, currentBelief, actionsSampled,
 				       trajectory, agentActionBelief) {
-    assert.ok(isERP(agentActionBelief(state.manifestState, currentBelief,
+    assert.ok(isDist(agentActionBelief(state.manifestState, currentBelief,
 				      observe(state))),
 	      'agentActionBelief not correct in sampleAlongTrajectory');
     
     if (actionsSampled === trajectory.length - 1) {
       return [];
     } else {
-      var actionBeliefERP = agentActionBelief(state.manifestState, currentBelief,
+      var actionBeliefDist = agentActionBelief(state.manifestState, currentBelief,
 					      observe(state));
-      var nextStateERP = Enumerate(function(){
-	return transition(state, sample(actionBeliefERP).action);
+      var nextStateDist = Infer({ method: 'enumerate' }, function(){
+	return transition(state, sample(actionBeliefDist).action);
       });
-      var newBelief = sample(actionBeliefERP).belief;
+      var newBelief = sample(actionBeliefDist).belief;
 
       var trajectoryNextState = trajectory[actionsSampled + 1];
       
-      factor(nextStateERP.score([], trajectoryNextState));
+      factor(nextStateDist.score(trajectoryNextState));
       
       return sampleAlongTrajectory(trajectoryNextState, newBelief, actionsSampled + 1,
 				   trajectory, agentActionBelief);
     }
   };
 
-  return Enumerate(function(){
+  return Infer({ method: 'enumerate' }, function(){
     var utilityParams = sample(utilityParamsPrior);
     var utility = paramsToUtilityFunction(utilityParams);
     var agentPrior = sample(beliefPrior);

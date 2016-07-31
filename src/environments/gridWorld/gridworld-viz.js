@@ -355,15 +355,15 @@ function draw(world, additional) {
 
 }
 
-// Allows printing of ERP when webppl-viz is not available
-var printERP = function(x,k) {
-  var erpValues = _.sortBy(x.support(), function(v){return -x.score([], v);});
-  var erpValues = typeof(k)=='undefined' ? erpValues : erpValues.slice(0,k);
+// Allows printing of Dist when webppl-viz is not available
+var printDist = function(x,k) {
+  var distValues = _.sortBy(x.support(), function(v){return -x.score(v);});
+  var distValues = typeof(k)=='undefined' ? distValues : distValues.slice(0,k);
 
-  console.log('vegaPrint ERP:');          
-  erpValues.map(
+  console.log('vegaPrint Dist:');          
+  distValues.map(
     function(v){
-      var prob = Math.exp(x.score([], v));
+      var prob = Math.exp(x.score(v));
       if (prob > 0.0){
         console.log(JSON.stringify(v) + ': ' + prob.toFixed(5));
       }
@@ -376,8 +376,8 @@ var printERP = function(x,k) {
 
 module.exports = {
   draw: draw,
-  vegaPrint: printERP,
-  print: printERP,
-  bar: printERP,
-  line: printERP
+  vegaPrint: printDist,
+  print: printDist,
+  bar: printDist,
+  line: printDist
 }

@@ -23,7 +23,7 @@ var noodleUtilityTable = {'Donut N': 2,
 			  Noodle: 5,
 			  timeCost: -0.1};
 
-var uninformedPrior = Enumerate(function(){
+var uninformedPrior = Infer({ method: 'enumerate' }, function(){
   if (flip(0.8)) {
     return {'Donut N': true,
 	    'Donut S': true,
@@ -37,10 +37,10 @@ var uninformedPrior = Enumerate(function(){
   }
 });
 
-var informedPrior = deltaERP({'Donut N': true,
+var informedPrior = Delta({ v: {'Donut N': true,
 			      'Donut S': true,
 			      'Veg': true,
-			      'Noodle': true});
+			      'Noodle': true} });
 
 var startState = {manifestState: {loc: [3,1],
 				  terminateAfterAction: false,
@@ -96,16 +96,16 @@ var factorOnSequence = function(currentBelief, index, observedStateAction, agent
 
     var observation = observe(state);
     var nextBelief = agentUpdateBelief(state.manifestState, currentBelief, observation);
-    var nextActionERP = agentAct(state.manifestState, nextBelief, 0);
+    var nextActionDist = agentAct(state.manifestState, nextBelief, 0);
     
-    factor(nextActionERP.score([], observedAction));
+    factor(nextActionDist.score(observedAction));
     
     return factorOnSequence(nextBelief, index + 1, observedStateAction, agent);
   }
 };
 
 var agentPosterior = function(){
-  return printERP(Enumerate(function(){
+  return printDist(Infer({ method: 'enumerate' }, function(){
     var utilityTable = uniformDraw([donutUtilityTable, noodleUtilityTable]);
     var utility = tableToUtilityFunction(utilityTable);
     var agentPrior = uniformDraw([uninformedPrior, informedPrior]);
