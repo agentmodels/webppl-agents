@@ -17,11 +17,11 @@ var makeForkRoad = function(options) {
 	 [ _ , '#'],
 	 [ _ ,  D ]];
   
-  return makeGridWorld(features, myOptions);
+  return makeGridWorldMDP(features, myOptions);
 };
 
 var forkyGridworldMDP = makeForkRoad();
-var forkyGridworldPOMDP = makeGridworldPOMDP(forkyGridworldMDP);
+var forkyGridworldPOMDP = makeGridWorldPOMDP(forkyGridworldMDP);
 var forkFeature = forkyGridworldMDP.feature;
 
 var tableToUtilityFunctionFork = function(table) {

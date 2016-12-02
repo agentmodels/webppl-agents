@@ -6,7 +6,7 @@
 // WORLD PARAMS
 
 var gridworldMDP = makeDonutWorld2({big: true, maxTimeAtRestaurant : 2});
-var world = makeGridworldPOMDP(gridworldMDP);
+var world = makeGridWorldPOMDP(gridworldMDP);
 
 // possible latent states
 

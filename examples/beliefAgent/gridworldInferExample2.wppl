@@ -6,7 +6,7 @@
 // thought that the noodle shop was closed.
 
 var gridworldMDP = makeDonutWorld2({big: true});
-var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
+var gridworldPOMDP = makeGridWorldPOMDP(gridworldMDP);
 var feature = gridworldMDP.feature;
 var transition = gridworldPOMDP.transition;
 var observe = gridworldPOMDP.observe;

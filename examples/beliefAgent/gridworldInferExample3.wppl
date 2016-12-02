@@ -3,7 +3,7 @@
 // actually being closed (as otherwise they would just go the short way around)
 
 var gridworldMDP = makeDonutWorld2({big: true});
-var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
+var gridworldPOMDP = makeGridWorldPOMDP(gridworldMDP);
 var feature = gridworldMDP.feature;
 var transition = gridworldPOMDP.transition;
 var observe = gridworldPOMDP.observe;

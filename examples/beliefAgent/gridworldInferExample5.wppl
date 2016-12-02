@@ -1,7 +1,7 @@
 // like gridworldInferExamples2, but with a prior with broader support, so we need MCMC
 
 var gridworldMDP = makeDonutWorld2({big: true, noReverse: true});
-var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
+var gridworldPOMDP = makeGridWorldPOMDP(gridworldMDP);
 var feature = gridworldMDP.feature;
 var transition = gridworldPOMDP.transition;
 var observe = gridworldPOMDP.observe;

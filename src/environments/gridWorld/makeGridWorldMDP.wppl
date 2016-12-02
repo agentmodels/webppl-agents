@@ -178,7 +178,7 @@ var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
 
 
 
-var makeGridWorld = function(options){
+var makeGridWorldMDP = function(options){
   
   var defaults = {
     noReverse: false,

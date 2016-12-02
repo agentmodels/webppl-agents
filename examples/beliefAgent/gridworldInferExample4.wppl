@@ -3,7 +3,7 @@
 
 // noReverse is an optimisation for gridworldMDP that makes inference run faster
 var gridworldMDP = makeDonutWorld2({big: true, noReverse: false});
-var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
+var gridworldPOMDP = makeGridWorldPOMDP(gridworldMDP);
 var feature = gridworldMDP.feature;
 var transition = gridworldPOMDP.transition;
 var observe = gridworldPOMDP.observe;

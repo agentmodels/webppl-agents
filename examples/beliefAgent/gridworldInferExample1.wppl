@@ -3,7 +3,7 @@
 // donuts, but thinks that the nearby donut shop is closed.
 
 var gridworldMDP = makeDonutWorld2({big: true});
-var gridworldPOMDP = makeGridworldPOMDP(gridworldMDP);
+var gridworldPOMDP = makeGridWorldPOMDP(gridworldMDP);
 var feature = gridworldMDP.feature;
 var transition = gridworldPOMDP.transition;
 var observe = gridworldPOMDP.observe;

@@ -13,7 +13,7 @@
 
 var makeBanditGridWorld = function(options) {
   
-  var gridworldPOMDP = makeGridworldPOMDP(options);
+  var gridworldPOMDP = makeGridWorldPOMDP(options);
   var gridworld = gridworldPOMDP.MDPWorld;
   
   var mdpTransition = gridworld.transition;

@@ -22,7 +22,7 @@ var testSimple = function(){
 
   var options = {noReverse: false,
                  gridFeatures: features};
-  var world = makeGridWorld(options).world;
+  var world = makeGridWorldMDP(options).world;
 
   var utility = function(state,action){
     if (state.loc[0]==1 && state.loc[1]==1){
@@ -50,7 +50,7 @@ var testNamed = function(){
                  totalTime: 4,
                  startingLocation: [0,0]};
   
-  var gridWorld = makeGridWorld(options)
+  var gridWorld = makeGridWorldMDP(options)
   var world = gridWorld.world;
   var makeUtility = gridWorld.makeUtility;
 
@@ -90,7 +90,7 @@ var testStochastic = function(){
                  gridFeatures: features,
                  transitionNoiseProbability: .1};
   
-  var world = makeGridWorld(options).world;
+  var world = makeGridWorldMDP(options).world;
   
   // utility:
   // [0, 0, -1000, -1000],
@@ -135,7 +135,7 @@ var testPOMDP = function(){
                  totalTime: 8,
                  startingLocation: [0,0]};
   
-  var world = makeGridworldPOMDP(options)
+  var world = makeGridWorldPOMDP(options)
   
 
   var utilityTable = {cafe:10, pub:5, timeCost:-.01};

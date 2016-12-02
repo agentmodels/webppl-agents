@@ -33,7 +33,7 @@ var makeHike = function(transitionNoiseProb, options) {
     transitionNoiseProbability: transitionNoiseProb
   };
   
-  return makeGridWorld(options).world;
+  return makeGridWorldMDP(options).world;
 };
 
 var makeHikeUtilityFunction = function(world, utilityTable){
