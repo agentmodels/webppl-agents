@@ -1,7 +1,9 @@
 # webppl-agents
+
 Webppl library with agents for solving MDPs and POMDPs. JS library for displaying Gridworld. 
 
 ## Installation
+
 ```
 sh install.sh
 ```

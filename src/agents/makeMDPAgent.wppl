@@ -73,7 +73,8 @@ var simulateMDPAgentOptimal = function(startState, world, agent, outputType) {
 
 
 var makeMDPAgentHyperbolic = function (params, world) {
-  assert.ok(hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive']), 'makeMDPAgentHyperbolic params');
+  assert.ok(hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive']),
+            'makeMDPAgentHyperbolic params');
   
   var stateToActions = world.stateToActions;
   var transition = world.transition;
