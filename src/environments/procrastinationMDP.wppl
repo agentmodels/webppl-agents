@@ -67,8 +67,6 @@ var makeProcrastinationUtility = function(utilityTable) {
   };
 };
 
-var procrastinateUntilEnd10 = [[{"loc":"wait_state","waitSteps":0,"timeLeft":10,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":1,"timeLeft":9,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":2,"timeLeft":8,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":3,"timeLeft":7,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":4,"timeLeft":6,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":5,"timeLeft":5,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":6,"timeLeft":4,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":7,"timeLeft":3,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":8,"timeLeft":2,"terminateAfterAction":false},"work"],[{"loc":"reward_state","waitSteps":8,"timeLeft":1,"terminateAfterAction":true},"relax"]];
-
 var workInMiddle10 = [[{"loc":"wait_state","waitSteps":0,"timeLeft":10,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":1,"timeLeft":9,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":2,"timeLeft":8,"terminateAfterAction":false},"wait"],[{"loc":"wait_state","waitSteps":3,"timeLeft":7,"terminateAfterAction":false},"work"],[{"loc":"reward_state","waitSteps":3,"timeLeft":6,"terminateAfterAction":true},"relax"]];
 
 
