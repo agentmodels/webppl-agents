@@ -1,4 +1,5 @@
-// functions involving an agent in a plain gridworld MDP.
+// --------------------------------------------------------------------
+// Optimal MDP agent
 
 var makeMDPAgentOptimal = function(params, world) {
   // *params* should be an object containing *utility*, a utility function, and
@@ -42,6 +43,7 @@ var makeMDPAgentOptimal = function(params, world) {
   };
 };
 
+
 var simulateMDPAgentOptimal = function(startState, world, agent, outputType) {
   // if outputType is undefined, default to states
   var act = agent.act;
@@ -66,24 +68,7 @@ var simulateMDPAgentOptimal = function(startState, world, agent, outputType) {
 };
 
 
-// TODO remove
-var simulateMDP = simulateMDPAgentOptimal;
-
-
-// *trajectory* must be a trajectory of states
-var getExpectedUtilitiesMDP = function(stateTrajectory, world, agent) {
-  var stateToActions = world.stateToActions;
-  var eu = agent.expectedUtility;
-  var getAllExpectedUtilities = function(state) {
-    var availableActions = stateToActions(state);
-    return [state, map(function(action){return eu(state, action);},
-		       availableActions)];
-  };
-  return map(getAllExpectedUtilities, stateTrajectory);
-};
-
-
-
+// --------------------------------------------------------------------
 // Hyperbolic discounting agent
 
 
@@ -98,13 +83,14 @@ var makeMDPAgentHyperbolic = function (params, world) {
   // actually be an exponential discounter (or some other kind of discounter)
   var paramsDiscountFunction = params.discountFunction;
 
-  var discountFunction = paramsDiscountFunction ? paramsDiscountFunction
-	: function(delay){
-	  return 1/(1 + params.discount*delay);
-	};
+  var discountFunction = (
+    paramsDiscountFunction ||
+    function(delay){
+      return 1/(1 + params.discount*delay);
+    });
 
   var isNaive = params.sophisticatedOrNaive=='naive';
-    
+  
   var act = dp.cache( 
     function(state, delay){
       var delay = delay ? delay : 0; //make sure delay is never 'undefined'
@@ -136,11 +122,12 @@ var makeMDPAgentHyperbolic = function (params, world) {
     });
   
   return {
-    params : params,
-    expectedUtility : expectedUtility,
+    params: params,
+    expectedUtility: expectedUtility,
     act: act
   };
 };
+
 
 var simulateMDPAgentHyperbolic = function(startState, world, agent, outputType) {
   var act = agent.act;
@@ -164,19 +151,37 @@ var simulateMDPAgentHyperbolic = function(startState, world, agent, outputType) 
 };
 
 
+// --------------------------------------------------------------------
+// Helper functions
+
+
+// *trajectory* must be a trajectory of states
+var getExpectedUtilitiesMDP = function(stateTrajectory, world, agent) {
+  var stateToActions = world.stateToActions;
+  var eu = agent.expectedUtility;
+  var getAllExpectedUtilities = function(state) {
+    var availableActions = stateToActions(state);
+    return [state, map(function(action){return eu(state, action);},
+		       availableActions)];
+  };
+  return map(getAllExpectedUtilities, stateTrajectory);
+};
+
 
 var MAPActionPath = function(state, world, agent, actualTotalTime, statesOrActions) { 
   var perceivedTotalTime = state.timeLeft;
-  assert.ok( perceivedTotalTime  > 1 || state.terminateAfterAction==false, 'perceivedTime<=1. If=1 then should have state.terminateAfterAction, but then simulate wont work ' + JSON.stringify(state));
+  assert.ok(perceivedTotalTime  > 1 || state.terminateAfterAction==false,
+            'perceivedTime<=1. If=1 then should have state.terminateAfterAction,' +
+            ' but then simulate wont work ' + JSON.stringify(state));
 
   var agentAction = agent.act;
   var expectedUtility = agent.expectedUtility;
   var transition = world.transition;
 
   var sampleSequence = function (state, actualTimeLeft) {
-      var action = agentAction(state, actualTotalTime-actualTimeLeft).MAP().val;
-      var nextState = transition(state, action); 
-      var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
+    var action = agentAction(state, actualTotalTime-actualTimeLeft).MAP().val;
+    var nextState = transition(state, action); 
+    var out = {states:state, actions:action, both:[state,action]}[statesOrActions];
     if (actualTimeLeft==0 || state.terminateAfterAction){
       return [out];
     } else {
@@ -205,30 +210,40 @@ var plannedTrajectory = function(world, agent) {
   };
 } 
 
+
 var plannedTrajectories = function(trajectory, world, agent) { 
   var getTrajectory = plannedTrajectory(world, agent);
   return map(getTrajectory, trajectory);
 }
 
 
+// --------------------------------------------------------------------
+// Generic MDP wrappers
+
 
 var isOptimalMDPAgent = function(agentParams){
-
   var optimalProperties = function(){
-    return ! (_.has(agentParams, 'discount') || _.has(agentParams, 'discountFunction') ||
-              _.has(agentParams, 'sophisticatedOrNaive') );
+    return !(_.has(agentParams, 'discount') ||
+             _.has(agentParams, 'discountFunction') ||
+             _.has(agentParams, 'sophisticatedOrNaive'));
   };
-
   return _.isUndefined(agentParams.optimal) ? optimalProperties() : agentParams.optimal;
 };
 
 
 
 var makeMDPAgent = function(params, world){
-  return isOptimalMDPAgent(params) ? makeMDPAgentOptimal(params, world) : 
-    makeMDPAgentHyperbolic(params, world)
+  return (isOptimalMDPAgent(params) ?
+          makeMDPAgentOptimal(params, world) : 
+          makeMDPAgentHyperbolic(params, world));
 };
 
 
-
-
+var simulateMDP = function(startState, world, agent, outputType) {
+  var params = agent.params;
+  if (isOptimalMDPAgent(params)){
+    return simulateMDPAgentOptimal(startState, world, agent, outputType)  
+  } else {
+    return simulateMDPAgentHyperbolic(startState, world, agent, outputType)
+  }    
+};

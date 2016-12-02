@@ -151,7 +151,7 @@ var runRiskAgent = function(probStick){
       discount : 1, 
       probStick: probStick,
     }, world);
-  var out = simulate(start, world, agent, 14,'all');
+  var out = simulateMDP(start, world, agent, 14,'all');
   var locs = _.map(_.map(out,0), 'loc');
   var actions = _.map(out, 1);
   var delays = _.map(out,2);

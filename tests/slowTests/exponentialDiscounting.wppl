@@ -54,13 +54,13 @@ var test1 = function() {
   );
 
   var naiveTrajectoryDistribution = Infer({ method: 'enumerate' }, function(){
-    return simulate(startState, world, naiveAgent, 'states');
+    return simulateMDP(startState, world, naiveAgent, 'states');
   });
 
   var mostLikelyNaiveTrajectory = MAP(naiveTrajectoryDistribution).val;
   
   var sophisticatedTrajectoryDistribution = Infer({ method: 'enumerate' }, function(){
-    return simulate(startState, world, sophisticatedAgent, 'states');
+    return simulateMDP(startState, world, sophisticatedAgent, 'states');
   });
 
   var mostLikelySophisticatedTrajectory = MAP(sophisticatedTrajectoryDistribution).val;
@@ -222,9 +222,9 @@ var test3 = function(){
   var lightDiscounter = makeBanditAgent(lightDiscounterParams, bandit,
 					'beliefDelay');
   
-  var lightDiscounterTrajectory = simulate(startState, world,
-					   lightDiscounter,
-					   'actions');
+  var lightDiscounterTrajectory = simulatePOMDP(startState, world,
+					        lightDiscounter,
+					        'actions');
 
   assert.ok(lightDiscounterTrajectory[0] === 1, 'discounting agent with large discount factor should explore but does not, test 3 fails');
 
@@ -245,9 +245,9 @@ var test3 = function(){
   var heavyDiscounter = makeBanditAgent(heavyDiscounterParams, bandit,
 					'beliefDelay');
   
-  var heavyDiscounterTrajectory = simulate(startState, world,
-					   heavyDiscounter,
-					   'actions');
+  var heavyDiscounterTrajectory = simulatePOMDP(startState, world,
+					        heavyDiscounter,
+					        'actions');
 
   assert.ok(heavyDiscounterTrajectory[0] === 0, 'discounting agent with small discount factor should not explore but does, test 3 fails');
   

@@ -86,7 +86,7 @@ var test1 = function() {
   var beliefOrBeliefDelay = 'belief';
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
   
-  var agentTypeAndFunctions = {type: beliefOrBeliefDelay, makeAgent:makeAgent, simulate: simulate};
+  var agentTypeAndFunctions = {type: beliefOrBeliefDelay, makeAgent:makeAgent, simulate: simulatePOMDP};
 
   var alternativePriorBelief = getPriorBelief( startState.manifestState, function(){return trueLatentState;});
   var priorUtilityTable = function(){return uniformDraw([donutUtilityTable, vegUtilityTable]);};
@@ -212,7 +212,7 @@ var test2 = function() {
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
   var agentTypeAndFunctions = {type: beliefOrBeliefDelay,
 			       makeAgent:makeAgent,
-			       simulate: simulate};
+			       simulate: simulatePOMDP};
 
   var alternativePriorBelief1 = getPriorBelief( startState1.manifestState,
 							 function(){return trueLatentState;});
@@ -430,7 +430,7 @@ var test3 = function() {
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
   var agentTypeAndFunctions = {type: beliefOrBeliefDelay,
 			       makeAgent:makeAgent,
-			       simulate: simulate};
+			       simulate: simulatePOMDP};
 
   var alternativePriorBelief = getPriorBelief( startState.manifestState,
 							function(){return trueLatentState;});

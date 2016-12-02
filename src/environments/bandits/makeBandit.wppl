@@ -236,7 +236,7 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
     // Factor on whole sampled trajectory (SLOW IF NOT DETERMINISTIC AND NUM SAMPLES HIGH)
     var factorOnTrajectory = function(){
       var trajectoryDist = Infer({ method: 'rejection', samples: numRejectionSamples }, function(){
-        return simulate(startState, world, agent, 'states');});
+        return simulatePOMDP(startState, world, agent, 'states');});
       factor(trajectoryDist.score(map(first, observedStateAction)));
     };
 

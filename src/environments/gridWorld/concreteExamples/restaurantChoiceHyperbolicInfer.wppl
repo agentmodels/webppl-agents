@@ -21,7 +21,7 @@ var getRestaurantHyperbolicInfer = function(){
         discount : discount, 
         sophisticatedOrNaive  : sophisticatedOrNaive
       }, world);
-    var observedStateAction = simulate(start, world, agent);
+    var observedStateAction = simulateMDP(start, world, agent);
     var observedLocs = map( function(x){return x[0].loc;}, observedStateAction);   
     // assert.ok( _.isEqual( observedLocs, restaurantNameToPath[pathName]), 'generated locs: ' + observedLocs + ' \n stored locs: 
 // ' + restaurantNameToPath[pathName]);

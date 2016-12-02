@@ -22,7 +22,7 @@ var params = {
 };
 
 var agent = makePOMDPAgent(params, world);
-var trajectory = simulate(pomdp.startState, world, agent, 'states');
+var trajectory = simulatePOMDP(pomdp.startState, world, agent, 'states');
 var manifestStates = map(function(state){return state.manifestState;},
                          trajectory);
 var loc =  last(trajectory).manifestState.loc;

@@ -156,7 +156,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
   
   // get observations using trueAgentParams
   var agent = makeAgent(trueAgentParams, world);
-  var observedStateAction = simulate(startState, world, agent, 'stateAction');
+  var observedStateAction = simulatePOMDP(startState, world, agent, 'stateAction');
   var observe = agent.POMDPFunctions.observe;
   
   assert.ok( stateHasManifestLatent(observedStateAction[0][0]), 'fullstate in trajectory for inferGridWorld');
@@ -180,7 +180,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
     // Factor on whole sampled trajectory (SLOW IF TRANSITIONS NOT DETERMINISTIC OR IF NUM SAMPLES HIGH)
     var factorOnTrajectory = function(){
       var trajectoryDist = Infer({ method: 'rejection', samples: numRejectionSamples }, function(){
-        return simulate(startState, world, agent, 'states')});
+        return simulatePOMDP(startState, world, agent, 'states')});
       factor(trajectoryDist.score(map(first, observedStateAction)));
     };
 

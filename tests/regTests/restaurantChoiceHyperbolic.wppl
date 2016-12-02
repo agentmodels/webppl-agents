@@ -23,7 +23,7 @@ var agent = makeMDPAgent(
 
 
 
-var states = map(first, simulate(start, world, agent) );
+var states = map(first, simulateMDP(start, world, agent) );
 assert.ok(_.isEqual(last(states).loc, [4, 7]), "sophisticated didn't end up in 4,7");
 assert.ok(states[5].loc[0] == 5, "sophisticated didn't take right side");
 
@@ -33,7 +33,7 @@ var agent2 = makeMDPAgent(
       discount : 1, 
       sophisticatedOrNaive  : 'naive' 
     }, world);
-var trajectory = map(first, simulate(start, world, agent2));
+var trajectory = map(first, simulateMDP(start, world, agent2));
 assert.ok(_.isEqual(last(trajectory).loc, [2, 5]), "naive didn't end up in 1,3");
 assert.ok(trajectory[4].loc[0] == 3, "naive didn't take left side");
 

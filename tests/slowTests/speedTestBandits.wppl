@@ -63,7 +63,7 @@ var speedTestBandits = function(beliefOrBeliefDelay){
     var agent = getAgent(numberOfTrials, bandit);
 
     var thunk = function(){
-      return simulate(bandit.startState, bandit.world, agent, 'actions');
+      return simulatePOMDP(bandit.startState, bandit.world, agent, 'actions');
     };
 
     var out = timeit(thunk);
@@ -120,7 +120,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
     var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
     var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 				prizeToUtility);
-    return simulate(startState, world, agent, 'actions');
+    return simulatePOMDP(startState, world, agent, 'actions');
   };
 
   // Agent knows armToPrizeDist, picks arm with best prize
@@ -183,7 +183,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
   var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
   var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 			      prizeToUtility);
-  var trajectory = simulate(startState, world, agent, 'actions');
+  var trajectory = simulatePOMDP(startState, world, agent, 'actions');
   
   var actions = trajectory.slice(0,4);
   assert.ok( _.difference(_.range(4),actions).length === 0,
@@ -244,7 +244,7 @@ var banditGenerativeDelay = function(){
   var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 			      prizeToUtility);;
   var thunk = function(){
-    return simulate(startState, world, agent, 'actions');
+    return simulatePOMDP(startState, world, agent, 'actions');
   };
   var out = timeit(thunk);
   var actions = out.value.slice(0,3);
@@ -259,7 +259,7 @@ var banditGenerativeDelay = function(){
   var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 			      prizeToUtility);;
   var thunk = function(){
-    return simulate(startState, world, agent, 'actions');
+    return simulatePOMDP(startState, world, agent, 'actions');
   };
   var out = timeit(thunk);
   var actions = out.value.slice(0,3);
@@ -280,7 +280,7 @@ var banditGenerativeDelay = function(){
     var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 				prizeToUtility);
     var thunk = function(){
-      return simulate(startState, world, agent, 'actions');
+      return simulatePOMDP(startState, world, agent, 'actions');
     };
     var out = timeit(thunk);
     var actions = out.value.slice(0,3);
@@ -310,7 +310,7 @@ var banditGenerativeDelay = function(){
     var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 				prizeToUtility);
     var thunk = function(){
-      return simulate(startState, world, agent, 'actions');
+      return simulatePOMDP(startState, world, agent, 'actions');
     };
     var out = timeit(thunk);
     var actions = out.value.slice(0,3);

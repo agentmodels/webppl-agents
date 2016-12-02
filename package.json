@@ -17,7 +17,6 @@
       "src/agents/makeMDPAgent.wppl",
       "src/utils/POMDPUtils.wppl",
       "src/agents/makePOMDPAgent.wppl",
-      "src/agents/simulate.wppl",
       "src/environments/bandits/makeBandit.wppl",
       "src/environments/gridWorld/makeGridWorld.wppl",
       "src/environments/gridWorld/makeGridworldPOMDP.wppl",
