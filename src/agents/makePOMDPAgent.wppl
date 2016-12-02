@@ -440,7 +440,7 @@ var isOptimalPOMDPAgent = function(agentParams){
   var optimalProperties = function(){
     return !(_.has(agentParams, 'noDelays') ||
              _.has(agentParams, 'discount') ||
-             _.has(agentParams,'myopic-observations'));
+             _.has(agentParams, 'myopic-observations'));
   }
   return _.isUndefined(agentParams.optimal) ? optimalProperties() : agentParams.optimal;
 };
@@ -457,7 +457,7 @@ var getMakeAgentFunction = function(beliefOrBeliefDelay){
   assert.ok(_.includes(['belief','beliefDelay'], beliefOrBeliefDelay),
             'getMakeAgentFunction invalid input:   ' + beliefOrBeliefDelay);
 
-  if ( beliefOrBeliefDelay == 'beliefDelay'){
+  if (beliefOrBeliefDelay == 'beliefDelay') {
     return makePOMDPAgentDelay;
   } else {
     return makePOMDPAgentOptimal;

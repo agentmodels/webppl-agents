@@ -193,17 +193,13 @@ var MAPActionPath = function(state, world, agent, actualTotalTime, statesOrActio
 
 
 var plannedTrajectory = function(world, agent) {
-
   var getExpectedUtilities = function(trajectory, agent, actions) { 
     var expectedUtility = agent.expectedUtility;
-    
     var v = mapIndexed(function(i, state) {
       return [state, map(function (a) { return  expectedUtility(state, a, i); }, actions)];
     }, trajectory );
-
     return v;
   };
-  
   return function(state) {
     var currentPlan = MAPActionPath(state, world, agent, state.timeLeft, 'states');
     return getExpectedUtilities(currentPlan, agent, world.actions);
