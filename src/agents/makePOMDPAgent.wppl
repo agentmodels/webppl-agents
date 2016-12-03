@@ -445,11 +445,23 @@ var isOptimalPOMDPAgent = function(agentParams){
   return _.isUndefined(agentParams.optimal) ? optimalProperties() : agentParams.optimal;
 };
 
+function isManualPOMDPAgent = function(agentParams) {
+  return (_.has(agentParams, 'act') &&
+          _.has(agentParams, 'updateBelief') &&
+          _.has(agentParams, 'params') &&
+          _.has(agentParams.params, 'priorBelief'));
+}
 
 var makePOMDPAgent = function(params, world){
-  return (isOptimalPOMDPAgent(params) ?
-          makePOMDPAgentOptimal(params, world) :
-          makePOMDPAgentDelay(params, world));
+  if (isManualPOMDPAgent(params)) {
+    return update(params, {
+      POMDPFunctions: getPOMDPFunctions(params.params, bandit.world)
+    });
+  } else {
+    return (isOptimalPOMDPAgent(params) ?
+            makePOMDPAgentOptimal(params, world) :
+            makePOMDPAgentDelay(params, world));
+  }
 };
 
 
