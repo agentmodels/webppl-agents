@@ -24,6 +24,17 @@ var hasProperties = function(object, listProperties){
 
 var ash = function(){assert.ok(0,'assert halt');};
 
+
+var reverse = function (xs) { 
+  var append = function(n, acc) { return acc.concat(n); } 
+  return reduce(append, [], xs);
+}
+
+var cumsum = function (xs) {
+  var acf = function (n, acc) { return acc.concat( (acc.length > 0 ? acc[acc.length-1] : 0) + n); }
+  return reduce(acf, [], reverse(xs));
+}
+
 var downToOne = function(n){
   if (n==0){return [];}
   else {return [n].concat(downToOne(n-1));}
