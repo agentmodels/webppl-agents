@@ -44,11 +44,11 @@ var agentProbNoodleOpenSampler = function() {
 };
 
 var agentUtilityTableSampler = function() {
-  var donutUtility = uniformDraw(range(4));
+  var donutUtility = uniformDraw(_.range(4));
   return {'Donut N': donutUtility,
 	  'Donut S': donutUtility,
-	  Veg: uniformDraw(range(4)),
-	  Noodle: uniformDraw(range(4)),
+	  Veg: uniformDraw(_.range(4)),
+	  Noodle: uniformDraw(_.range(4)),
 	  timeCost: -0.1};
 };
 

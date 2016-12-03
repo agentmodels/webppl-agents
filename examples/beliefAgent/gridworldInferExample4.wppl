@@ -64,11 +64,11 @@ var observedTrajectory = simulateBeliefAgent(startState, gridworldPOMDP, agent, 
 // TODO: labels
 
 var utilityTablePrior = Infer({ method: 'enumerate' }, function(){
-  var donutUtility = uniformDraw(range(5));
+  var donutUtility = uniformDraw(_.range(5));
   return {'Donut N': donutUtility,
 	  'Donut S': donutUtility,
-	  'Veg': uniformDraw(range(5)),
-	  'Noodle': uniformDraw(range(5)),
+	  'Veg': uniformDraw(_.range(5)),
+	  'Noodle': uniformDraw(_.range(5)),
 	  'timeCost': -0.1};
 });
 

@@ -124,7 +124,7 @@ map( function(name){
 
 // Show scaling in number of trials is better for Myopic
 
-var totalTimeValues = range(9).slice(2);
+var totalTimeValues = _.range(9).slice(2);
 var allTimes = map( runAgents, totalTimeValues )
 var optimalTimes = map( function(time){
   return (1/1000)*time[0].runtimeInMilliseconds;

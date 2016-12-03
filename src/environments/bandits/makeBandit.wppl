@@ -14,7 +14,7 @@ var inSupport = function(x, dist){
 
 // main constructor function is makeBandit
 var makeBanditWorld = function(numberOfArms) {
-  var actions = range(numberOfArms);
+  var actions = _.range(numberOfArms);
 
   var advanceTime = function(manifestState) {
     var newTimeLeft = manifestState.timeLeft - 1;

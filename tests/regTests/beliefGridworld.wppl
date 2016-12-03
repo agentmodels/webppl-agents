@@ -119,7 +119,7 @@ var test1 = function() {
   map(function(index){
     assert.ok( myInSupport(dist0ActualSupport[index], dists[1]),
   	       'support of trajectory Dist not contained in support of offPolicy Dist');
-  }, range(dist0ActualSupport.length));
+  }, _.range(dist0ActualSupport.length));
 
 
   // we expect both Dists to be delta Dists
@@ -250,7 +250,7 @@ var test2 = function() {
   map(function(index){
     assert.ok( myInSupport(dist10ActualSupport[index], dists1[1]),
   	       'support of trajectory Dist not contained in support of offPolicy Dist');
-  }, range(dist10ActualSupport.length));
+  }, _.range(dist10ActualSupport.length));
 
   // inference should be unsure of whether the agent likes noodles
 
@@ -334,7 +334,7 @@ var test2 = function() {
   map(function(index){
     assert.ok( myInSupport(dist20ActualSupport[index], dists2[1]),
   	       'support of trajectory Dist not contained in support of offPolicy Dist');
-  }, range(dist20ActualSupport.length));
+  }, _.range(dist20ActualSupport.length));
 
   // Dists should be delta Dists (almost)
 
@@ -469,7 +469,7 @@ var test3 = function() {
   map(function(index){
     assert.ok( myInSupport(dist0ActualSupport[index], dists[1]),
   	       'support of trajectory Dist not contained in support of offPolicy Dist');
-  }, range(dist0ActualSupport.length));
+  }, _.range(dist0ActualSupport.length));
 
   // Dists should be delta Dists (almost)
 

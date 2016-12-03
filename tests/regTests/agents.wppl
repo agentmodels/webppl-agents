@@ -213,14 +213,14 @@ var testPOMDPAgentOptimal = function(){
     
     var agentPriorBeliefManifest = Infer({ method: 'enumerate' },  function(){
       var latentState = {treasureAt3: flip(),
-                         dummy: uniformDraw(range(20))};
+                         dummy: uniformDraw(_.range(20))};
       return update(trueStartState, {latentState:latentState});
     });
 
     var agentPriorBelief = Infer({ method: 'enumerate' },  function(){
       return update(trueStartState,
                     {treasureAt3: flip(),
-                     dummy: uniformDraw(range(20))});
+                     dummy: uniformDraw(_.range(20))});
     });
 
     var agentPriorBelief = useManifestLatent ? agentPriorBeliefManifest : agentPriorBelief;

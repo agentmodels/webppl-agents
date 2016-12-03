@@ -7,8 +7,8 @@ var startState = restaurantSearchStartState;
 var agentPrior = Infer({ method: 'enumerate' }, function(){
   var rewardE = flip() ? 5 : 0;
   var latentState = {A: 3,
-		             B: uniformDraw(range(6)),
-		             C: uniformDraw(range(6)),
+		             B: uniformDraw(_.range(6)),
+		             C: uniformDraw(_.range(6)),
 		             D: 5 - rewardE,
 		             E: rewardE};
   return buildState(startState.manifestState, latentState);
@@ -43,8 +43,8 @@ var startState = restaurantSearchStartState;
 var agentPrior = Infer({ method: 'enumerate' }, function(){
   var rewardE = flip() ? 5 : 0;
   var latentState = {A: 3,
-		     B: uniformDraw(range(3)),
-		     C: uniformDraw(range(3)),
+		     B: uniformDraw(_.range(3)),
+		     C: uniformDraw(_.range(3)),
 		     D: 5 - rewardE,
 		     E: rewardE};
   return buildState(startState.manifestState, latentState);

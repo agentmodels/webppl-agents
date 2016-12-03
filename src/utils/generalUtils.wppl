@@ -24,11 +24,6 @@ var hasProperties = function(object, listProperties){
 
 var ash = function(){assert.ok(0,'assert halt');};
 
-var range = function(n){
-  if (n===0){return [];} 
-  else {return range(n-1).concat([n-1]);}
-};
-
 var downToOne = function(n){
   if (n==0){return [];}
   else {return [n].concat(downToOne(n-1));}

@@ -14,7 +14,7 @@ var getPosterior = function(timeLeft, useOptimalModel) {
 						 vs: [startState, alternativeStartState] }) });
   
   var priorPrizeToUtility = Infer({ method: 'enumerate' }, function(){
-    return {chocolate: uniformDraw(range(20).concat(25)),
+    return {chocolate: uniformDraw(_.range(20).concat(25)),
 	    nothing: 0,
 	    champagne: 20};
   });
@@ -50,7 +50,7 @@ var getPosterior = function(timeLeft, useOptimalModel) {
           expectation(getMarginal(outputDist,'myopiaBound'))]
 };
 
-var timeHorizonValues = range(10).slice(2);
+var timeHorizonValues = _.range(10).slice(2);
 
 var optimalExpectations = map(function(t){return getPosterior(t, true);},
 			      timeHorizonValues);
@@ -59,7 +59,7 @@ var possiblyMyopicExpectations = map(function(t){return getPosterior(t, false);}
 
 var print = function(x){return console.log(x);};
 
-print('Prior expected utility for arm0 (chocolate): ' + listMean(range(20).concat(25)) );
+print('Prior expected utility for arm0 (chocolate): ' + listMean(_.range(20).concat(25)) );
 
 print('Inferred Utility for arm0 (chocolate) for Optimal Model as timeHorizon increases');
 console.log(timeHorizonValues, map(first, optimalExpectations));

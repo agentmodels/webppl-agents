@@ -127,7 +127,7 @@ var dist1ActualSupport = getActualSupport(dists[1]);
 map(function(index){
   assert.ok( myInSupport(dist0ActualSupport[index], dists[1]),
   	     'support of trajectory Dist not contained in support of offPolicy Dist');
-}, range(dist0ActualSupport.length));
+}, _.range(dist0ActualSupport.length));
 
 // Dists should be delta Dists (almost)
 
