@@ -51,7 +51,7 @@ var speedTestBandits = function(beliefOrBeliefDelay){
       sophisticatedOrNaive: 'naive'
     };
 
-    var agentParams = update(baseAgentParams, {priorBelief:priorBelief}); 
+    var agentParams = extend(baseAgentParams, {priorBelief:priorBelief}); 
     var prizeToUtility = {a:5, b:10, c:-8}; 
     return makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 			   prizeToUtility);
@@ -117,7 +117,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
   };
 
   var getTrajectory = function(priorBelief){
-    var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
+    var agentParams = extend(baseAgentParams, {priorBelief: priorBelief});
     var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 				prizeToUtility);
     return simulatePOMDP(startState, world, agent, 'actions');
@@ -180,7 +180,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
     return {0:dist(), 1:dist(), 2:dist(), 3:dist()};
   });
   
-  var agentParams = update(baseAgentParams, {priorBelief: priorBelief});
+  var agentParams = extend(baseAgentParams, {priorBelief: priorBelief});
   var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 			      prizeToUtility);
   var trajectory = simulatePOMDP(startState, world, agent, 'actions');
@@ -240,7 +240,7 @@ var banditGenerativeDelay = function(){
   var prizeToUtility = {a:5, b:10, c:-8}; 
 
   // No discounting
-  var agentParams = update(baseAgentParams, {priorBelief:priorBelief});
+  var agentParams = extend(baseAgentParams, {priorBelief:priorBelief});
   var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 			      prizeToUtility);;
   var thunk = function(){
@@ -255,7 +255,7 @@ var banditGenerativeDelay = function(){
 
   // Discounting
   var replaceParams = {discount:4, noDelays:false, priorBelief:priorBelief};
-  var agentParams = update(baseAgentParams, replaceParams);
+  var agentParams = extend(baseAgentParams, replaceParams);
   var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 			      prizeToUtility);;
   var thunk = function(){
@@ -276,7 +276,7 @@ var banditGenerativeDelay = function(){
       rewardMyopic:{bound:rewardMyopicBound}, 
       priorBelief:priorBelief
     };
-    var agentParams = update(baseAgentParams, replaceParams);
+    var agentParams = extend(baseAgentParams, replaceParams);
     var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 				prizeToUtility);
     var thunk = function(){
@@ -306,7 +306,7 @@ var banditGenerativeDelay = function(){
       priorBelief: priorBelief,
       fastUpdateBelief: false
     };
-    var agentParams = update(baseAgentParams, replaceParams);
+    var agentParams = extend(baseAgentParams, replaceParams);
     var agent = makeBanditAgent(agentParams, bandit, beliefOrBeliefDelay,
 				prizeToUtility);
     var thunk = function(){

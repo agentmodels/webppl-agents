@@ -73,7 +73,7 @@ var getPOMDPFunctions = function(params, world){
         // Don't update latent when you don't need to
         if (observation.observation === 'noObservation'
             || isDeltaDist(belief.latentStateDist) ) {
-          return update(belief, {manifestState: newManifestState});
+          return extend(belief, {manifestState: newManifestState});
         } else {
 
           // Sample latent, update state, compare predicted observation from state
@@ -155,7 +155,7 @@ var makePOMDPAgentOptimal = function(params, world) {
     alpha: 1000,
   };
 
-  var params = update(defaults, params);
+  var params = extend(defaults, params);
 
   var utility = params.utility;
   var transition = world.transition;
@@ -273,7 +273,7 @@ var makePOMDPAgentDelay = function (params, world){
     rewardMyopic: false
   };
 
-  var params = update(defaults, params);
+  var params = extend(defaults, params);
 
   if (params.rewardMyopic || params.updateMyopic){
     assert.ok( params.noDelays === false && params.sophisticatedOrNaive=== 'naive',
@@ -454,7 +454,7 @@ var isManualPOMDPAgent = function(agentParams) {
 
 var makePOMDPAgent = function(params, world){
   if (isManualPOMDPAgent(params)) {
-    return update(params, {
+    return extend(params, {
       POMDPFunctions: getPOMDPFunctions(params.params, world)
     });
   } else {

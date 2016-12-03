@@ -18,7 +18,7 @@ var utilityTableToFunction = function(utilityTable,world){
 var getWorld = function(){
   var world = makeGridWorldPOMDP(restaurantChoiceMDP);
   var feature = restaurantChoiceMDP.feature;
-  return update(makeGridWorldPOMDP(restaurantChoiceMDP), 
+  return extend(makeGridWorldPOMDP(restaurantChoiceMDP), 
                 {feature:feature, mdp:restaurantChoiceMDP});
 };
 var world = getWorld();
@@ -62,7 +62,7 @@ var restaurantBelief = function(){
     var discount = pathName=='vegDirect' ? 0 : 1;
     var sophisticatedOrNaive = pathName=='naive' ? 'naive' : 'sophisticated';
     
-    var params = update(baseParams,{
+    var params = extend(baseParams,{
       utility: utilityTableToFunction(temptationUtility,world),
       discount: discount,
       sophisticatedOrNaive: sophisticatedOrNaive
@@ -117,7 +117,7 @@ var restaurantBelief = function(){
       var discounting = priorDiscounting();
       var alpha = priorAlpha();
       
-      var params = update(baseParams,{
+      var params = extend(baseParams,{
         utility: utilityTableToFunction(utilityTable,world),
         discount: discounting.discount,
         sophisticatedOrNaive: discounting.sophisticatedOrNaive,
@@ -207,11 +207,11 @@ var hyperbolicQuick = function(alphaValues, discountingOn, timeCostDonut){
                                  simulate:simulateBeliefDelayAgent,
                                  beliefOrBeliefDelay: 'beliefDelay'};
 
-    var trueAgentParams = update(baseParams, {utility: utilityTableToFunction(temptationUtility,world),
+    var trueAgentParams = extend(baseParams, {utility: utilityTableToFunction(temptationUtility,world),
                                               sophisticatedOrNaive: 'naive',
                                               discount: 1});
 
-    var newBaseParams = update(baseParams, {sophisticatedOrNaive: 'naive', discount: 1});
+    var newBaseParams = extend(baseParams, {sophisticatedOrNaive: 'naive', discount: 1});
 
     var dist =  inferGridWorldPOMDP(world, start, newBaseParams, trueAgentParams, prior, agentTypeAndFunctions, 'offPolicy', 0);
     printTopK(dist,4);

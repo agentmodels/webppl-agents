@@ -10,7 +10,7 @@ var GridWorld = webpplAgents; // reference to the exports of gridworld-viz.js
 
 
 // General utilities
-var update = function(base, ext){
+var extend = function(base, ext){
   return _.extend({}, base, ext);
 };
 

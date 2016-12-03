@@ -421,7 +421,7 @@ var deterministicTest1 = function() {
   var numberOfTrials = options.numberOfTrials;
   
   var armToPrizeDistSampler = function(){
-    return categorical([0.8, 0.2], [armToPrizeDist, update(armToPrizeDist,
+    return categorical([0.8, 0.2], [armToPrizeDist, extend(armToPrizeDist,
 							  {1: Delta({ v: 15 })})]);
   };
 
@@ -459,7 +459,7 @@ var deterministicTest2 = function() {
   var numberOfTrials = options.numberOfTrials;
   
   var armToPrizeDistSampler = function(){
-    return categorical([0.6, 0.4], [armToPrizeDist, update(armToPrizeDist,
+    return categorical([0.6, 0.4], [armToPrizeDist, extend(armToPrizeDist,
 							  {1: Delta({ v: 15 })})]);
   };
 
@@ -501,7 +501,7 @@ var deterministicTest3 = function(){
   var numberOfTrials = options.numberOfTrials;
   
   var armToPrizeDistSampler = function(){
-    return categorical([0.4, 0.6], [armToPrizeDist, update(armToPrizeDist,
+    return categorical([0.4, 0.6], [armToPrizeDist, extend(armToPrizeDist,
 							  {1: Delta({ v: 5 })})]);
   };
 

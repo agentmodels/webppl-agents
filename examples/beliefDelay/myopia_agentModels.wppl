@@ -6,8 +6,8 @@ var getPosterior = function(timeLeft, useOptimalModel) {
 		    1: 'nothing'};
   var worldAndStart = makeIRLBanditWorldAndStart(numArms, armToPrize, timeLeft);
   var startState = worldAndStart.startState;
-  var alternativeLatent = update(armToPrize, {1: 'champagne'});
-  var alternativeStartState = update(startState, {latentState:
+  var alternativeLatent = extend(armToPrize, {1: 'champagne'});
+  var alternativeStartState = extend(startState, {latentState:
 						  alternativeLatent});
 
   var priorAgentPrior = Delta({ v: Categorical({ ps: [0.7, 0.3],

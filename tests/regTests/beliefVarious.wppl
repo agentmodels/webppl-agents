@@ -135,7 +135,7 @@ var testAgent = function(){
 	   [ _ , '#'],
 	   [ _ , '#'],
 	   [ _ ,  N ]];
-    return update(myOptions, {gridFeatures: features});
+    return extend(myOptions, {gridFeatures: features});
   };
 
   var forkyGridworldPOMDP = makeGridWorldPOMDP( makeForkRoad() );

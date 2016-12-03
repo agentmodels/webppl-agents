@@ -39,7 +39,7 @@ assert.ok(trajectory[4].loc[0] == 3, "naive didn't take left side");
 
 
 
-var state = update(start, { loc : [3,3], timeLeft : 11 });
+var state = extend(start, { loc : [3,3], timeLeft : 11 });
 var naiveExp = agent2.expectedUtility;
 var naive22utilities = map(function (a) { return  naiveExp(state, a, 0); }, world.actions);
 

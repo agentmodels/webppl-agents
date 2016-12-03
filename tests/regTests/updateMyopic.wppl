@@ -73,7 +73,7 @@ var testUpdateMyopic = function(){
       assert.ok( _.isFinite(utility(state,'blah')), 'bad utility');
     }, _.keys(transitionTable) );
     
-    return makePOMDPAgent(update(baseAgentParams,{utility:utility}), worldAndStart.world);
+    return makePOMDPAgent(extend(baseAgentParams,{utility:utility}), worldAndStart.world);
   };
 
                              
@@ -96,7 +96,7 @@ var testUpdateMyopic = function(){
       updateMyopic: false
     };
     
-    var params = update(baseAgentParams, paramsUpdate);
+    var params = extend(baseAgentParams, paramsUpdate);
     var agent = makeThreePathsAgent(utilityTable, params, worldAndStart);
     return simulatePOMDP(worldAndStart.startState, worldAndStart.world, agent, 'states');
   };

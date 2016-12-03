@@ -9,7 +9,7 @@ var getLocations = function(trajectory){
 
 var advanceStateTime = function(state){
   var newTimeLeft = state.timeLeft - 1;
-  return update(state, { 
+  return extend(state, { 
     timeLeft: newTimeLeft,
     terminateAfterAction: newTimeLeft > 1 ? state.terminateAfterAction : true
   });
@@ -24,7 +24,7 @@ var testMDPAgents = function(){
 
     var transition = function(state,action){
       var newLoc = state.loc + action;
-      var stateNewLoc = update(state,{loc: newLoc});
+      var stateNewLoc = extend(state,{loc: newLoc});
       return advanceStateTime(stateNewLoc);
     };
 
@@ -90,7 +90,7 @@ var makeLinePOMDP = function(totalTime, treasureAt3){
   
   var transition = function(state, action){
     var newLoc = state.loc + action;
-    var stateNewLoc = update(state,{loc: newLoc});
+    var stateNewLoc = extend(state,{loc: newLoc});
     return advanceStateTime(stateNewLoc);
   };
   
@@ -123,7 +123,7 @@ var makeLinePOMDPManifest = function(totalTime, treasureAt3){
   
   var transition = function(state, action){
     var newLoc = state.manifestState.loc + action;
-    var manifestStateNewLoc = update(state.manifestState,{loc: newLoc});
+    var manifestStateNewLoc = extend(state.manifestState,{loc: newLoc});
     var newManifestState = advanceStateTime(manifestStateNewLoc);
     return {manifestState: newManifestState, latentState: state.latentState};
   };
@@ -159,8 +159,8 @@ var testPOMDPAgentOptimal = function(){
 
   var getAlternateStartState = function(trueStartState, useManifestLatent){
     var newLatentState =  {latentState: {treasureAt3: true}};
-    return useManifestLatent ? update(trueStartState, newLatentState) :
-      update(trueStartState, {treasureAt3: true})
+    return useManifestLatent ? extend(trueStartState, newLatentState) :
+      extend(trueStartState, {treasureAt3: true})
   };
   
   
@@ -183,7 +183,7 @@ var testPOMDPAgentOptimal = function(){
                   priorBelief: agentPriorBelief           
                  };
 
-    var params = delayAgent ? update(params,{optimal:false}) : update(params,{optimal:true});
+    var params = delayAgent ? extend(params,{optimal:false}) : extend(params,{optimal:true});
 
     var agent = makePOMDPAgent(params, world);
   
@@ -214,11 +214,11 @@ var testPOMDPAgentOptimal = function(){
     var agentPriorBeliefManifest = Infer({ method: 'enumerate' },  function(){
       var latentState = {treasureAt3: flip(),
                          dummy: uniformDraw(_.range(20))};
-      return update(trueStartState, {latentState:latentState});
+      return extend(trueStartState, {latentState:latentState});
     });
 
     var agentPriorBelief = Infer({ method: 'enumerate' },  function(){
-      return update(trueStartState,
+      return extend(trueStartState,
                     {treasureAt3: flip(),
                      dummy: uniformDraw(_.range(20))});
     });
@@ -262,11 +262,11 @@ var testPOMDPAgentDelay = function(){
     var trueStartState = line.startState;
 
     // Agent params
-    var alternateStartState = update(trueStartState, {treasureAt3: true});
+    var alternateStartState = extend(trueStartState, {treasureAt3: true});
     var agentPriorBelief = Categorical({ ps:  [.5, .5],
                                          vs: [trueStartState, alternateStartState] });
 
-    var params = update(paramsBase, {utility: utility, priorBelief: agentPriorBelief});
+    var params = extend(paramsBase, {utility: utility, priorBelief: agentPriorBelief});
     var agent =  makePOMDPAgent(params, world);
     var trajectory = simulatePOMDP(trueStartState, world, agent, 'states');
     return getLocations(trajectory);
@@ -280,12 +280,12 @@ var testPOMDPAgentDelay = function(){
   var locations = runAgent(paramsHyperbolic);
   assert.ok(last(locations)==0, 'test POMDP line');
 
-  var paramsRewardMyopia = update(paramsHyperbolic,
+  var paramsRewardMyopia = extend(paramsHyperbolic,
                                   {discount: 0, rewardMyopic:{bound:2} });
   var locations = runAgent(paramsRewardMyopia);
   assert.ok(last(locations)==0, 'test POMDP line');
 
-  var paramsUpdateMyopic = update(paramsHyperbolic,
+  var paramsUpdateMyopic = extend(paramsHyperbolic,
                               {discount: 0, updateMyopic:{bound:2} });
   var locations = runAgent(paramsUpdateMyopic);
   assert.ok(locations[3]==3, 'test POMDP line');

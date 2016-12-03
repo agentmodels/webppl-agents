@@ -44,12 +44,12 @@ var test1 = function() {
   };
 
   var naiveAgent = makeMDPAgent( 
-    update(baseAgentParams, {sophisticatedOrNaive: 'naive'}), 
+    extend(baseAgentParams, {sophisticatedOrNaive: 'naive'}), 
     world
   );
 
   var sophisticatedAgent = makeMDPAgent( 
-    update(baseAgentParams, {sophisticatedOrNaive: 'sophisticated'}), 
+    extend(baseAgentParams, {sophisticatedOrNaive: 'sophisticated'}), 
     world
   );
 
@@ -146,12 +146,12 @@ var test2 = function() {
   };
 
   var naiveAgent = makeMDPAgent( 
-    update(baseAgentParams, {sophisticatedOrNaive: 'naive'}), 
+    extend(baseAgentParams, {sophisticatedOrNaive: 'naive'}), 
     world
   );
 
   var sophisticatedAgent = makeMDPAgent( 
-    update(baseAgentParams, {sophisticatedOrNaive: 'sophisticated'}), 
+    extend(baseAgentParams, {sophisticatedOrNaive: 'sophisticated'}), 
     world
   );
 

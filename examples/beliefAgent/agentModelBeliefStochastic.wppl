@@ -14,7 +14,7 @@ var actions = [0,1];
 // use latent "armToPrize" mapping in
 // state to determine which prize agent gets
 var transition = function(state, action){
-  return update(state, 
+  return extend(state, 
                 {prize: sample(state.armToPrize[action]), 
                  timeLeft: state.timeLeft - 1,
                  terminateAfterAction: state.timeLeft == 2})
@@ -57,8 +57,8 @@ var utility = function(state,action){
 };
 
 // Possible startStates for the agent
-var agentState1 = update(startState, {armToPrize:{0:halfDist, 1:betterDist}});
-var agentState2 = update(startState, {armToPrize:{0:halfDist, 1:worseDist}});
+var agentState1 = extend(startState, {armToPrize:{0:halfDist, 1:betterDist}});
+var agentState2 = extend(startState, {armToPrize:{0:halfDist, 1:worseDist}});
 
 var priorBelief = Infer({ method: 'enumerate' }, function(){
   return categorical( [.5, .5], [agentState1, agentState2]);

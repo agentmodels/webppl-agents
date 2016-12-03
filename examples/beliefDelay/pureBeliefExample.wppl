@@ -74,7 +74,7 @@ var truePriorBelief = getPriorBeliefGridworld( startState.manifestState,
 					       uninformedLatentStateSampler);
 
 
-var trueAgentParams = update(baseParamsNoDiscount, 
+var trueAgentParams = extend(baseParamsNoDiscount, 
 			     {priorBelief: truePriorBelief,
 			      utility: tableToUtilityFunction(noodleUtilityTable,
 							      feature)});

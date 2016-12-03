@@ -18,8 +18,8 @@ var baseParams = {
 };
 
 var getParams = function(agentPrior, options){
-  var params = update(baseParams, {priorBelief: agentPrior});
-  return update(params, options);
+  var params = extend(baseParams, {priorBelief: agentPrior});
+  return extend(params, options);
 };
 
 var getAgentPrior = function(totalTime, priorArm0, priorArm1){

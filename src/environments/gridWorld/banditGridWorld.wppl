@@ -27,7 +27,7 @@ var makeBanditGridWorld = function(options) {
 
   var manifestStateToActions = gridworld.stateToActions;
 
-  return update(gridworldPOMDP,
+  return extend(gridworldPOMDP,
 		{transition: transition,
 		 manifestStateToActions: manifestStateToActions});
 
@@ -65,7 +65,7 @@ var makeRestaurantSearchMDPOptions = function(options_) {
 	 ['#', ' ', ' ', ' '],
 	 ['#', '#', '#',  E ]];
 
-  return update(options, {gridFeatures: features, noReverse:true});
+  return extend(options, {gridFeatures: features, noReverse:true});
 };
 
 // start state for restaurant search pomdp

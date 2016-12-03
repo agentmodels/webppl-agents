@@ -22,7 +22,7 @@ var isAllowedState_ = function(gridMap, loc) {
 
 var advanceStateTime = function(state) {
   
-  return update(state, { 
+  return extend(state, { 
     timeLeft : state.timeLeft - 1, 
     terminateAfterAction : state.timeLeft - 1> 1 ? state.terminateAfterAction : true, 
     previousLoc : state.loc
@@ -30,17 +30,17 @@ var advanceStateTime = function(state) {
 };
 
 var addPrevious = function(state) { 
-  return update(state, { previousLoc : state.loc });
+  return extend(state, { previousLoc : state.loc });
 };
 
 var advanceRestaurant = function(state, maxTimeAtRestaurant) { 
   var timeAtRestaurant = (state.timeAtRestaurant === undefined) ? 0 : state.timeAtRestaurant + 1 ;
-  var state = update(state, { timeAtRestaurant : timeAtRestaurant }); 
+  var state = extend(state, { timeAtRestaurant : timeAtRestaurant }); 
 
   if (state.timeAtRestaurant < maxTimeAtRestaurant - 1) {
     return state;
   } else {
-    return update(state, { terminateAfterAction : true });
+    return extend(state, { terminateAfterAction : true });
   }
 };
 
@@ -55,7 +55,7 @@ var moveState = function(gridMap, state, action) {
   assert.ok(possibleNextLoc != undefined, 'action was not found');
 
   var nextLoc = isAllowedState_(gridMap, possibleNextLoc) ? possibleNextLoc : loc;
-  return update(state, { loc : nextLoc });
+  return extend(state, { loc : nextLoc });
 };
 
 var makeGridTransition_ = function(gridMap, options) {
@@ -103,7 +103,7 @@ var makeGridMap = function(rfeatures)  {
 
 var makeGridWorldDeterministic = function(features, options) {
   var defaults = { noReverse : false, maxTimeAtRestaurant : 1 };
-  var options = update(defaults, options);
+  var options = extend(defaults, options);
 
   var gridMap = makeGridMap(features); 
 
@@ -127,7 +127,7 @@ var makeGridWorldDeterministic = function(features, options) {
     }
   };
 
-  return update(gridMap,
+  return extend(gridMap,
     { transition : transition, 
       actions    : actions,
       stateToActions    : stateToActions
@@ -138,7 +138,7 @@ var makeGridWorldDeterministic = function(features, options) {
 var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
   var defaults = { noReverse: false, maxTimeAtRestaurant : 1 };
 
-  var options = update(defaults, inputOptions);
+  var options = extend(defaults, inputOptions);
   var gridMap = makeGridMap(features); 
 
   var transition = makeNoisyGridTransition_(gridMap, options,
@@ -169,7 +169,7 @@ var makeNoisyGridworld = function(features, inputOptions, transitionNoiseProb) {
     }
   };
 
-  return update(gridMap,
+  return extend(gridMap,
     { transition : transition, 
       actions : actions,
       stateToActions : stateToActions
@@ -188,7 +188,7 @@ var makeGridWorldMDP = function(options){
     totalTime: 2
   };
 
-  var options = update(defaults, options);
+  var options = extend(defaults, options);
 
   map( function(el){
     assert.ok( _.isString(el) || _.isString(el.name), 'gridFeatures is invalid')

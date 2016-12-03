@@ -160,7 +160,7 @@ var testPOMDP = function(){
 
   
   // Agent is uncertain
-  var alternateStartState = update(startState, 
+  var alternateStartState = extend(startState, 
                                    {latentState: {cafe:true, pub:true}});
   var priorBelief = Categorical({ ps:  [.5, .5], 
                                   vs: [startState, alternateStartState] });

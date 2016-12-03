@@ -75,7 +75,7 @@ var test1 = function() {
   var truePriorBelief = getPriorBelief( startState.manifestState, uninformedLatentStateSampler);
 
 
-  var trueAgentParams = update(baseParamsNoDiscount, 
+  var trueAgentParams = extend(baseParamsNoDiscount, 
                                {priorBelief: truePriorBelief,
 				utility: makeRestaurantUtilityFunction(world, donutUtilityTable)});
 
@@ -202,7 +202,7 @@ var test2 = function() {
 						  uninformedLatentStateSampler);
 
 
-  var trueAgentParams1 = update(baseParamsNoDiscount, 
+  var trueAgentParams1 = extend(baseParamsNoDiscount, 
 				{priorBelief: truePriorBelief1,
 				 utility: makeRestaurantUtilityFunction(world,
 								 noodleUtilityTable)});
@@ -314,7 +314,7 @@ var test2 = function() {
 						  uninformedLatentStateSampler);
 
 
-  var trueAgentParams2 = update(baseParamsNoDiscount, 
+  var trueAgentParams2 = extend(baseParamsNoDiscount, 
 				{priorBelief: truePriorBelief2,
 				 utility: makeRestaurantUtilityFunction(world,
 								        noodleUtilityTable)});
@@ -420,7 +420,7 @@ var test3 = function() {
 						 uninformedLatentStateSampler);
 
 
-  var trueAgentParams = update(baseParamsNoDiscount, 
+  var trueAgentParams = extend(baseParamsNoDiscount, 
 			       {priorBelief: truePriorBelief,
 				utility: makeRestaurantUtilityFunction(world,
 								noodleUtilityTable)});

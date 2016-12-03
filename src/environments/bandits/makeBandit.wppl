@@ -19,7 +19,7 @@ var makeBanditWorld = function(numberOfArms) {
   var advanceTime = function(manifestState) {
     var newTimeLeft = manifestState.timeLeft - 1;
     var terminateAfterAction = (newTimeLeft === 1);
-    return update(manifestState, {timeLeft: newTimeLeft,
+    return extend(manifestState, {timeLeft: newTimeLeft,
   				  terminateAfterAction: terminateAfterAction});
   };
   
@@ -32,7 +32,7 @@ var makeBanditWorld = function(numberOfArms) {
     var prize = sample(state.latentState[action]);
 
     // make the new location the prize, advance the time
-    var manifestStateWithReward = update(state.manifestState, {loc: prize});
+    var manifestStateWithReward = extend(state.manifestState, {loc: prize});
     var newManifestState = advanceTime(manifestStateWithReward);
 
     return buildState( newManifestState, state.latentState);
@@ -181,7 +181,7 @@ var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
   
   var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
   
-  return makeAgent(update(agentParams, {utility: utility}),
+  return makeAgent(extend(agentParams, {utility: utility}),
 		   bandit.world);
 };
 
@@ -226,7 +226,7 @@ var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
 	  : undefined;
     var priorBelief = sample(priorAgentPrior);
     var rewardMyopicUpdate = priorRewardMyopic ? {rewardMyopic: sample(priorRewardMyopic) } : {};
-    var newAgentParams = update(baseAgentParams, update({priorBelief:priorBelief}, 
+    var newAgentParams = extend(baseAgentParams, extend({priorBelief:priorBelief}, 
                                                         rewardMyopicUpdate) );
     
     var agent = makeBanditAgent(newAgentParams, bandit, beliefOrBeliefDelay,

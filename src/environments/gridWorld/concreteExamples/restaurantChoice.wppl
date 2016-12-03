@@ -4,7 +4,7 @@
 var getRestaurantChoiceOptions = function(updateOptions){
   
   var defaults = {noReverse:true, maxTimeAtRestaurant:2};
-  var options = update(defaults, updateOptions);
+  var options = extend(defaults, updateOptions);
 
   var restaurant = {
     donutN : { name : 'Donut N'},
@@ -29,7 +29,7 @@ var getRestaurantChoiceOptions = function(updateOptions){
      [ __ ,  __ ,  __ ,  __ , '#', '#'],
      [DS , '#', '#',  __ , '#', '#']];
 
-  return update(options, {gridFeatures: features});
+  return extend(options, {gridFeatures: features});
 };
 
 

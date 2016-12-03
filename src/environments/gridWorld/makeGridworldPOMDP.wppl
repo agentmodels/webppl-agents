@@ -40,7 +40,7 @@ var makeGridWorldPOMDP = function(options) {
   var neighbourRestaurants = function(manifestState) {
     var loc = manifestState.loc;
     var updateStateLoc = function(manifestState, newLoc) {
-      return update(manifestState, {loc: newLoc});
+      return extend(manifestState, {loc: newLoc});
     };
     
     var potentialneighbourStates = [
@@ -171,7 +171,7 @@ var inferGridWorldPOMDP = function(world, startState, baseParams, trueAgentParam
     var  priorBelief = isJointPrior ? utilityAndPrior.priorBelief
 	  : sample(priorAgentPrior);
     
-    var params = update(baseParams, {utility:utility, priorBelief: priorBelief});
+    var params = extend(baseParams, {utility:utility, priorBelief: priorBelief});
     
     var agent = makeAgent(params, world);
     var agentAct = agent.act;
