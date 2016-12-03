@@ -134,10 +134,11 @@ var simulateMDPAgentHyperbolic = function(startState, world, agent, outputType) 
   var act = agent.act;
   var expectedUtility = agent.expectedUtility;
   var transition = world.transition;
+  var outputType = outputType ? outputType : 'states';
 
   var selectOutput = function(state, action){
     var table =  {states:state, actions:action, stateAction:[state, action]};
-    return outputType ? table[outputType] : [state, action];
+    return table[outputType];
   };
   
   var sampleSequence = function (state) {
