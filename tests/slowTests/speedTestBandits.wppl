@@ -24,7 +24,7 @@ var speedTestBandits = function(beliefOrBeliefDelay){
       3:Delta({ v: 'a' })
     };
 
-    return makeBandit({
+    return makeBanditPOMDP({
       numberOfArms: 4,
       armToPrizeDist: armToPrizeDist,
       numberOfTrials: numberOfTrials
@@ -102,7 +102,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
   };
   var numberOfTrials = options.numberOfTrials;
   var armToPrizeDist = options.armToPrizeDist;
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   var world = bandit.world;
   var startState = bandit.startState;
 
@@ -156,7 +156,7 @@ var banditGenerativeNoDelay = function(beliefOrBeliefDelay){
 		 numberOfTrials: 6};
   var numberOfTrials = options.numberOfTrials;
   var armToPrizeDist = options.armToPrizeDist;
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   var world = bandit.world;
   var startState = bandit.startState;
 
@@ -210,7 +210,7 @@ var banditGenerativeDelay = function(){
   };
   var numberOfTrials = options.numberOfTrials;
   var armToPrizeDist = options.armToPrizeDist;
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   var world = bandit.world;
   var startState = bandit.startState;
   

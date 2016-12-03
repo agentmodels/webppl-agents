@@ -63,11 +63,11 @@ var makeBanditStartState = function(numberOfTrials, armToPrizeDist) {
 	  latentState: armToPrizeDist};
 };
 
-var makeBandit = function(options) {
+var makeBanditPOMDP = function(options) {
 
   assert.ok(_.has(options, 'numberOfArms') && _.has(options, 'armToPrizeDist')
 	    && _.has(options, 'numberOfTrials'),
-	   'makeBandit args: options does not contain one or more of numberOfArms, armToPrizeDist, and numberOfTrials');
+	   'makeBanditPOMDP args: options does not contain one or more of numberOfArms, armToPrizeDist, and numberOfTrials');
 
   var numberOfArms = options.numberOfArms;
   var armToPrizeDist = options.armToPrizeDist;

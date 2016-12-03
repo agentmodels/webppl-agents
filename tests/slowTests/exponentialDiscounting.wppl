@@ -193,7 +193,7 @@ var test3 = function(){
   };
   var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   var world = bandit.world;
   var startState = bandit.startState;
 

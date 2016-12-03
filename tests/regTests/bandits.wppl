@@ -29,7 +29,7 @@ var testInferBandit = function(beliefOrBeliefDelay){
   var numberOfArms = options.numberOfArms;
   var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   
   // agent params
   var baseAgentParams = noDiscountBaseAgentParams;
@@ -95,7 +95,7 @@ var testInferBandit = function(beliefOrBeliefDelay){
   var numberOfArms = options.numberOfArms;
   var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   
   // agent params
   var baseAgentParams = noDiscountBaseAgentParams;
@@ -180,7 +180,7 @@ var stochasticTest1 = function() {
     numberOfTrials: 3,
     numericalPrizes: true
   };
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   var world = bandit.world;
   var startState = bandit.startState;
 
@@ -219,28 +219,28 @@ var stochasticTest2 = function() {
     return uniformDraw([0, 1.2]);
   });
 
-  var shortRiskBandit = makeBandit({
+  var shortRiskBandit = makeBanditPOMDP({
     numberOfArms: 2,
     numberOfTrials: 3,
     armToPrizeDist: {0: Delta({ v: 1 }), 1: uncertainArmRiskDist},
     numericalPrizes: true
   });
   
-  var shortSafeBandit = makeBandit({
+  var shortSafeBandit = makeBanditPOMDP({
     numberOfArms: 2,
     numberOfTrials: 3,
     armToPrizeDist: {0: Delta({ v: 1 }), 1: uncertainArmSafeDist},
     numericalPrizes: true
   });
   
-  var longRiskBandit = makeBandit({
+  var longRiskBandit = makeBanditPOMDP({
     numberOfArms: 2,
     numberOfTrials: 20,
     armToPrizeDist: {0: Delta({ v: 1 }), 1: uncertainArmRiskDist},
     numericalPrizes: true
   });
 
-  var longSafeBandit = makeBandit({
+  var longSafeBandit = makeBanditPOMDP({
     numberOfArms: 2,
     numberOfTrials: 20,
     armToPrizeDist: {0: Delta({ v: 1 }), 1: uncertainArmSafeDist},
@@ -332,21 +332,21 @@ var stochasticTest3 = function(){
   var unluckyArmToPrizeDist = {0: Delta({ v: 1 }),
 			      1: Categorical({ ps: [0.8, 0.2], vs: [0, 1.5] })};
 
-  var shortBandit = makeBandit({
+  var shortBandit = makeBanditPOMDP({
     numberOfTrials: 2,
     numberOfArms: 2,
     armToPrizeDist: luckyArmToPrizeDist,
     numericalPrizes: true
   });
 
-  var longLuckyBandit = makeBandit({
+  var longLuckyBandit = makeBanditPOMDP({
     numberOfTrials: 12,
     numberOfArms: 2,
     armToPrizeDist: luckyArmToPrizeDist,
     numericalPrizes: true
   });
 
-  var longUnluckyBandit = makeBandit({
+  var longUnluckyBandit = makeBanditPOMDP({
     numberOfTrials: 12,
     numberOfArms: 2,
     armToPrizeDist: unluckyArmToPrizeDist,
@@ -416,7 +416,7 @@ var deterministicTest1 = function() {
     numberOfTrials: 3,
     numericalPrizes: true
   };
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   
@@ -454,7 +454,7 @@ var deterministicTest2 = function() {
     numberOfTrials: 5,
     numericalPrizes: true
   };
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   
@@ -496,7 +496,7 @@ var deterministicTest3 = function(){
     numberOfTrials: 5,
     numericalPrizes: true
   };
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   
@@ -537,7 +537,7 @@ var deterministicTest4 = function(){
     numberOfTrials: 5,
     numericalPrizes: true
   };
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   
@@ -580,7 +580,7 @@ var deterministicTest5 = function(){
     numberOfTrials: 5,
     numericalPrizes: true
   };
-  var bandit = makeBandit(options);
+  var bandit = makeBanditPOMDP(options);
   var armToPrizeDist = options.armToPrizeDist;
   var numberOfTrials = options.numberOfTrials;
   
