@@ -1,5 +1,12 @@
 // infer_utility_from_no_exploration
 
+
+var getMarginal = function(dist, key){
+  return Infer({ model() {
+    return sample(dist)[key];
+  }});
+};
+
 var getPosterior = function(timeLeft, useOptimalModel) {
   var numArms = 2;
   var armToPrize = {0: 'chocolate',

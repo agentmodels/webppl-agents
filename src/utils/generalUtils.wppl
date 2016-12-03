@@ -65,29 +65,13 @@ var printTopK = function(dist,k){
     distValues.slice(0,k));
 };
 
-
-var getMarginal = function(dist,key){
-  return Infer({ method: 'enumerate' }, function(){
-    return sample(dist)[key];
-  });
-};
-
 var getMarginalObject = function(dist,key){
-  return Infer({ method: 'enumerate' }, function(){
+  return Infer({ model() {
     var s = sample(dist);
     var keys = _.keys(s);
     var omitKeys = filter(function(el){
       return el !== key;}, keys);
     return _.omit(s,omitKeys);
-  });
+  }});
 };
-
-// Helper for displaying marginals of array of keys
-var displayMarginals = function(dist, keys){
-  map( function(key){
-    console.log('\n Marginal for : ', key);
-    printDist(getMarginal(dist, key) );
-  }, keys);
-};
-
 
