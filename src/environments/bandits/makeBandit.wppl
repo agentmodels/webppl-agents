@@ -1,4 +1,4 @@
-// Stochastic bandit pomdp constructor: outputs Bandit environments whose prizes are
+// Stochastic bandit POMDP constructor: outputs Bandit environments whose prizes are
 // strings or numbers.
 
 // The latent state stores each arm's Dist over prizes, and the manifest state
@@ -7,7 +7,9 @@
 
 
 // helper function
-var inSupport = function(x, dist){return _.isFinite( dist.score(x) ); };
+var inSupport = function(x, dist){
+  return _.isFinite(dist.score(x));
+};
 
 
 // main constructor function is makeBandit
