@@ -455,7 +455,7 @@ var isManualPOMDPAgent = function(agentParams) {
 var makePOMDPAgent = function(params, world){
   if (isManualPOMDPAgent(params)) {
     return update(params, {
-      POMDPFunctions: getPOMDPFunctions(params.params, bandit.world)
+      POMDPFunctions: getPOMDPFunctions(params.params, world)
     });
   } else {
     return (isOptimalPOMDPAgent(params) ?
