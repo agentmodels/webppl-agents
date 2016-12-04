@@ -25,11 +25,13 @@ To upgrade to the latest version, run:
 
     npm install --prefix ~/.webppl webppl-agents --force
 
+For the agent functions, you will also need to install [webppl-dp](github.com/stuhlmueller/webppl-dp).
+
 ## Usage
 
-Once installed, you can make `json.read` and `json.write` available to `program.wppl` by running:
+Once installed, you can make the environment and agent functions available to `program.wppl` by running:
 
-    webppl --require webppl-agents program.wppl
+    webppl --require webppl-dp --require webppl-agents program.wppl
 
 ## Testing
 
