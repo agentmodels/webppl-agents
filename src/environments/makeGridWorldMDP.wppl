@@ -231,9 +231,9 @@ var makeGridWorldMDP = function(options) {
 
   // assumes that utilities are only defined on named features and timeCost
   // doesnt work for the hyperbolic case
-  var makeUtility = function(utilityTable) {
+  var makeUtilityFunction = function(utilityTable) {
     assert.ok(utilityTable.hasOwnProperty('timeCost'),
-              'makeUtility utilityTable lacks timeCost');
+              'makeUtilityFunction utilityTable lacks timeCost');
     return function(state, action) {
       var getFeature = world.feature;
       var feature = getFeature(state);
@@ -245,6 +245,6 @@ var makeGridWorldMDP = function(options) {
     };
   };
 
-  return { world, startState, makeUtility };
+  return { world, startState, makeUtilityFunction };
 
 };

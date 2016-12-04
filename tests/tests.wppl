@@ -126,8 +126,8 @@ var result = {
 
       // Create parameterized agent
 
-      var makeUtility = mdp.makeUtility;
-      var utility = makeUtility({
+      var makeUtilityFunction = mdp.makeUtilityFunction;
+      var utility = makeUtilityFunction({
         East: 10,
         West: 1,
         Hill: -10,
@@ -259,8 +259,8 @@ var result = {
 
       // Create parameterized agent
 
-      var makeUtility = mdp.makeUtility;
-      var utility = makeUtility({
+      var makeUtilityFunction = mdp.makeUtilityFunction;
+      var utility = makeUtilityFunction({
         East: 10,
         West: 1,
         Hill: -10,
@@ -511,7 +511,7 @@ var result = {
 
       var pomdp = makeRestaurantSearchPOMDP();
       var world = pomdp.world;
-      var makeUtility = pomdp.makeUtility;
+      var makeUtilityFunction = pomdp.makeUtilityFunction;
       var startState = pomdp.startState;
       
       var agentPrior = Infer({ model() {
@@ -531,7 +531,7 @@ var result = {
       
       // Construct optimal agent
       var params = {
-        utility: makeUtility(-0.01), // timeCost is -.01
+        utility: makeUtilityFunction(-0.01), // timeCost is -.01
         alpha: 1000,
         priorBelief: agentPrior
       };
