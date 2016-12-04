@@ -1,0 +1,626 @@
+var result = {
+  
+  utils: [
+    
+    !isPOMDPWithManifestLatent({}),
+    
+    !stateHasManifestLatent({})
+  ],
+
+  
+  makeGridWorldMDP: [
+    
+    (function() {
+      var H = { name: 'Hill' };
+      var W = { name: 'West' };
+      var E = { name: 'East' };
+      var ___ = ' ';
+
+      var gridFeatures = [
+        [___, ___, ___, ___, ___],
+        [___, '#', ___, ___, ___],
+        [___, '#',  W , '#',  E ],
+        [___, ___, ___, ___, ___],
+        [ H ,  H ,  H ,  H ,  H ]
+      ];
+
+      var startingLocation = [0, 1];
+
+      var mdp = makeGridWorldMDP({ gridFeatures, startingLocation });
+
+      return mdp !== null;
+    })()
+    
+  ],
+
+  
+  makeBanditPOMDP: [
+
+    (function() {
+
+      var vs = [0, 1];
+      var probably1Dist = Categorical({ vs, ps: [0.2, 0.8] });
+      var probably0Dist = Categorical({ vs, ps: [0.8, 0.2] });
+
+      var options = {
+        numberOfArms: 2,
+        armToPrizeDist: {
+          0: Delta({ v: 0.7 }), 
+          1: probably1Dist  // Note that arm 1 is better in EV
+        },  
+        numberOfTrials: 11,
+        numericalPrizes: true
+      };
+
+      var bandit = makeBanditPOMDP(options);
+
+      return bandit !== null;
+      
+    })()
+    
+  ],
+
+  
+  makeGridWorldPOMDP: [
+
+    (function() {
+
+      var ___ = ' '; 
+      var DN = { name : 'Donut N' };
+      var DS = { name : 'Donut S' };
+      var V = { name : 'Veg' };
+      var N = { name : 'Noodle' };
+
+      var gridFeatures = [
+        ['#', '#', '#', '#',  V , '#'],
+        ['#', '#', '#', ___, ___, ___],  
+        ['#', '#', DN , ___, '#', ___],
+        ['#', '#', '#', ___, '#', ___],
+        ['#', '#', '#', ___, ___, ___],
+        ['#', '#', '#', ___, '#',  N ],
+        [___, ___, ___, ___, '#', '#'],
+        [DS , '#', '#', ___, '#', '#']
+      ];
+
+      var pomdp = makeGridWorldPOMDP({
+        gridFeatures,
+        noReverse: true,
+        maxTimeAtRestaurant: 2,
+        startingLocation: [3, 1],
+        totalTime: 11
+      });
+
+      return pomdp != null;
+      
+    })()
+
+  ],
+
+  makeMDPAgent: [
+    (function(){
+
+      var makeHikeMDP = function(options) {
+        var H = { name: 'Hill' };
+        var W = { name: 'West' };
+        var E = { name: 'East' };
+        var ___ = ' ';
+        var gridFeatures = [
+          [___, ___, ___, ___, ___],
+          [___, '#', ___, ___, ___],
+          [___, '#',  W , '#',  E ],
+          [___, ___, ___, ___, ___],
+          [ H ,  H ,  H ,  H ,  H ]
+        ];
+        return makeGridWorldMDP(_.assign({ gridFeatures }, options));
+      };
+      ///
+
+      // Set up world
+
+      var mdp = makeHikeMDP({
+        startingLocation: [0, 1],
+        totalTime: 13,
+        transitionNoiseProbability: 0.1  // <- NEW
+      });
+
+
+      // Create parameterized agent
+
+      var makeUtility = mdp.makeUtility;
+      var utility = makeUtility({
+        East: 10,
+        West: 1,
+        Hill: -10,
+        timeCost: -.1
+      });
+      var agent = makeMDPAgent({ utility, alpha: 100 }, mdp.world);
+
+      return agent != null;
+
+    })()
+  ],
+
+  makePOMDPAgent: [
+
+    (function(){
+
+      var getPriorBelief = function(startManifestState, latentStateSampler){
+        return Infer({ model() {
+          return {
+            manifestState: startManifestState, 
+            latentState: latentStateSampler()};
+        }});
+      };
+
+      var ___ = ' '; 
+      var DN = { name : 'Donut N' };
+      var DS = { name : 'Donut S' };
+      var V = { name : 'Veg' };
+      var N = { name : 'Noodle' };
+
+      var gridFeatures = [
+        ['#', '#', '#', '#',  V , '#'],
+        ['#', '#', '#', ___, ___, ___],  
+        ['#', '#', DN , ___, '#', ___],
+        ['#', '#', '#', ___, '#', ___],
+        ['#', '#', '#', ___, ___, ___],
+        ['#', '#', '#', ___, '#',  N ],
+        [___, ___, ___, ___, '#', '#'],
+        [DS , '#', '#', ___, '#', '#']
+      ];
+
+      var pomdp = makeGridWorldPOMDP({
+        gridFeatures,
+        noReverse: true,
+        maxTimeAtRestaurant: 2,
+        startingLocation: [3, 1],
+        totalTime: 11
+      });
+      ///
+
+      var utilityTable = {
+        'Donut N': 5,
+        'Donut S': 5,
+        'Veg': 1,
+        'Noodle': 1,
+        'timeCost': -0.1
+      };
+      var utility = function(state, action) {
+        var feature = pomdp.feature;
+        var name = feature(state.manifestState).name;
+        if (name) {
+          return utilityTable[name];
+        } else {
+          return utilityTable.timeCost;
+        }
+      };
+
+      var latent = {
+        'Donut N': true,
+        'Donut S': true,
+        'Veg': true,
+        'Noodle': false
+      };
+      var alternativeLatent = extend(latent, {
+        'Donut S': false,
+        'Noodle': true
+      });
+
+      var startState = {
+        manifestState: { 
+          loc: [3, 1],
+          terminateAfterAction: false,
+          timeLeft: 11
+        },
+        latentState: latent
+      };
+
+      var latentStateSampler = function() {
+        return categorical([0.8, 0.2], [alternativeLatent, latent]);
+      };
+
+      var priorBelief = getPriorBelief(startState.manifestState, latentStateSampler);
+      var agent = makePOMDPAgent({ utility, priorBelief, alpha: 100 }, pomdp);
+
+      return agent != null;
+      
+    })()
+    
+  ],
+
+  simulateMDP: [
+
+    (function() {
+
+      var makeHikeMDP = function(options) {
+        var H = { name: 'Hill' };
+        var W = { name: 'West' };
+        var E = { name: 'East' };
+        var ___ = ' ';
+        var gridFeatures = [
+          [___, ___, ___, ___, ___],
+          [___, '#', ___, ___, ___],
+          [___, '#',  W , '#',  E ],
+          [___, ___, ___, ___, ___],
+          [ H ,  H ,  H ,  H ,  H ]
+        ];
+        return makeGridWorldMDP(_.assign({ gridFeatures }, options));
+      };
+      ///
+
+      // Set up world
+
+      var mdp = makeHikeMDP({
+        startingLocation: [0, 1],
+        totalTime: 13,
+        transitionNoiseProbability: 0.1  // <- NEW
+      });
+
+
+      // Create parameterized agent
+
+      var makeUtility = mdp.makeUtility;
+      var utility = makeUtility({
+        East: 10,
+        West: 1,
+        Hill: -10,
+        timeCost: -.1
+      });
+      var agent = makeMDPAgent({ utility, alpha: 100 }, mdp.world);
+
+
+      // Generate a single trajectory, draw
+
+      var trajectory = simulateMDP(mdp.startState, mdp.world, agent, 'states');
+
+      return trajectory != null;
+      
+    })()
+
+  ],
+
+  simulatePOMDP: [
+
+    (function() {
+
+      ///fold: Same world, prior, start state, and latent state as previous codebox
+      var getPriorBelief = function(startManifestState, latentStateSampler){
+        return Infer({ model() {
+          return {
+            manifestState: startManifestState, 
+            latentState: latentStateSampler()
+          };
+        }});
+      };
+
+      var ___ = ' '; 
+      var DN = { name : 'Donut N' };
+      var DS = { name : 'Donut S' };
+      var V = { name : 'Veg' };
+      var N = { name : 'Noodle' };
+
+      var gridFeatures = [
+        ['#', '#', '#', '#',  V , '#'],
+        ['#', '#', '#', ___, ___, ___],  
+        ['#', '#', DN , ___, '#', ___],
+        ['#', '#', '#', ___, '#', ___],
+        ['#', '#', '#', ___, ___, ___],
+        ['#', '#', '#', ___, '#',  N ],
+        [___, ___, ___, ___, '#', '#'],
+        [DS , '#', '#', ___, '#', '#']
+      ];
+
+      var pomdp = makeGridWorldPOMDP({
+        gridFeatures,
+        noReverse: true,
+        maxTimeAtRestaurant: 2,
+        startingLocation: [3, 1],
+        totalTime: 11
+      });
+
+      var latent = {
+        'Donut N': true,
+        'Donut S': true,
+        'Veg': true,
+        'Noodle': false
+      };
+      var alternativeLatent = extend(latent, {
+        'Donut S': false,
+        'Noodle': true
+      });
+
+      var startState = {
+        manifestState: { 
+          loc: [3, 1],
+          terminateAfterAction: false,
+          timeLeft: 11
+        },
+        latentState: latent
+      };
+
+      var latentSampler = function() {
+        return categorical([0.8, 0.2], [alternativeLatent, latent]);
+      };
+
+      var priorBelief = getPriorBelief(startState.manifestState, latentSampler);
+      ///
+
+      var utilityTable = {
+        'Donut N': 1,
+        'Donut S': 1,
+        'Veg': 3,
+        'Noodle': 5,
+        'timeCost': -0.1
+      };
+      var utility = function(state, action) {
+        var feature = pomdp.feature;
+        var name = feature(state.manifestState).name;
+        if (name) {
+          return utilityTable[name];
+        } else {
+          return utilityTable.timeCost;
+        }
+      };
+      var agent = makePOMDPAgent({ utility, priorBelief, alpha: 100 }, pomdp);
+      var trajectory = simulatePOMDP(startState, pomdp, agent, 'states');
+
+      return trajectory != null;
+
+    })()
+    
+  ],
+
+  gridworldViz: [
+    (function() {
+      return GridWorld.draw != null;
+    })()
+  ],
+
+
+  extend: [
+    extend({}, {a:1}).a == 1
+  ],
+
+  getMarginalObject: [
+    getMarginalObject(Infer({ model() { return { x: 1 } }}), 'x') != null
+  ],
+
+  makeBanditStartState: [
+    (function(){
+      var numberOfTrials = 1;
+      var armToPrizeDist = 'xxx';
+      return makeBanditStartState(numberOfTrials, armToPrizeDist)
+    })()
+  ],
+
+  makeBanditAgent: [
+    (function(){
+
+
+      var vs = [0, 1];
+      var probably1Dist = Categorical({ vs, ps: [0.2, 0.8] });
+      var probably0Dist = Categorical({ vs, ps: [0.8, 0.2] });
+
+      var trueArmToPrizeDist = {
+        0: Delta({ v: 0.7 }), 
+        1: probably1Dist
+      };
+
+      var alternateArmToPrizeDist = extend(trueArmToPrizeDist, { 1: probably0Dist });
+
+
+      var makeBanditWithNumberOfTrials = function(numberOfTrials) {
+        return makeBanditPOMDP({
+          numberOfTrials,
+	  numberOfArms: 2,
+	  armToPrizeDist: trueArmToPrizeDist,
+	  numericalPrizes: true
+        });
+      };
+
+      var getPriorBelief = function(numberOfTrials){
+        return Infer({ model() {
+          var armToPrizeDist = uniformDraw([trueArmToPrizeDist,
+                                            alternateArmToPrizeDist]);
+          return makeBanditStartState(numberOfTrials, armToPrizeDist);
+        }})
+      };
+
+      var baseParams = { alpha: 1000 };      
+      var numberOfTrials = 2;
+
+      var bandit = makeBanditWithNumberOfTrials(numberOfTrials);
+      var world = bandit.world;
+      var startState = bandit.startState;
+      var priorBelief = getPriorBelief(numberOfTrials)
+      var params = extend(baseParams, { priorBelief });
+      var agent = makeBanditAgent(params, bandit, 'belief');
+
+      return simulatePOMDP(startState, world, agent, 'stateAction');
+      
+    })()
+  ],
+
+  inferBandit: [
+    (function(){
+
+      var numberOfTrials = 2;
+      var useOptimalModel = true;
+
+      var trueArmToPrizeDist = {
+        0: Delta({ v: 'chocolate' }),
+        1: Delta({ v: 'nothing' })
+      };
+      var bandit = makeBanditPOMDP({
+        numberOfArms: 2,
+        armToPrizeDist: trueArmToPrizeDist,
+        numberOfTrials: numberOfTrials
+      });
+
+      var startState = bandit.startState;
+      var alternativeArmToPrizeDist = extend(trueArmToPrizeDist,
+                                             { 1: Delta({ v: 'champagne' }) });
+      var alternativeStartState = makeBanditStartState(numberOfTrials,
+                                                       alternativeArmToPrizeDist);
+
+      var priorAgentPrior = Delta({ 
+        v: Categorical({ 
+          vs: [startState, alternativeStartState],      
+          ps: [0.7, 0.3]
+        })
+      });
+
+      var priorPrizeToUtility = Infer({ model() {
+        return {
+          chocolate: uniformDraw(_.range(20).concat(25)),
+          nothing: 0,
+          champagne: 20
+        };
+      }});
+
+      var priorMyopia =  (
+        useOptimalModel ? 
+          Delta({ v: { on: false, bound:0 }}) :
+        Infer({ model() {
+          return { 
+            bound: categorical([.4, .2, .1, .1, .1, .1], 
+                               [1, 2, 3, 4, 6, 10]) 
+          };
+        }}));
+
+      var prior = { priorAgentPrior, priorPrizeToUtility, priorMyopia };
+
+      var baseAgentParams = {
+        alpha: 1000,
+        sophisticatedOrNaive: 'naive',
+        discount: 0,
+        noDelays: useOptimalModel
+      };
+      
+      var observations = [[startState, 0]];
+
+      var outputDist = inferBandit(bandit, baseAgentParams, prior, observations,
+                                   'offPolicy', 0, 'beliefDelay');
+
+      return outputDist;
+    })()
+  ],
+
+  makeRestaurantSearchPOMDP: [
+    (function(){
+
+      var pomdp = makeRestaurantSearchPOMDP();
+      var world = pomdp.world;
+      var makeUtility = pomdp.makeUtility;
+      var startState = pomdp.startState;
+      
+      var agentPrior = Infer({ model() {
+        var rewardD = uniformDraw([0,5]);  // D is bad or great (E is opposite)
+        var latentState = {
+          A: 3,
+          B: uniformDraw(_.range(6)),
+          C: uniformDraw(_.range(6)),
+          D: rewardD,
+          E: 5 - rewardD
+        };
+        return {
+          manifestState: pomdp.startState.manifestState, 
+          latentState
+        };
+      }});
+      
+      // Construct optimal agent
+      var params = {
+        utility: makeUtility(-0.01), // timeCost is -.01
+        alpha: 1000,
+        priorBelief: agentPrior
+      };
+      
+      var agent = makePOMDPAgent(params, world);
+      var trajectory = simulatePOMDP(pomdp.startState, world, agent, 'states');
+      
+      return trajectory != null;
+      
+    })()
+  ],
+
+  getRestaurantHyperbolicInfer: [
+    (function(){
+
+      var ___ = ' ';
+      var DN = { name : 'Donut N' };
+      var DS = { name : 'Donut S' };
+      var V = { name : 'Veg' };
+      var N = { name : 'Noodle' };
+
+      var gridFeatures = [
+        ['#', '#', '#', '#',  V , '#'],
+        ['#', '#', '#', ___, ___, ___],
+        ['#', '#', DN , ___, '#', ___],
+        ['#', '#', '#', ___, '#', ___],
+        ['#', '#', '#', ___, ___, ___],
+        ['#', '#', '#', ___, '#',  N ],
+        [___, ___, ___, ___, '#', '#'],
+        [DS , '#', '#', ___, '#', '#']
+      ];
+
+      var mdp = makeGridWorldMDP({
+        gridFeatures,
+        noReverse: true,
+        maxTimeAtRestaurant: 2,
+        startingLocation: [3, 1],
+        totalTime: 11
+      });
+
+      var naiveTrajectory = [
+        [{"loc":[3,1],"terminateAfterAction":false,"timeLeft":11},"u"],
+        [{"loc":[3,2],"terminateAfterAction":false,"timeLeft":10,"previousLoc":[3,1]},"u"],
+        [{"loc":[3,3],"terminateAfterAction":false,"timeLeft":9,"previousLoc":[3,2]},"u"],
+        [{"loc":[3,4],"terminateAfterAction":false,"timeLeft":8,"previousLoc":[3,3]},"u"],
+        [{"loc":[3,5],"terminateAfterAction":false,"timeLeft":7,"previousLoc":[3,4]},"l"],
+        [{"loc":[2,5],"terminateAfterAction":false,"timeLeft":6,"previousLoc":[3,5],"timeAtRestaurant":0},"l"],
+        [{"loc":[2,5],"terminateAfterAction":true,"timeLeft":6,"previousLoc":[2,5],"timeAtRestaurant":1},"l"]
+      ];
+
+      var restaurantHyperbolicInfer = getRestaurantHyperbolicInfer();
+      var getPosterior = restaurantHyperbolicInfer.getPosterior;
+
+      // Prior on agent's utility function: each restaurant has an
+      // *immediate* utility and a *delayed* utility (which is received after a
+      // delay of 1).
+      var priorUtility = function(){
+        var utilityValues =  [-10, 0, 10, 20];
+        var donut = [uniformDraw(utilityValues), uniformDraw(utilityValues)];
+        var veg = [uniformDraw(utilityValues), uniformDraw(utilityValues)];
+        return {
+          'Donut N': donut,
+          'Donut S': donut,
+          'Veg': veg,
+          'Noodle': [-10, -10],
+          'timeCost': -.01
+        };
+      };
+
+      var priorDiscounting = function(){
+        return {
+          discount: 1,
+          sophisticatedOrNaive: uniformDraw(['naive','sophisticated'])
+        };
+      };
+      var priorAlpha = function(){ return 1000; };
+      var prior = {
+        utility: priorUtility,
+        discounting: priorDiscounting,
+        alpha: priorAlpha
+      };      
+
+      var posterior = getPosterior(mdp.world, prior, naiveTrajectory);
+
+      return posterior != null;
+      
+    })()
+  ]
+  
+}
+
+result;

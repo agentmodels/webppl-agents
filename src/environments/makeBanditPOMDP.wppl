@@ -1,0 +1,132 @@
+// Stochastic bandit POMDP constructor: outputs Bandit environments
+// whose prizes are strings or numbers.
+
+// The latent state stores each arm's Dist over prizes, and the
+// manifest state location contains the reward gained after the
+// previous arm pull.
+
+
+var inSupport = function(x, dist){
+  return _.isFinite(dist.score(x));
+};
+
+
+var makeBanditStartState = function(numberOfTrials, armToPrizeDist) {
+  return {
+    manifestState: {
+      loc: 'start',
+      timeLeft: numberOfTrials,
+      terminateAfterAction: false // numberOfTrials == 1
+    },
+    latentState: armToPrizeDist
+  };
+};
+
+
+var makeBanditWorld = function(numberOfArms) {
+  var actions = _.range(numberOfArms);
+
+  var advanceTime = function(manifestState) {
+    var newTimeLeft = manifestState.timeLeft - 1;
+    var terminateAfterAction = (newTimeLeft === 1);
+    return extend(manifestState, {timeLeft: newTimeLeft,
+  				  terminateAfterAction: terminateAfterAction});
+  };
+  
+  var manifestStateToActions = function(manifestState) {return actions;};
+
+  var transition = function(state, action){
+    
+    assert.ok(state.latentState[action].sample,
+              'bandit transition: latent state has no Dist for given action');
+    
+    // figure out what the prize is
+    var prize = sample(state.latentState[action]);
+
+    // make the new location the prize, advance the time
+    var manifestStateWithReward = extend(state.manifestState, {loc: prize});
+    var newManifestState = advanceTime(manifestStateWithReward);
+
+    return {
+      manifestState: newManifestState,
+      latentState: state.latentState
+    };
+  };
+
+  var observe = function(state){
+    // in beliefAgent, the observation here will be augmented with an 
+    // observation of the manifest state, and belief updating will depend on
+    // both that full observation and the action the agent took. This is all the
+    // agent needs to update, so there is no need to have an observation here.
+    // However, if we make the observation 'noObservation', the agent will not
+    // update its beliefs, which is bad, so we arbitrarily set the observation
+    // to always be 0.
+    return 0;
+  };
+
+  return {
+    manifestStateToActions: manifestStateToActions,
+    transition: transition,
+    observe: observe
+  };
+};
+
+
+var makeBanditPOMDP = function(options) {
+
+  assert.ok(_.has(options, 'numberOfArms') &&
+            _.has(options, 'armToPrizeDist') &&
+            _.has(options, 'numberOfTrials'),
+	    'makeBanditPOMDP args: options does not contain one or more' +
+            ' of numberOfArms, armToPrizeDist, and numberOfTrials');
+
+  var numberOfArms = options.numberOfArms;
+  var armToPrizeDist = options.armToPrizeDist;
+  var numberOfTrials = options.numberOfTrials;
+  var numericalPrizes = options.numericalPrizes;
+  var prizeToUtility = options.prizeToUtility;
+  
+  // ensure that armToPrizeDist has an entry for every arm
+  mapN(function(arm){
+    assert.ok(_.has(armToPrizeDist, arm.toString()),
+	      'makeBandit: arm ' + arm + ' has no entry in armToPrizeDist');
+  }, numberOfArms);
+  
+  // ensure that armToPrizeDist has an Dist for every arm
+  mapN(function(arm){
+    assert.ok(armToPrizeDist[arm.toString()].sample,
+	      'makeBandit: arm ' + arm + ' has no Dist in armToPrizeDist');
+  }, numberOfArms);
+
+  // ensure that prizes are numerical iff numericalPrizes is true,
+  // and strings iff numericalPrizes is false
+  // also, if numericalPrizes is false, and prizeToUtility is defined, ensure
+  // that every prize has a utility
+  if (numericalPrizes) {
+    var supportIsNumeric = function(arm) {
+      var dist = armToPrizeDist[arm];
+      map(function(x){
+	assert.ok(_.isFinite(x) && inSupport(x, dist),
+		  'makeBandit: some prizes are non-numeric but numericalPrizes is true');
+      }, dist.support());
+    };
+
+    mapN(supportIsNumeric, numberOfArms);
+    
+  } else {
+    var supportIsStringy = function(arm) {
+      var dist = armToPrizeDist[arm];
+      map(function(x){
+	assert.ok(_.isString(x) && inSupport(x, dist),
+		  'makeBandit: some prizes are not strings but numericalPrizes is false');
+      }, dist.support());
+    };
+
+    mapN(supportIsStringy, numberOfArms);
+  }
+  
+  var world = makeBanditWorld(numberOfArms);
+  var startState = makeBanditStartState(numberOfTrials, armToPrizeDist);
+
+  return { world, startState, armToPrizeDist, numericalPrizes, numberOfArms };
+};

@@ -2,7 +2,7 @@
   "name": "webppl-agents",
   "version": "1.0.0",
   "description": "Webppl library for MDP and POMDP agent models and for generating Gridworld and Bandit problems. JS library for displaying Gridworld.",
-  "main": "src/environments/gridWorld/gridworld-viz.js",
+  "main": "src/visualization/gridworld.js",
   "dependencies": {
     "underscore": "^1.8.3",
     "paper": "^0.9.25"
@@ -13,19 +13,22 @@
   },
   "webppl": {
     "wppl": [
-      "src/utils/generalUtils.wppl",
+      "src/utils/utils.wppl",
+      "src/environments/makeGridWorldMDP.wppl",
+      "src/environments/makeBanditPOMDP.wppl",
+      "src/environments/makeGridWorldPOMDP.wppl",
       "src/agents/makeMDPAgent.wppl",
-      "src/utils/POMDPUtils.wppl",
       "src/agents/makePOMDPAgent.wppl",
-      "src/environments/bandits/makeBandit.wppl",
-      "src/environments/gridWorld/makeGridWorldMDP.wppl",
-      "src/environments/gridWorld/makeGridWorldPOMDP.wppl",
-      "src/environments/gridWorld/concreteExamples/hiking.wppl",
-      "src/environments/gridWorld/concreteExamples/restaurantChoice.wppl",
-      "src/environments/gridWorld/concreteExamples/restaurantChoiceHyperbolicInfer.wppl",
-      "src/environments/gridWorld/banditGridworld.wppl",
-      "src/environments/procrastinationMDP.wppl"      
-
+      "src/simulation/simulateMDP.wppl",
+      "src/simulation/simulatePOMDP.wppl",
+      "src/visualization/gridworld.wppl",
+      "src/extra/extend.wppl",
+      "src/extra/getMarginalObject.wppl",
+      "src/extra/getRestaurantHyperbolicInfer.wppl",
+      "src/extra/makeBanditStartState.wppl",
+      "src/extra/makeBanditAgent.wppl",
+      "src/extra/inferBandit.wppl",
+      "src/extra/makeRestaurantSearchPOMDP.wppl"      
     ]
   },
   "repository": {
@@ -34,7 +37,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/agentmodels/webppl-agents/issues"
   },

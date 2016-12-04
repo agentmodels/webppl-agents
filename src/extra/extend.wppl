@@ -1,0 +1,3 @@
+var extend = function(base, ext){
+  return _.extend({}, base, ext);
+};

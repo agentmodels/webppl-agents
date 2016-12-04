@@ -1,0 +1,97 @@
+// Inference by sampling full trajectories or by doing 'off policy' inference
+var inferBandit = function(bandit, baseAgentParams, prior, observedStateAction,
+                           trajectoryOrOffPolicy, numRejectionSamples, beliefOrBeliefDelay) {
+  var world = bandit.world;
+  var startState = bandit.startState;
+  var numericPrizes = bandit.numericPrizes;
+
+  //var simulate = getSimulateFunction(beliefOrBeliefDelay);
+
+  var priorPrizeToUtility = prior.priorPrizeToUtility || false;
+  var priorAgentPrior = prior.priorAgentPrior;
+  var priorRewardMyopic = prior.priorRewardMyopic || false;
+
+  assert.ok(isPOMDPWithManifestLatent(world) && stateHasManifestLatent(startState) &&
+            priorAgentPrior.sample,
+            'inferBandit args: \n\n startState ' + startState +
+            ' \n\n priorAgentPrior' + priorAgentPrior);
+  assert.ok(trajectoryOrOffPolicy === 'trajectory' ||
+            trajectoryOrOffPolicy === 'offPolicy',
+            'inferBandit args: trajectoryOrOffPolicy bad');
+  assert.ok(stateHasManifestLatent(observedStateAction[0][0]),
+            'inferBandit args: observedStateAction first entry of first entry not a POMDP state');
+
+  if (priorPrizeToUtility) {
+    assert.ok(priorPrizeToUtility.sample,
+              'inferBandit args: priorPrizeToUtility defined but not an Dist');
+  }
+
+  if (priorRewardMyopic) {
+    assert.ok(priorRewardMyopic.sample,
+              'inferBandit args: priorMyopia defined but not an Dist');
+  }
+
+
+  return Infer({
+    method: 'enumerate'
+  }, function() {
+    // priors and makeAgent are specific to bandits
+    var prizeToUtility = priorPrizeToUtility ? sample(priorPrizeToUtility) :
+        undefined;
+    var priorBelief = sample(priorAgentPrior);
+    var rewardMyopicUpdate = priorRewardMyopic ? {
+      rewardMyopic: sample(priorRewardMyopic)
+    } : {};
+    var newAgentParams = extend(baseAgentParams, extend({ priorBelief },
+                                                        rewardMyopicUpdate));
+
+    var agent = makeBanditAgent(newAgentParams, bandit, beliefOrBeliefDelay,
+                                prizeToUtility);
+    var agentAct = agent.act;
+    var agentUpdateBelief = agent.updateBelief;
+    var observe = agent.POMDPFunctions.observe;
+
+    // Factor on whole sampled trajectory (SLOW IF NOT DETERMINISTIC AND NUM SAMPLES HIGH)
+    var factorOnTrajectory = function() {
+      var trajectoryDist = Infer({
+        method: 'rejection',
+        samples: numRejectionSamples
+      }, function() {
+        return simulatePOMDP(startState, world, agent, 'states');
+      });
+      factor(trajectoryDist.score(map(first, observedStateAction)));
+    };
+
+    // Move agent through observed sequence 
+    var factorSequenceOffPolicy = function(currentBelief, previousAction, timeIndex) {
+      if (timeIndex < observedStateAction.length) {
+
+        // Go to next world state and sample observation from that state
+        var state = observedStateAction[timeIndex][0];
+        var observation = observe(state);
+
+        // Update agent's internal state and get action Dist
+        var delay = 0;
+        var nextBelief = beliefOrBeliefDelay == 'belief' ?
+            agentUpdateBelief(currentBelief, observation, previousAction) :
+            agentUpdateBelief(currentBelief, observation, previousAction, delay);
+
+
+        var nextActionDist = beliefOrBeliefDelay == 'belief' ?
+            agentAct(nextBelief) : agentAct(nextBelief, delay);
+
+        var observedAction = observedStateAction[timeIndex][1];
+        factor(nextActionDist.score(observedAction));
+
+        // condition on next world state, passing through updated internal state
+        factorSequenceOffPolicy(nextBelief, observedAction, timeIndex + 1);
+      }
+    };
+
+    var doInfer = (trajectoryOrOffPolicy == 'trajectory') ? factorOnTrajectory() :
+        factorSequenceOffPolicy(priorBelief, 'noAction', 0);
+
+    var bound = newAgentParams.rewardMyopic ? newAgentParams.rewardMyopic.bound : 0;
+    return { prizeToUtility, priorBelief, rewardMyopicBound: bound };
+  });
+};

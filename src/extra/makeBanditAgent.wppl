@@ -1,0 +1,72 @@
+var numericBanditUtility = function(state, action) {
+  var prize = state.manifestState.loc;
+  return prize === 'start' ? 0 : prize;
+};
+
+
+var makeStringBanditUtility = function(prizeToUtility) {
+  return function(state, action) {
+    var prize = state.manifestState.loc;
+    return prize === 'start' ? 0 : prizeToUtility[prize];
+  };
+};
+
+
+var makeBanditUtility = function(bandit, prizeToUtility) {
+  if (bandit.numericalPrizes) {
+    return numericBanditUtility;
+  } else {
+    var prizesHaveUtilities = function(arm) {
+      var armToPrizeDist = bandit.armToPrizeDist;
+      var dist = armToPrizeDist[arm];
+      map(function(x) {
+        assert.ok(_.isFinite(prizeToUtility[x]) && inSupport(x, dist),
+                  'makeBandit: some prizes do not have utilities');
+      }, dist.support());
+    };
+
+    mapN(prizesHaveUtilities, bandit.numberOfArms);
+
+    return makeStringBanditUtility(prizeToUtility);
+  }
+};
+
+
+var getMakeAgentFunction = function(beliefOrBeliefDelay) {
+  assert.ok(_.includes(['belief', 'beliefDelay'], beliefOrBeliefDelay),
+            'getMakeAgentFunction invalid input:   ' + beliefOrBeliefDelay);
+
+  if (beliefOrBeliefDelay == 'beliefDelay') {
+    return makePOMDPAgentDelay;
+  } else {
+    return makePOMDPAgentOptimal;
+  }
+};
+
+
+var makeBanditAgent = function(agentParams, bandit, beliefOrBeliefDelay,
+                               prizeToUtility) {
+
+  var priorBelief = agentParams.priorBelief;
+  var numericalPrizes = bandit.numericalPrizes;
+
+  if (isDistOverLatent(priorBelief)) {
+    assert.ok(_.isEqual(priorBelief.manifestState,
+                        bandit.startState.manifestState),
+              'makeBanditAgent: priorBelief has wrong start manifestState');
+  } else {
+    assert.ok(priorBelief.sample,
+              'makeBanditAgent: priorBelief is neither an Dist nor an object' +
+              ' containing a manifest state and a latentStateDist');
+    assert.ok(_.isEqual(sample(priorBelief).manifestState,
+                        bandit.startState.manifestState),
+              'makeBanditAgent: priorBelief has wrong start manifestState');
+  }
+
+  var utility = makeBanditUtility(bandit, prizeToUtility);
+
+  var makeAgent = getMakeAgentFunction(beliefOrBeliefDelay);
+
+  return makeAgent(extend(agentParams, { utility }),
+                   bandit.world);
+};

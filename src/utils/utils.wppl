@@ -1,0 +1,15 @@
+var extend = function(base, ext) {
+  return _.extend({}, base, ext);
+};
+
+var isPOMDPWithManifestLatent = function(obj){
+  return (_.has(obj, 'transition') &&
+          _.has(obj, 'observe') &&
+          _.has(obj, 'manifestStateToActions'));
+};
+
+var stateHasManifestLatent = function (state){
+  return (_.has(state, 'latentState') &&
+          _.has(state, 'manifestState') &&
+          _.isFinite(state.manifestState.timeLeft));
+};

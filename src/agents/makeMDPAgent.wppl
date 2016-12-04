@@ -1,81 +1,64 @@
-// --------------------------------------------------------------------
-// Optimal MDP agent
+var hasProperties = function(object, listProperties) {
+  assert.ok(_.isObject(object) && _.isArray(listProperties), 'fail hasProperties');
+  return _.all(map(
+    function(property) {
+      return _.has(object, property);
+    }, listProperties));
+};
+
 
 var makeMDPAgentOptimal = function(params, world) {
   // *params* should be an object containing *utility*, a utility function, and
   // *alpha*, which regulates the agent's softmax noise.
-  map(function(s){assert.ok(params.hasOwnProperty(s),'makeMDPAgent args');}, 
-      ['utility','alpha']);
-  
+  map(function(s) {
+    assert.ok(params.hasOwnProperty(s), 'makeMDPAgent args');
+  }, ['utility', 'alpha']);
+
   var stateToActions = world.stateToActions;
   var transition = world.transition;
   var utility = params.utility;
   var alpha = params.alpha;
 
-  var act = dp.cache( 
-    function(state){
-      return Infer({ method: 'enumerate' }, function(){
+  var act = dp.cache(
+    function(state) {
+      return Infer({
+        method: 'enumerate'
+      }, function() {
         var action = uniformDraw(stateToActions(state));
         var eu = expectedUtility(state, action);
         factor(alpha * eu);
         return action;
-      });      
+      });
     });
-  
+
   var expectedUtility = dp.cache(
-    function(state, action){
+    function(state, action) {
       var u = utility(state, action);
-      if (state.terminateAfterAction){
-        return u; 
-      } else {                     
-        return u + expectation( Infer({ method: 'enumerate' }, function(){
-          var nextState = transition(state, action); 
+      if (state.terminateAfterAction) {
+        return u;
+      } else {
+        return u + expectation(Infer({
+          method: 'enumerate'
+        }, function() {
+          var nextState = transition(state, action);
           var nextAction = sample(act(nextState));
-          return expectedUtility(nextState, nextAction);  
+          return expectedUtility(nextState, nextAction);
         }));
-      }                      
+      }
     });
-  
+
   return {
-    params : params,
-    expectedUtility : expectedUtility,
-    act: act
+    params,
+    expectedUtility,
+    act
   };
 };
 
 
-var simulateMDPAgentOptimal = function(startState, world, agent, outputType) {
-  // if outputType is undefined, default to states
-  var act = agent.act;
-  var transition = world.transition;
-  var outputType = outputType ? outputType : 'states';
-
-  var selectOutput = function(state, action) {
-    var table = {states: state,
-		 actions: action,
-		 stateAction: [state, action]};
-    return table[outputType];
-  };
-
-  var sampleSequence = function(state) {
-    var action = sample(act(state));
-    var nextState = transition(state, action);
-    var out = selectOutput(state, action);
-    return state.terminateAfterAction ? [out]
-      : [out].concat(sampleSequence(nextState));
-  };
-  return sampleSequence(startState);
-};
-
-
-// --------------------------------------------------------------------
-// Hyperbolic discounting agent
-
-
-var makeMDPAgentHyperbolic = function (params, world) {
-  assert.ok(hasProperties(params, ['utility','alpha','discount','sophisticatedOrNaive']),
+var makeMDPAgentHyperbolic = function(params, world) {
+  assert.ok(hasProperties(params, ['utility', 'alpha', 'discount', 'sophisticatedOrNaive']),
             'makeMDPAgentHyperbolic params');
-  
+
   var stateToActions = world.stateToActions;
   var transition = world.transition;
   var utility = params.utility;
@@ -86,117 +69,66 @@ var makeMDPAgentHyperbolic = function (params, world) {
 
   var discountFunction = (
     paramsDiscountFunction ||
-    function(delay){
-      return 1/(1 + params.discount*delay);
+    function(delay) {
+      return 1 / (1 + params.discount * delay);
     });
 
-  var isNaive = params.sophisticatedOrNaive=='naive';
-  
-  var act = dp.cache( 
-    function(state, delay){
+  var isNaive = params.sophisticatedOrNaive == 'naive';
+
+  var act = dp.cache(
+    function(state, delay) {
       var delay = delay ? delay : 0; //make sure delay is never 'undefined'
 
-      return Infer({ method: 'enumerate' }, function(){
+      return Infer({
+        method: 'enumerate'
+      }, function() {
         var action = uniformDraw(stateToActions(state));
         var eu = expectedUtility(state, action, delay);
         factor(params.alpha * eu);
         return action;
-      });      
+      });
     });
-  
+
   var expectedUtility = dp.cache(
-    function(state, action, delay){
+    function(state, action, delay) {
       var u = discountFunction(delay) * utility(state, action);
       assert.ok(!_.isUndefined(u),
-                "utility undefined" + JSON.stringify([state, action, delay, utility(state, action)]));
-      
-      if (state.terminateAfterAction){
-        return u; 
-      } else {                     
-        return u + expectation( Infer({ method: 'enumerate' }, function(){
-          var nextState = transition(state, action); 
+        "utility undefined" + JSON.stringify([state, action, delay, utility(state, action)]));
+
+      if (state.terminateAfterAction) {
+        return u;
+      } else {
+        return u + expectation(Infer({
+          method: 'enumerate'
+        }, function() {
+          var nextState = transition(state, action);
           var perceivedDelay = isNaive ? delay + 1 : 0;
           var nextAction = sample(act(nextState, perceivedDelay));
-          return expectedUtility(nextState, nextAction, delay+1);  
+          return expectedUtility(nextState, nextAction, delay + 1);
         }));
-      }                      
+      }
     });
-  
+
   return {
-    params: params,
-    expectedUtility: expectedUtility,
-    act: act
+    params,
+    expectedUtility,
+    act
   };
 };
 
 
-var simulateMDPAgentHyperbolic = function(startState, world, agent, outputType) {
-  var act = agent.act;
-  var expectedUtility = agent.expectedUtility;
-  var transition = world.transition;
-  var outputType = outputType ? outputType : 'states';
-
-  var selectOutput = function(state, action){
-    var table =  {states:state, actions:action, stateAction:[state, action]};
-    return table[outputType];
-  };
-  
-  var sampleSequence = function (state) {
-    var delay = 0;
-    var action = sample(act(state, delay));
-    var nextState = transition(state, action); 
-    var out = selectOutput(state, action);
-    return state.terminateAfterAction ?
-      [out] : [out].concat(sampleSequence(nextState));
-  };
-  return sampleSequence(startState);
-};
-
-
-// --------------------------------------------------------------------
-// Helper functions
-
-
-// *trajectory* must be a trajectory of states
-var getExpectedUtilitiesMDP = function(stateTrajectory, world, agent) {
-  var stateToActions = world.stateToActions;
-  var eu = agent.expectedUtility;
-  var getAllExpectedUtilities = function(state) {
-    var availableActions = stateToActions(state);
-    return [state, map(function(action){return eu(state, action);},
-		       availableActions)];
-  };
-  return map(getAllExpectedUtilities, stateTrajectory);
-};
-
-
-// --------------------------------------------------------------------
-// Generic MDP wrappers
-
-
-var isOptimalMDPAgent = function(agentParams){
-  var optimalProperties = function(){
+var isOptimalMDPAgent = function(agentParams) {
+  var optimalProperties = function() {
     return !(_.has(agentParams, 'discount') ||
-             _.has(agentParams, 'discountFunction') ||
-             _.has(agentParams, 'sophisticatedOrNaive'));
+      _.has(agentParams, 'discountFunction') ||
+      _.has(agentParams, 'sophisticatedOrNaive'));
   };
   return _.isUndefined(agentParams.optimal) ? optimalProperties() : agentParams.optimal;
 };
 
 
-
-var makeMDPAgent = function(params, world){
+var makeMDPAgent = function(params, world) {
   return (isOptimalMDPAgent(params) ?
-          makeMDPAgentOptimal(params, world) : 
+          makeMDPAgentOptimal(params, world) :
           makeMDPAgentHyperbolic(params, world));
-};
-
-
-var simulateMDP = function(startState, world, agent, outputType) {
-  var params = agent.params;
-  if (isOptimalMDPAgent(params)){
-    return simulateMDPAgentOptimal(startState, world, agent, outputType)  
-  } else {
-    return simulateMDPAgentHyperbolic(startState, world, agent, outputType)
-  }    
 };

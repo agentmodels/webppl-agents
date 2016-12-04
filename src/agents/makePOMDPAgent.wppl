@@ -1,32 +1,62 @@
 // HELPER FUNCTIONS
+var hasUtilityPriorBelief = function(agentParams) {
+  if (_.has(agentParams, 'utility') && _.has(agentParams, 'priorBelief')) {
+    var utility = agentParams.utility;
+    var priorBelief = agentParams.priorBelief;
+    return _.isFunction(utility);
+  }
+  return false;
+};
 
-// TODO these two functions should be moved into getPOMDPFRunctions
+
+var hasTransitionObserve = function(world) {
+  if (_.has(world, 'transition') && _.has(world, 'observe')) {
+    var transition = world.transition;
+    var observe = world.observe;
+    return _.isFunction(transition) && _.isFunction(observe);
+  }
+  return false;
+};
+
 
 // Test whether belief has right form for fastUpdateBelief, i.e. it's not
 // an Dist but an object with 'manifestState' and 'latentStateDist' properties
-var isDistOverLatent = function(belief){
-  return _.has(belief, 'manifestState') && _.has(belief, 'latentStateDist')
-    && !_.has(belief,'support') && hasSample(belief.latentStateDist);
+var isDistOverLatent = function(belief) {
+  return (
+    _.has(belief, 'manifestState') &&
+    _.has(belief, 'latentStateDist') &&
+    !_.has(belief, 'support') &&
+    belief.latentStateDist.sample);
 };
 
+
 // Convert priorBelief from Dist over full states to Dist over latents
-var toDistOverLatent = function(belief){
+var toDistOverLatent = function(belief) {
   var manifestState = belief.support()[0].manifestState;
-  var latentStateDist = Infer({ method: 'enumerate' }, function(){return sample(belief).latentState;})
-  return {manifestState: manifestState,
-          latentStateDist: latentStateDist};
+  var latentStateDist = Infer({
+    method: 'enumerate'
+  }, function() {
+    return sample(belief).latentState;
+  })
+  return {
+    manifestState: manifestState,
+    latentStateDist: latentStateDist
+  };
 };
 
 
 // Construct functions needed for running the POMDP agent
 // Most of the code is for the manifest-latent optimization
 
-var getPOMDPFunctions = function(params, world){
+var getPOMDPFunctions = function(params, world) {
 
   // Sample a state from belief: works for general states and manifestLatent states.
-  var sampleBelief = function(belief){
-    if (isDistOverLatent(belief)){
-      return buildState(belief.manifestState, sample(belief.latentStateDist) );
+  var sampleBelief = function(belief) {
+    if (isDistOverLatent(belief)) {
+      return {
+        manifestState: belief.manifestState,
+        latentState: sample(belief.latentStateDist)
+      };
     } else {
       return sample(belief);
     };
@@ -38,30 +68,37 @@ var getPOMDPFunctions = function(params, world){
 
   // Helper functions
 
-  var getBeliefToActions = function(manifestStateToActions){
-    return function(belief){
+  var getBeliefToActions = function(manifestStateToActions) {
+    return function(belief) {
       var manifestState = isDistOverLatent(belief) ? belief.manifestState :
           sample(belief).manifestState;
-      return manifestStateToActions( manifestState );
+      return manifestStateToActions(manifestState);
     };
   };
 
-  var getFullObserve = function(observeLatent){
-    return function(state){
-      return {manifestState: state.manifestState, observation: observeLatent(state)};
+  var getFullObserve = function(observeLatent) {
+    return function(state) {
+      return {
+        manifestState: state.manifestState,
+        observation: observeLatent(state)
+      };
     };
   };
 
   // Agent gets an obervation in starting state without having taken an action
-  var isNullAction = function(action){return action=='noAction';};
+  var isNullAction = function(action) {
+    return action == 'noAction';
+  };
 
   // Optimized belief update for manifest/latent POMDPs
-  var getUpdateBeliefManifestLatent = function(transition, observe){
+  var getUpdateBeliefManifestLatent = function(transition, observe) {
 
-    var isDeltaDist = function(dist){return dist.support().length===1;};
+    var isDeltaDist = function(dist) {
+      return dist.support().length === 1;
+    };
 
     return dp.cache(
-      function(belief_, observation, action){
+      function(belief_, observation, action) {
 
         // If belief has form of "Dist over {manifest:, latent:}" then we convert
         // to form of "{manifest:, Dist over latent}".
@@ -71,34 +108,47 @@ var getPOMDPFunctions = function(params, world){
         var newManifestState = observation.manifestState;
 
         // Don't update latent when you don't need to
-        if (observation.observation === 'noObservation'
-            || isDeltaDist(belief.latentStateDist) ) {
-          return extend(belief, {manifestState: newManifestState});
+        if (observation.observation === 'noObservation' ||
+            isDeltaDist(belief.latentStateDist)) {
+          return extend(belief, {
+            manifestState: newManifestState
+          });
         } else {
 
           // Sample latent, update state, compare predicted observation from state
           // to actual observation.
 
-          var newLatentDist = Infer({ method: 'enumerate' }, function(){
+          var newLatentDist = Infer({
+            method: 'enumerate'
+          }, function() {
             var latentState = sample(belief.latentStateDist);
-            var state = buildState( belief.manifestState, latentState);
+            var state = {
+              manifestState: belief.manifestState,
+              latentState
+            };
             var predictedNextState = isNullAction(action) ? state : transition(state, action);
             var predictedObservation = observe(predictedNextState);
 
             condition(_.isEqual(predictedObservation, observation));
-            return latentState;});
+            return latentState;
+          });
 
-          return {manifestState: newManifestState, latentStateDist: newLatentDist};
+          return {
+            manifestState: newManifestState,
+            latentStateDist: newLatentDist
+          };
         }
       });
   };
 
 
   // updateBelief function for general POMDPs (no manifest/latent structure)
-  var getUpdateBeliefSimple = function(transition, observe){
+  var getUpdateBeliefSimple = function(transition, observe) {
     return dp.cache(
-      function(belief, observation, action){
-        return Infer({ method: 'enumerate' }, function(){
+      function(belief, observation, action) {
+        return Infer({
+          method: 'enumerate'
+        }, function() {
           var state = sample(belief);
           var predictedNextState = isNullAction(action) ? state : transition(state, action);
           var predictedObservation = observe(predictedNextState);
@@ -113,21 +163,23 @@ var getPOMDPFunctions = function(params, world){
       params.useManifestLatent :
       stateHasManifestLatent(sampleBelief(params.priorBelief))
 
-  if (useManifestLatent){
-    assert.ok( stateHasManifestLatent(sampleBelief(params.priorBelief)),
-               'state is not manifestLatent in form')
+  if (useManifestLatent) {
+    assert.ok(stateHasManifestLatent(sampleBelief(params.priorBelief)),
+              'state is not manifestLatent in form')
   }
 
 
-  if (useManifestLatent){
+  if (useManifestLatent) {
     var observe = getFullObserve(world.observe);
     return {
       sampleBelief: sampleBelief,
       useManifestLatent: true,
-      observe : observe,
-      beliefToActions : getBeliefToActions(world.manifestStateToActions),
-      updateBelief : getUpdateBeliefManifestLatent(world.transition, observe),
-      shouldTerminate: function(state){return state.manifestState.terminateAfterAction;}
+      observe: observe,
+      beliefToActions: getBeliefToActions(world.manifestStateToActions),
+      updateBelief: getUpdateBeliefManifestLatent(world.transition, observe),
+      shouldTerminate: function(state) {
+        return state.manifestState.terminateAfterAction;
+      }
     };
   };
 
@@ -137,7 +189,9 @@ var getPOMDPFunctions = function(params, world){
     observe: world.observe,
     beliefToActions: world.beliefToActions,
     updateBelief: getUpdateBeliefSimple(world.transition, world.observe),
-    shouldTerminate:  function(state){return state.terminateAfterAction;}
+    shouldTerminate: function(state) {
+      return state.terminateAfterAction;
+    }
   };
 };
 
@@ -145,9 +199,9 @@ var getPOMDPFunctions = function(params, world){
 // --------------------------------------------------------------------
 // Optimal POMDP agent
 
-
 var makePOMDPAgentOptimal = function(params, world) {
-  assert.ok( hasUtilityPriorBelief(params) && hasTransitionObserve(world), 'makePOMDPAgent params and world');
+  assert.ok(hasUtilityPriorBelief(params) && hasTransitionObserve(world),
+            'makePOMDPAgent params and world');
 
   // set defaults
   var defaults = {
@@ -171,7 +225,9 @@ var makePOMDPAgentOptimal = function(params, world) {
   // RECURSE ON BELIEF (BELLMAN STYLE)
   var act = dp.cache(
     function(belief) {
-      return Infer({ method: 'enumerate' }, function(){
+      return Infer({
+        method: 'enumerate'
+      }, function() {
         var action = uniformDraw(beliefToActions(belief));
         var eu = expectedUtilityBelief(belief, action);
         factor(params.alpha * eu);
@@ -182,11 +238,13 @@ var makePOMDPAgentOptimal = function(params, world) {
   var expectedUtilityBelief = dp.cache(
     function(belief, action) {
       return expectation(
-        Infer({ method: 'enumerate' }, function(){
+        Infer({
+          method: 'enumerate'
+        }, function() {
           var state = sampleBelief(belief);
           var u = utility(state, action);
-          assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
-                    + JSON.stringify(state));
+          assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: ' +
+                    JSON.stringify(state));
           if (shouldTerminate(state)) {
             return u;
           } else {
@@ -205,7 +263,9 @@ var makePOMDPAgentOptimal = function(params, world) {
   // RECURSE ON STATE (FIXES THE LATENT STATE)
   var act_recState = dp.cache(
     function(belief) {
-      return Infer({ method: 'enumerate' }, function(){
+      return Infer({
+        method: 'enumerate'
+      }, function() {
         var action = uniformDraw(beliefToActions(belief));
         var eu = expectedUtilityBelief_recState(belief, action);
         factor(params.alpha * eu);
@@ -214,21 +274,25 @@ var makePOMDPAgentOptimal = function(params, world) {
     });
 
   var expectedUtilityBelief_recState = dp.cache(
-    function(belief, action){
+    function(belief, action) {
       return expectation(
-        Infer({ method: 'enumerate' },  function(){
+        Infer({
+          method: 'enumerate'
+        }, function() {
           var state = sampleBelief(belief);
-          return expectedUtilityState_recState(belief,state, action);
+          return expectedUtilityState_recState(belief, state, action);
         }));
     });
 
   var expectedUtilityState_recState = dp.cache(
-    function(belief, state, action){
-      return expectation(  // need this for caching
-        Infer({ method: 'enumerate' },  function(){
+    function(belief, state, action) {
+      return expectation( // need this for caching
+        Infer({
+          method: 'enumerate'
+        }, function() {
           var u = utility(state, action);
-          assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
-                    + JSON.stringify(state));
+          assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: ' +
+                    JSON.stringify(state));
           if (shouldTerminate(state)) {
             return u;
           } else {
@@ -259,9 +323,10 @@ var makePOMDPAgentOptimal = function(params, world) {
 // --------------------------------------------------------------------
 // Sub-optimal POMDP agent
 
-var makePOMDPAgentDelay = function (params, world){
+var makePOMDPAgentDelay = function(params, world) {
 
-  assert.ok( hasUtilityPriorBelief(params) && hasTransitionObserve(world), 'makePOMDPAgent params and world');
+  assert.ok(hasUtilityPriorBelief(params) && hasTransitionObserve(world),
+            'makePOMDPAgent params and world');
 
   var defaults = {
     alpha: 1000,
@@ -275,13 +340,13 @@ var makePOMDPAgentDelay = function (params, world){
 
   var params = extend(defaults, params);
 
-  if (params.rewardMyopic || params.updateMyopic){
-    assert.ok( params.noDelays === false && params.sophisticatedOrNaive=== 'naive',
-    'rewardMyopic and updateMyopic require Naive agent with delays');
+  if (params.rewardMyopic || params.updateMyopic) {
+    assert.ok(params.noDelays === false && params.sophisticatedOrNaive === 'naive',
+              'rewardMyopic and updateMyopic require Naive agent with delays');
   }
 
-  assert.ok( params.rewardMyopic === false || params.updateMyopic === false, "one of rewardMyopic and updateMyopic must be false");
-
+  assert.ok(params.rewardMyopic === false || params.updateMyopic === false,
+            "one of rewardMyopic and updateMyopic must be false");
 
   // Variables for methods
   var transition = world.transition;
@@ -294,13 +359,15 @@ var makePOMDPAgentDelay = function (params, world){
 
   var _updateBelief = POMDPFunctions.updateBelief;
 
-  var updateBelief = function (belief, observation, action, delay) {
-    if (params.updateMyopic && (delay > params.updateMyopic.bound)){
+  var updateBelief = function(belief, observation, action, delay) {
+    if (params.updateMyopic && (delay > params.updateMyopic.bound)) {
 
       // update manifestState (assuming no possibility that isNullAction(action))
-      var nextBelief = Infer({ method: 'enumerate' }, function(){
+      var nextBelief = Infer({
+        method: 'enumerate'
+      }, function() {
         var state = sampleBelief(belief);
-        return transition(state,action);
+        return transition(state, action);
       });
       return POMDPFunctions.useManifestLatent ? toDistOverLatent(nextBelief) : nextBelief;
 
@@ -310,19 +377,25 @@ var makePOMDPAgentDelay = function (params, world){
   };
 
 
-  // Update the *delay* parameter in *expectedUtility* for sampling actions and future utilities
-  var transformDelay = function(delay){
-    var table = {naive: delay + 1, sophisticated: 0 };
+  // Update the *delay* parameter in *expectedUtility* for sampling
+  // actions and future utilities
+  var transformDelay = function(delay) {
+    var table = {
+      naive: delay + 1,
+      sophisticated: 0
+    };
     return params.noDelays ? 0 : table[params.sophisticatedOrNaive];
   };
 
-  var incrementDelay = function(delay){
+  var incrementDelay = function(delay) {
     return params.noDelays ? 0 : delay + 1;
   };
 
   // Define the discount function to be used
-  var discountFunction = params.discountFunction ? params.discountFunction
-        : function(delay){return 1.0/(1 + params.discount * delay);};
+  var discountFunction = params.discountFunction ? params.discountFunction :
+      function(delay) {
+        return 1.0 / (1 + params.discount * delay);
+      };
 
   // Termination condition for *expectedUtility*
   var shouldTerminate = function(state, delay) {
@@ -330,17 +403,23 @@ var makePOMDPAgentDelay = function (params, world){
         state.manifestState.terminateAfterAction :
         state.terminateAfterAction;
 
-    if (terminateAfterAction){return true;}
-    if (params.rewardMyopic) {return delay >= params.rewardMyopic.bound;}
+    if (terminateAfterAction) {
+      return true;
+    }
+    if (params.rewardMyopic) {
+      return delay >= params.rewardMyopic.bound;
+    }
     return false;
   };
 
 
   // RECURSE ON BELIEF (BELLMAN STYLE)
   var act = dp.cache(
-    function (belief, delay) {
-      assert.ok( _.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
-      return Infer({ method: 'enumerate' }, function () {
+    function(belief, delay) {
+      assert.ok(_.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
+      return Infer({
+        method: 'enumerate'
+      }, function() {
         var action = uniformDraw(beliefToActions(belief));
         var eu = expectedUtilityBelief(belief, action, delay);
         factor(params.alpha * eu);
@@ -349,15 +428,17 @@ var makePOMDPAgentDelay = function (params, world){
     });
 
   var expectedUtilityBelief = dp.cache(
-    function (belief, action, delay) {
+    function(belief, action, delay) {
       return expectation(
-        Infer({ method: 'enumerate' }, function () {
+        Infer({
+          method: 'enumerate'
+        }, function() {
           var state = sampleBelief(belief);
-          assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
-                    + JSON.stringify(state));
+          assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: ' +
+                    JSON.stringify(state));
           var u = discountFunction(delay) * utility(state, action);
 
-          if (shouldTerminate(state, delay)){
+          if (shouldTerminate(state, delay)) {
             return u;
           } else {
             var nextState = transition(state, action);
@@ -377,8 +458,10 @@ var makePOMDPAgentDelay = function (params, world){
   // RECURSE ON STATE (FIXES THE LATENT STATE)
   var act_recState = dp.cache(
     function(belief, delay) {
-      assert.ok( _.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
-      return Infer({ method: 'enumerate' }, function(){
+      assert.ok(_.isFinite(delay), 'act: delay non-finite. delay: ' + delay);
+      return Infer({
+        method: 'enumerate'
+      }, function() {
         var action = uniformDraw(beliefToActions(belief));
         var eu = expectedUtilityBelief_recState(belief, action, delay);
         factor(params.alpha * eu);
@@ -387,20 +470,24 @@ var makePOMDPAgentDelay = function (params, world){
     });
 
   var expectedUtilityBelief_recState = dp.cache(
-    function(belief, action, delay){
+    function(belief, action, delay) {
       return expectation(
-        Infer({ method: 'enumerate' },  function(){
+        Infer({
+          method: 'enumerate'
+        }, function() {
           var state = sampleBelief(belief);
-          return expectedUtilityState_recState(belief,state, action, delay);
+          return expectedUtilityState_recState(belief, state, action, delay);
         }));
     });
 
   var expectedUtilityState_recState = dp.cache(
-    function(belief, state, action, delay){
-      return expectation(  // need this for caching
-        Infer({ method: 'enumerate' },  function(){
-          assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: '
-                    + JSON.stringify(state));
+    function(belief, state, action, delay) {
+      return expectation( // need this for caching
+        Infer({
+          method: 'enumerate'
+        }, function() {
+          assert.ok(_.isFinite(utility(state, action)), 'utility is not finite. state: ' +
+                    JSON.stringify(state));
           var u = discountFunction(delay) * utility(state, action);
           if (shouldTerminate(state, delay)) {
             return u;
@@ -421,23 +508,16 @@ var makePOMDPAgentDelay = function (params, world){
 
   var act = params.recurseOnStateOrBelief === 'belief' ? act : act_recState;
   var expectedUtility = params.recurseOnStateOrBelief === 'belief' ?
-        expectedUtilityBelief : expectedUtilityBelief_recState;
+      expectedUtilityBelief : expectedUtilityBelief_recState;
 
-  return {
-    act:act,
-    updateBelief: updateBelief,
-    expectedUtility : expectedUtility,
-    params: params,
-    POMDPFunctions: POMDPFunctions
-  };
+  return { act, updateBelief, expectedUtility, params, POMDPFunctions };
 };
-
 
 
 // General POMDP wrappers
 
-var isOptimalPOMDPAgent = function(agentParams){
-  var optimalProperties = function(){
+var isOptimalPOMDPAgent = function(agentParams) {
+  var optimalProperties = function() {
     return !(_.has(agentParams, 'noDelays') ||
              _.has(agentParams, 'discount') ||
              _.has(agentParams, 'myopic-observations'));
@@ -452,7 +532,7 @@ var isManualPOMDPAgent = function(agentParams) {
           _.has(agentParams.params, 'priorBelief'));
 }
 
-var makePOMDPAgent = function(params, world){
+var makePOMDPAgent = function(params, world) {
   if (isManualPOMDPAgent(params)) {
     return extend(params, {
       POMDPFunctions: getPOMDPFunctions(params.params, world)
@@ -461,110 +541,5 @@ var makePOMDPAgent = function(params, world){
     return (isOptimalPOMDPAgent(params) ?
             makePOMDPAgentOptimal(params, world) :
             makePOMDPAgentDelay(params, world));
-  }
-};
-
-
-var getMakeAgentFunction = function(beliefOrBeliefDelay){
-  assert.ok(_.includes(['belief','beliefDelay'], beliefOrBeliefDelay),
-            'getMakeAgentFunction invalid input:   ' + beliefOrBeliefDelay);
-
-  if (beliefOrBeliefDelay == 'beliefDelay') {
-    return makePOMDPAgentDelay;
-  } else {
-    return makePOMDPAgentOptimal;
-  }
-};
-
-
-
-// --------------------------------------------------------------------
-// Simulate
-
-var getSimulateFunction = function(beliefOrBeliefDelay){
-
-  //TODO add test that agent's prior contains the true startState
-
-  assert.ok( _.includes(['belief','beliefDelay'], beliefOrBeliefDelay),
-             'getSimulateFunction invalid input: '+ beliefOrBeliefDelay);
-
-
-  var useDelays = beliefOrBeliefDelay=='beliefDelay';
-
-
-  return function (startState, world, agent, outputType) {
-    var useManifestLatent = agent.POMDPFunctions.useManifestLatent;
-
-    var totalTime = useManifestLatent ? startState.manifestState.timeLeft : startState.timeLeft;
-
-    //assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
-    assert.ok( _.includes(['states','actions','stateAction','stateBelief', 'stateObservationAction'], outputType),
-               "outputType '" + outputType + "' not in ['states', 'actions', 'stateAction', 'stateBelief', 'stateObservationAction']");
-
-    var terminateAfterAction = useManifestLatent ? startState.manifestState.terminateAfterAction :
-        startState.terminateAfterAction;
-
-    assert.ok(totalTime > 1 || startState.manifestState.terminateAfterAction,
-              'if totalTime==1, must also terminateAfterAction');
-
-    // agent methods
-    var agentAct = agent.act;
-    var agentUpdateBelief = agent.updateBelief;
-    var priorBelief = agent.params.priorBelief;
-
-
-    // world methods
-    var transition = world.transition;
-    var observe = agent.POMDPFunctions.observe;
-    var shouldTerminate = agent.POMDPFunctions.shouldTerminate;
-
-    var selectOutput = function(state, observation, action, belief){
-      var table =  {states:state,
-                    actions:action,
-                    stateAction:[state, action],
-                    stateBelief: [state, belief],
-                    stateObservationAction:{state: state,
-                                            observation: observation,
-                                            action: action}};
-      return table[outputType];
-    };
-
-
-    var sampleSequence = function(state, priorBelief, action) {
-
-      var observation = observe(state);
-      var delay = 0;
-
-      var belief = useDelays ? agentUpdateBelief(priorBelief, observation,
-                                                 action, delay) :
-            agentUpdateBelief(priorBelief, observation, action);
-
-      var action = useDelays ? sample(agentAct(belief, delay)) :
-            sample(agentAct(belief));
-
-      var output = [selectOutput(state, observation, action, belief)];
-
-      if (shouldTerminate(state)) {
-        return output;
-      } else {
-        var nextState = transition(state, action);
-        return output.concat(sampleSequence(nextState, belief, action));
-      }
-    };
-    var startAction = 'noAction';
-    return sampleSequence(startState, priorBelief, startAction);
-  };
-};
-
-var simulatePOMDPAgent = getSimulateFunction('belief');
-var simulatePOMDPAgentDelay = getSimulateFunction('beliefDelay');
-
-
-var simulatePOMDP = function(startState, world, agent, outputType) {
-  var params = agent.params;
-  if (isOptimalPOMDPAgent(params)){
-    return simulatePOMDPAgent(startState, world, agent, outputType)
-  } else {
-    return simulatePOMDPAgentDelay(startState, world, agent, outputType);
   }
 };

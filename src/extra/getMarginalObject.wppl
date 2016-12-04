@@ -1,0 +1,8 @@
+var getMarginalObject = function(dist,key){
+  return Infer({ model() {
+    var s = sample(dist);
+    var keys = _.keys(s);
+    var omitKeys = filter(function(el){return el !== key;}, keys);
+    return _.omit(s,omitKeys);
+  }});
+};

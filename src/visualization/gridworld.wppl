@@ -1,0 +1,6 @@
+var GridWorld = webpplAgents; // reference to the exports of gridworld-viz.js
+
+if (typeof viz !== "undefined") {
+  // make GridWorld.viz also available as viz.gridworld
+  _.extend(viz, { gridworld: webpplAgents.draw });
+}

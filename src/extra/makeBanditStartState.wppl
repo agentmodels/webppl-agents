@@ -1,0 +1,10 @@
+var makeBanditStartState = function(numberOfTrials, armToPrizeDist) {
+  return {
+    manifestState: {
+      loc: 'start',
+      timeLeft: numberOfTrials,
+      terminateAfterAction: false
+    },
+    latentState: armToPrizeDist
+  };
+};

@@ -1,0 +1,93 @@
+var getSimulateFunction = function(beliefOrBeliefDelay) {
+
+  //TODO add test that agent's prior contains the true startState
+
+  assert.ok(_.includes(['belief', 'beliefDelay'], beliefOrBeliefDelay),
+            'getSimulateFunction invalid input: ' + beliefOrBeliefDelay);
+
+
+  var useDelays = beliefOrBeliefDelay == 'beliefDelay';
+
+
+  return function(startState, world, agent, outputType) {
+    var useManifestLatent = agent.POMDPFunctions.useManifestLatent;
+
+    var totalTime = useManifestLatent ? startState.manifestState.timeLeft : startState.timeLeft;
+
+    //assert.ok(isPOMDPState(startState), 'simulateBeliefDelayAgent args');
+    var validOutputTypes = ['states', 'actions', 'stateAction',
+                            'stateBelief', 'stateObservationAction'];
+    assert.ok(_.includes(validOutputTypes, outputType),
+              "outputType '" + outputType + "' not in " + JSON.stringify(validOutputTypes));
+
+    var terminateAfterAction = (useManifestLatent ?
+                                startState.manifestState.terminateAfterAction :
+                                startState.terminateAfterAction);
+    assert.ok(totalTime > 1 || startState.manifestState.terminateAfterAction,
+              'if totalTime==1, must also terminateAfterAction');
+
+    // agent methods
+    var agentAct = agent.act;
+    var agentUpdateBelief = agent.updateBelief;
+    var priorBelief = agent.params.priorBelief;
+
+
+    // world methods
+    var transition = world.transition;
+    var observe = agent.POMDPFunctions.observe;
+    var shouldTerminate = agent.POMDPFunctions.shouldTerminate;
+
+    var selectOutput = function(state, observation, action, belief) {
+      var table = {
+        states: state,
+        actions: action,
+        stateAction: [state, action],
+        stateBelief: [state, belief],
+        stateObservationAction: {
+          state: state,
+          observation: observation,
+          action: action
+        }
+      };
+      return table[outputType];
+    };
+
+
+    var sampleSequence = function(state, priorBelief, action) {
+
+      var observation = observe(state);
+      var delay = 0;
+
+      var belief = useDelays ? agentUpdateBelief(priorBelief, observation,
+                                                 action, delay) :
+          agentUpdateBelief(priorBelief, observation, action);
+
+      var action = useDelays ? sample(agentAct(belief, delay)) :
+          sample(agentAct(belief));
+
+      var output = [selectOutput(state, observation, action, belief)];
+
+      if (shouldTerminate(state)) {
+        return output;
+      } else {
+        var nextState = transition(state, action);
+        return output.concat(sampleSequence(nextState, belief, action));
+      }
+    };
+    var startAction = 'noAction';
+    return sampleSequence(startState, priorBelief, startAction);
+  };
+};
+
+var simulatePOMDPAgent = getSimulateFunction('belief');
+var simulatePOMDPAgentDelay = getSimulateFunction('beliefDelay');
+
+
+var simulatePOMDP = function(startState, world, agent, outputType) {
+  var params = agent.params;
+  if (isOptimalPOMDPAgent(params)) {
+    return simulatePOMDPAgent(startState, world, agent, outputType)
+  } else {
+    return simulatePOMDPAgentDelay(startState, world, agent, outputType);
+  }
+};

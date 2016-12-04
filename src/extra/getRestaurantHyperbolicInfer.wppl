@@ -1,0 +1,93 @@
+var _makeRestaurantUtilityFunction = function(world, utilityTable) {
+  assert.ok(_.has(utilityTable, 'Veg') && _.has(utilityTable, 'timeCost'),
+    '_makeRestaurantUtilityFunction: Veg or timeCost is missing');
+
+  var getFeatureName = function(state) {
+    var getFeature = world.feature;
+    return isPOMDPWithManifestLatent(world) ? getFeature(state.manifestState).name :
+      getFeature(state).name;
+  };
+
+  var defaultTimeCost = -.01;
+
+  return function(state, action) {
+    var name = getFeatureName(state);
+
+    // compute whether there are "double utilities" (for hyperbolic discounting case)
+    var pairs = utilityTable['Veg'].length == 2;
+
+    if (name) {
+      return pairs ? utilityTable[name][state.timeAtRestaurant] : utilityTable[name];
+    }
+    return utilityTable.timeCost || defaultTimeCost;
+  };
+};
+
+
+var getRestaurantHyperbolicInfer = function() {
+
+  var factorSequence = function(agentAction, observedStateAction) {
+    map(function(stateAction) {
+      var state = stateAction[0];
+      var action = stateAction[1];
+      factor(agentAction(state, 0).score(action));
+    }, observedStateAction);
+  };
+
+
+  var getPosterior = function(world, prior, observedStateAction, repeatObservations) {
+    var Infer = Enumerate;
+    var priorUtilityTable = prior.utility;
+    var priorDiscounting = prior.discounting;
+    var priorAlpha = prior.alpha;
+
+    return Infer(function() {
+      var utilityTable = priorUtilityTable();
+      var discounting = priorDiscounting();
+      var alpha = priorAlpha();
+
+      var agent = makeMDPAgent({
+        utility: _makeRestaurantUtilityFunction(world, utilityTable),
+        alpha: alpha,
+        discount: discounting.discount,
+        sophisticatedOrNaive: discounting.sophisticatedOrNaive
+      }, world);
+      var agentAction = agent.act;
+
+      factorSequence(agentAction, observedStateAction);
+
+      if (!_.isUndefined(repeatObservations)) {
+        repeat(repeatObservations, function() {
+          factorSequence(agentAction, observedStateAction);
+        });
+      }
+
+      var vegMinusDonut = sum(utilityTable['Veg']) - sum(utilityTable['Donut N']);
+      var donutNGreaterDonutS = sum(utilityTable['Donut S']) < sum(utilityTable['Donut N']);
+
+      var dis = function(d) {
+        return 1 / (1 + discounting.discount * d);
+      };
+      var disUDonut = function(d) {
+        return dis(d) * utilityTable['Donut N'][0] + dis(d + 1) * utilityTable['Donut N'][1];
+      };
+      var disUVeg = function(d) {
+        return dis(d) * utilityTable['Veg'][0] + dis(d + 1) * utilityTable['Veg'][1];
+      };
+      var donutTempting = (disUDonut(4) < disUVeg(6)) && (disUDonut(0) > disUVeg(2));
+
+      return {
+        utility: utilityTable,
+        discount: discounting.discount,
+        alpha: alpha,
+        sophisticatedOrNaive: discounting.sophisticatedOrNaive,
+        vegMinusDonut: vegMinusDonut,
+        donutNGreaterDonutS: donutNGreaterDonutS,
+        timeCost: utilityTable.timeCost,
+        donutTempting: donutTempting
+      };
+    });
+  };
+
+  return { getPosterior };
+};
