@@ -56,7 +56,7 @@ var makeRestaurantSearchMDPOptions = function(options_) {
 
   var options = options_ || {};
 
-  var features = [
+  var grid = [
     ['#', ' ', ' ', '#'],
     [C, ' ', ' ', '#'],
     ['#', ' ', '#', '#'],
@@ -67,10 +67,7 @@ var makeRestaurantSearchMDPOptions = function(options_) {
     ['#', '#', '#', E]
   ];
 
-  return extend(options, {
-    gridFeatures: features,
-    noReverse: true
-  });
+  return extend(options, { grid, noReverse: true });
 };
 
 // start state for restaurant search pomdp

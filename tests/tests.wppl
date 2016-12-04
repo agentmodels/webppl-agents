@@ -16,7 +16,7 @@ var result = {
       var E = { name: 'East' };
       var ___ = ' ';
 
-      var gridFeatures = [
+      var grid = [
         [___, ___, ___, ___, ___],
         [___, '#', ___, ___, ___],
         [___, '#',  W , '#',  E ],
@@ -26,7 +26,7 @@ var result = {
 
       var startingLocation = [0, 1];
 
-      var mdp = makeGridWorldMDP({ gridFeatures, startingLocation });
+      var mdp = makeGridWorldMDP({ grid, startingLocation });
 
       return mdp !== null;
     })()
@@ -71,7 +71,7 @@ var result = {
       var V = { name : 'Veg' };
       var N = { name : 'Noodle' };
 
-      var gridFeatures = [
+      var grid = [
         ['#', '#', '#', '#',  V , '#'],
         ['#', '#', '#', ___, ___, ___],  
         ['#', '#', DN , ___, '#', ___],
@@ -83,7 +83,7 @@ var result = {
       ];
 
       var pomdp = makeGridWorldPOMDP({
-        gridFeatures,
+        grid,
         noReverse: true,
         maxTimeAtRestaurant: 2,
         startingLocation: [3, 1],
@@ -104,14 +104,14 @@ var result = {
         var W = { name: 'West' };
         var E = { name: 'East' };
         var ___ = ' ';
-        var gridFeatures = [
+        var grid = [
           [___, ___, ___, ___, ___],
           [___, '#', ___, ___, ___],
           [___, '#',  W , '#',  E ],
           [___, ___, ___, ___, ___],
           [ H ,  H ,  H ,  H ,  H ]
         ];
-        return makeGridWorldMDP(_.assign({ gridFeatures }, options));
+        return makeGridWorldMDP(_.assign({ grid }, options));
       };
       ///
 
@@ -158,7 +158,7 @@ var result = {
       var V = { name : 'Veg' };
       var N = { name : 'Noodle' };
 
-      var gridFeatures = [
+      var grid = [
         ['#', '#', '#', '#',  V , '#'],
         ['#', '#', '#', ___, ___, ___],  
         ['#', '#', DN , ___, '#', ___],
@@ -170,7 +170,7 @@ var result = {
       ];
 
       var pomdp = makeGridWorldPOMDP({
-        gridFeatures,
+        grid,
         noReverse: true,
         maxTimeAtRestaurant: 2,
         startingLocation: [3, 1],
@@ -237,14 +237,14 @@ var result = {
         var W = { name: 'West' };
         var E = { name: 'East' };
         var ___ = ' ';
-        var gridFeatures = [
+        var grid = [
           [___, ___, ___, ___, ___],
           [___, '#', ___, ___, ___],
           [___, '#',  W , '#',  E ],
           [___, ___, ___, ___, ___],
           [ H ,  H ,  H ,  H ,  H ]
         ];
-        return makeGridWorldMDP(_.assign({ gridFeatures }, options));
+        return makeGridWorldMDP(_.assign({ grid }, options));
       };
       ///
 
@@ -299,7 +299,7 @@ var result = {
       var V = { name : 'Veg' };
       var N = { name : 'Noodle' };
 
-      var gridFeatures = [
+      var grid = [
         ['#', '#', '#', '#',  V , '#'],
         ['#', '#', '#', ___, ___, ___],  
         ['#', '#', DN , ___, '#', ___],
@@ -311,7 +311,7 @@ var result = {
       ];
 
       var pomdp = makeGridWorldPOMDP({
-        gridFeatures,
+        grid,
         noReverse: true,
         maxTimeAtRestaurant: 2,
         startingLocation: [3, 1],
@@ -553,7 +553,7 @@ var result = {
       var V = { name : 'Veg' };
       var N = { name : 'Noodle' };
 
-      var gridFeatures = [
+      var grid = [
         ['#', '#', '#', '#',  V , '#'],
         ['#', '#', '#', ___, ___, ___],
         ['#', '#', DN , ___, '#', ___],
@@ -565,7 +565,7 @@ var result = {
       ];
 
       var mdp = makeGridWorldMDP({
-        gridFeatures,
+        grid,
         noReverse: true,
         maxTimeAtRestaurant: 2,
         startingLocation: [3, 1],

@@ -208,8 +208,8 @@ var makeGridWorldMDP = function(options) {
   var options = extend(defaults, options);
 
   map(function(el) {
-    assert.ok(_.isString(el) || _.isString(el.name), 'gridFeatures is invalid')
-  }, _.flatten(options.gridFeatures));
+    assert.ok(_.isString(el) || _.isString(el.name), 'grid is invalid')
+  }, _.flatten(options.grid));
 
   assert.ok(options.totalTime >= 1,
             'totalTime is invalid');
@@ -220,8 +220,8 @@ var makeGridWorldMDP = function(options) {
 
   var world = (
     (options.transitionNoiseProbability == 0) ?
-    makeGridWorldDeterministic(options.gridFeatures, options) :
-    makeNoisyGridworld(options.gridFeatures, options, options.transitionNoiseProbability));
+    makeGridWorldDeterministic(options.grid, options) :
+    makeNoisyGridworld(options.grid, options, options.transitionNoiseProbability));
 
   var startState = {
     loc: options.startingLocation,
