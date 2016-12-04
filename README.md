@@ -1,6 +1,6 @@
 # webppl-agents
 
-This package provides constructors for MDP and POMDP agents, for grid worlds and bandits, and a function for visualizing bandits:
+This package provides constructors for MDP and POMDP agents, for gridworld and bandit environments, and a function for visualizing gridworlds:
 
 - Environments:
   - [`makeGridWorldMDP`](https://github.com/agentmodels/webppl-agents/blob/master/src/environments/makeGridWorldMDP.wppl)
