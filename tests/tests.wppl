@@ -24,9 +24,9 @@ var result = {
         [ H ,  H ,  H ,  H ,  H ]
       ];
 
-      var startingLocation = [0, 1];
+      var start = [0, 1];
 
-      var mdp = makeGridWorldMDP({ grid, startingLocation });
+      var mdp = makeGridWorldMDP({ grid, start });
 
       return mdp !== null;
     })()
@@ -86,7 +86,7 @@ var result = {
         grid,
         noReverse: true,
         maxTimeAtRestaurant: 2,
-        startingLocation: [3, 1],
+        start: [3, 1],
         totalTime: 11
       });
 
@@ -118,7 +118,7 @@ var result = {
       // Set up world
 
       var mdp = makeHikeMDP({
-        startingLocation: [0, 1],
+        start: [0, 1],
         totalTime: 13,
         transitionNoiseProbability: 0.1  // <- NEW
       });
@@ -173,7 +173,7 @@ var result = {
         grid,
         noReverse: true,
         maxTimeAtRestaurant: 2,
-        startingLocation: [3, 1],
+        start: [3, 1],
         totalTime: 11
       });
       ///
@@ -251,7 +251,7 @@ var result = {
       // Set up world
 
       var mdp = makeHikeMDP({
-        startingLocation: [0, 1],
+        start: [0, 1],
         totalTime: 13,
         transitionNoiseProbability: 0.1  // <- NEW
       });
@@ -314,7 +314,7 @@ var result = {
         grid,
         noReverse: true,
         maxTimeAtRestaurant: 2,
-        startingLocation: [3, 1],
+        start: [3, 1],
         totalTime: 11
       });
 
@@ -568,7 +568,7 @@ var result = {
         grid,
         noReverse: true,
         maxTimeAtRestaurant: 2,
-        startingLocation: [3, 1],
+        start: [3, 1],
         totalTime: 11
       });
 

@@ -201,7 +201,7 @@ var makeGridWorldMDP = function(options) {
     noReverse: false,
     maxTimeAtRestaurant: 1,
     transitionNoiseProbability: 0,
-    startingLocation: [0, 0],
+    start: [0, 0],
     totalTime: 2
   };
 
@@ -215,8 +215,8 @@ var makeGridWorldMDP = function(options) {
             'totalTime is invalid');
   assert.ok(options.transitionNoiseProbability <= 1,
             'transitionNoiseProbability is invalid');
-  assert.ok(options.startingLocation.length == 2,
-            'startingLocation is invalid');
+  assert.ok(options.start.length == 2,
+            'start is invalid');
 
   var world = (
     (options.transitionNoiseProbability == 0) ?
@@ -224,7 +224,7 @@ var makeGridWorldMDP = function(options) {
     makeNoisyGridworld(options.grid, options, options.transitionNoiseProbability));
 
   var startState = {
-    loc: options.startingLocation,
+    loc: options.start,
     terminateAfterAction: false,
     timeLeft: options.totalTime
   };
