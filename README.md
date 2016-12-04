@@ -1,35 +1,42 @@
 # webppl-agents
 
-Webppl library with agents for solving MDPs and POMDPs. JS library for displaying Gridworld. 
+This package provides constructors for MDP and POMDP agents, for grid worlds and bandits, and a function for visualizing bandits:
+
+- Environments:
+  - [`makeGridWorldMDP`](https://github.com/agentmodels/webppl-agents/blob/master/src/environments/makeGridWorldMDP.wppl)
+  - [`makeBanditPOMDP`](https://github.com/agentmodels/webppl-agents/blob/master/src/environments/makeBanditPOMDP.wppl)
+  - [`makeGridWorldPOMDP`](https://github.com/agentmodels/webppl-agents/blob/master/src/environments/makeGridWorldPOMDP.wppl)
+- Agents:
+  - [`makeMDPAgent`](https://github.com/agentmodels/webppl-agents/blob/master/src/agents/makeMDPAgent.wppl) + [`simulateMDP`](https://github.com/agentmodels/webppl-agents/blob/master/src/simulation/simulateMDP.wppl)
+  - [`makePOMDPAgent`](https://github.com/agentmodels/webppl-agents/blob/master/src/agents/makePOMDPAgent.wppl) + [`simulatePOMDP`](https://github.com/agentmodels/webppl-agents/blob/master/src/simulation/simulatePOMDP.wppl)
+- Visualization:
+  - [`GridWorld.draw`](https://github.com/agentmodels/webppl-agents/blob/master/src/visualization/gridworld.js) (or `viz.gridworld`)
 
 ## Installation
 
-```
-sh install.sh
-```
-If `npm link` doesn't work due to permissions, you can use sudo or [follow this](http://justjs.com/posts/npm-link-developing-your-own-npm-modules-without-tears). 
+To globally install `webppl-agents`, run:
 
-Note that this links several repositories of webppl packages to your global npm package list. 
+    mkdir -p ~/.webppl
+    npm install --prefix ~/.webppl webppl-agents
 
-##Running from the command line 
-To run purely on the command line we need to require the package webppl-dp:
-```
-webppl --require webppl-dp --require . examples/hyperbolic/generative_examples.wppl
-```
+This may print warnings (`npm WARN ENOENT`...) which can be ignored.
 
+To upgrade to the latest version, run:
 
-## Running in the browser
+    npm install --prefix ~/.webppl webppl-agents --force
 
-Running a webppl script in the browser allows use of `GridWorld.draw` for easier debugging of agents. To do so, do we first have to install webppl from source and link it to node. 
+## Usage
 
-Then we can compile webppl and webppl-gridworld together and run your script.
+Once installed, you can make `json.read` and `json.write` available to `program.wppl` by running:
 
-```
-sh compile.sh examples/hyperbolic/generative_examples.wppl
-```
+    webppl --require webppl-agents program.wppl
 
-To just run your script without compiling (if there have been no changes to webppl-agents) we can do:
+## Testing
 
-```
-sh run.sh myscript.webppl
-```
+Run the included test using:
+
+    webppl --require webppl-dp --require . tests/tests.wppl
+
+## License
+
+MIT
