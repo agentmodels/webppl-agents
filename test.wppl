@@ -389,7 +389,7 @@ var result = {
     (function(){
       var numberOfTrials = 1;
       var armToPrizeDist = 'xxx';
-      return makeBanditStartState(numberOfTrials, armToPrizeDist)
+      return makeBanditStartState(numberOfTrials, armToPrizeDist) != null;
     })()
   ],
 
@@ -436,7 +436,7 @@ var result = {
       var params = extend(baseParams, { priorBelief });
       var agent = makeBanditAgent(params, bandit, 'belief');
 
-      return simulatePOMDP(startState, world, agent, 'stateAction');
+      return simulatePOMDP(startState, world, agent, 'stateAction') != null;
       
     })()
   ],
@@ -502,7 +502,7 @@ var result = {
       var outputDist = inferBandit(bandit, baseAgentParams, prior, observations,
                                    'offPolicy', 0, 'beliefDelay');
 
-      return outputDist;
+      return outputDist != null;
     })()
   ],
 
