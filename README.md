@@ -10,7 +10,7 @@ This package provides constructors for MDP and POMDP agents, for grid worlds and
   - [`makeMDPAgent`](https://github.com/agentmodels/webppl-agents/blob/master/src/agents/makeMDPAgent.wppl) + [`simulateMDP`](https://github.com/agentmodels/webppl-agents/blob/master/src/simulation/simulateMDP.wppl)
   - [`makePOMDPAgent`](https://github.com/agentmodels/webppl-agents/blob/master/src/agents/makePOMDPAgent.wppl) + [`simulatePOMDP`](https://github.com/agentmodels/webppl-agents/blob/master/src/simulation/simulatePOMDP.wppl)
 - Visualization:
-  - [`GridWorld.draw`](https://github.com/agentmodels/webppl-agents/blob/master/src/visualization/gridworld.js) (also available as `viz.gridworld` if [webppl-viz](github.com/probmods/webppl-viz) is used)
+  - [`GridWorld.draw`](https://github.com/agentmodels/webppl-agents/blob/master/src/visualization/gridworld.js) (also available as `viz.gridworld` if [webppl-viz](https://github.com/probmods/webppl-viz) is used)
 
 ## Installation
 
@@ -25,7 +25,7 @@ To upgrade to the latest version, run:
 
     npm install --prefix ~/.webppl webppl-agents --force
 
-For the agent functions, you will also need to install [webppl-dp](github.com/stuhlmueller/webppl-dp).
+For the agent functions, you will also need to install [webppl-dp](https://github.com/stuhlmueller/webppl-dp).
 
 ## Usage
 
