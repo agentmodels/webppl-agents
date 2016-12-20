@@ -253,17 +253,24 @@ function draw(world, additional) {
         agentPath.remove()
 
         var currentLocation;
-        if (idx < trajectory.length-1) {
+
+        if (idx < trajectory.length-1 && 
+            coords[idx]   != "break"  &&
+            coords[idx+1] != "break") {
           currentLocation = [
             (1-frac) * coords[idx][0] + frac * coords[idx+1][0],
             (1-frac) * coords[idx][1] + frac * coords[idx+1][1]
           ];
-        } else { 
+        } else if (coords[idx] == "break") { 
+          currentLocation = coords[idx-1];
+        } else {
           currentLocation = coords[idx];
         }
 
-        var lodashTake = function(ar,n){return ar.slice(0,n);};
-        var currentPath = lodashTake(coords, idx+1);
+        var i;
+        for (i=idx; i>=0 && coords[i] != "break"; i -= 1) { } 
+
+        var currentPath = coords.slice(i+1, idx+1);
         currentPath.push(currentLocation);
 
         if (paths) {
