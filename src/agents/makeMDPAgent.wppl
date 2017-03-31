@@ -1,6 +1,6 @@
 var hasProperties = function(object, listProperties) {
   assert.ok(_.isObject(object) && _.isArray(listProperties), 'fail hasProperties');
-  return _.all(map(
+  return _.every(map(
     function(property) {
       return _.has(object, property);
     }, listProperties));
